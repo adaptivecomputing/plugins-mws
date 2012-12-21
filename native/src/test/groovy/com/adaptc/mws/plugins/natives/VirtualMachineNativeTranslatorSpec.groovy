@@ -8,13 +8,9 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 
 @TestFor(VirtualMachineNativeTranslator)
 @TestMixin(PluginUnitTestMixin)
-class VirtualMachineTranslatorSpec extends Specification {
+class VirtualMachineNativeTranslatorSpec extends Specification {
 	def "Wiki to domain"() {
 		given:
-		GenericNativeTranslator genericNativeTranslator = Mock()
-		translator.genericNativeTranslator = genericNativeTranslator
-		IVirtualMachineRMService virtualMachineRMService = Mock()
-		translator.virtualMachineRMService = virtualMachineRMService
 		def plugin = mockPlugin(NativePlugin)
 		
 		and:
