@@ -34,11 +34,6 @@ subprojects { proj ->
 	configurations.all {
 		resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
 	}
-	repositories {
-		maven {
-			url "https://oss.sonatype.org/content/groups/public"
-		}
-	}
 
 	/*
 	 * Deployment and JAR files
@@ -58,13 +53,6 @@ subprojects { proj ->
 			}
 		}
 	}
-
-	repositories {
-		mavenCentral()
-	}
-
-	sourceCompatibility = "1.6"
-	targetCompatibility = "1.6"
 
 	task sourcesJar(type: Jar) {
 		classifier = 'sources'
