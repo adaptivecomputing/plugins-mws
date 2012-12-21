@@ -1,0 +1,8 @@
+final KNOWN_DIRS = [
+	"wrapper", "build", "out", "buildSrc"
+]
+def subProjectDirs = rootDir.listFiles().findAll {
+	it.isDirectory() && !it.name.startsWith(".") && !KNOWN_DIRS.contains(it.name)
+}
+logger.debug("Using subprojects of ${subProjectDirs*.name}")
+include(subProjectDirs*.name as String[])

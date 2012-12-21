@@ -1,0 +1,7 @@
+repositories {
+
+}
+
+dependencies {
+	// The other dependencies in the "lib" directory are included here automatically
+}

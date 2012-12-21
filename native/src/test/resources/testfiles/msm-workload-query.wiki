@@ -1,0 +1,12 @@
+# MSM Workload Query results:
+moab.15 TASKLIST=vm1 APPRESPONSETIME=1.75 IWD=/tmp EXEC=/tmp/test.sh WCLIMIT=8639999 UNAME=adaptive STARTTIME=1311878230 TASKS=1 STATE=Running GNAME=adaptive
+moab.17 TASKLIST=vm5 APPRESPONSETIME=1.75 IWD=/tmp EXEC=/tmp/test.sh WCLIMIT=8639999 UNAME=adaptive STARTTIME=1311874689 TASKS=1 STATE=Running GNAME=adaptive
+moab.18 TASKLIST=vm3 APPRESPONSETIME=1.75 IWD=/tmp EXEC=/tmp/test.sh WCLIMIT=8639999 UNAME=adaptive STARTTIME=1311874730 TASKS=1 STATE=Running GNAME=adaptive
+moab.20 IWD=/tmp EXEC=/opt/moab/spool/moab.job.Nl1sxJ WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=32
+moab.21 IWD=/tmp EXEC=/opt/moab/spool/moab.job.mLd99B WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=32
+moab.22 IWD=/tmp EXEC=/opt/moab/spool/moab.job.Hj6a9S WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=32
+moab.23 IWD=/tmp EXEC=/opt/moab/spool/moab.job.ssVf8L WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=32
+moab.24 IWD=/tmp EXEC=/opt/moab/spool/moab.job.jUewjX WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=32
+moab.25 IWD=/tmp EXEC=/opt/moab/spool/moab.job.AkSgu9 WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=1
+moab.26 IWD=/tmp EXEC=/opt/moab/spool/moab.job.bpZyIv WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=1
+moab.27 IWD=/tmp EXEC=/opt/moab/spool/moab.job.odnfyW WCLIMIT=8639999 UNAME=adaptive GNAME=adaptive STATE=Idle TASKS=1

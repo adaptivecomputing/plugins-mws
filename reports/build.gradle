@@ -1,0 +1,12 @@
+repositories {
+	// Insert additional repositories here for dependencies (if needed)
+	/*
+	maven {
+		url "https://example.com/maven2/repo"
+	}
+	*/
+}
+
+dependencies {
+	//Insert extra dependencies here (if needed)
+}
