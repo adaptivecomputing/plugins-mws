@@ -6,7 +6,7 @@ buildscript {
 		}
 	}
 	dependencies {
-		classpath ('com.adaptc.gradle:moab-sdk:0.6-SNAPSHOT')
+		classpath ('com.adaptc.gradle:moab-sdk:0.6')
 	}
 	// check for updates every build
 	configurations.all {
