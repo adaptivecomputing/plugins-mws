@@ -1,5 +1,6 @@
 buildscript {
 	repositories {
+		mavenCentral()
 		maven {
 			url "https://oss.sonatype.org/content/groups/public"
 		}
@@ -54,16 +55,6 @@ subprojects { proj ->
 		}
 	}
 
-	task sourcesJar(type: Jar) {
-		classifier = 'sources'
-		from sourceSets.main.allSource
-	}
-
-	task javadocJar(type: Jar, dependsOn:javadoc) {
-		classifier = 'javadoc'
-		from javadoc.destinationDir
-	}
-
 	artifacts {
 		archives jar
 		archives sourcesJar
@@ -95,8 +86,8 @@ subprojects { proj ->
 
 			pom {
 				project {
-					name proj.projectName
-					description proj.projectDescription
+					name moabSdk.pluginProject.title
+					description moabSdk.pluginProject.description
 					licenses {
 						license {
 							name "The Apache Software License, Version 2.0"
