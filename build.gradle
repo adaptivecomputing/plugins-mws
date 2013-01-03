@@ -6,7 +6,7 @@ buildscript {
 		}
 	}
 	dependencies {
-		classpath ('com.adaptc.gradle:moab-sdk:0.6')
+		classpath ('com.adaptc.gradle:moab-sdk:0.7-SNAPSHOT')
 	}
 	// check for updates every build
 	configurations.all {
@@ -61,23 +61,19 @@ subprojects { proj ->
 		archives javadocJar
 	}
 
-	def isSnapshot = proj.version.contains("-SNAPSHOT")
-
 	signing {
-		if (!isSnapshot)
-			sign configurations.archives
+		required { !proj.version.endsWith("-SNAPSHOT") }
+		sign configurations.archives
 	}
 
 	uploadArchives {
-		def repo = "oss-" + (isSnapshot ? "snapshots" : "releases")
+		def repo = "oss-" + (true ? "snapshots" : "releases")
 		def repoUrl = rootProject."${repo}.url"
 		def username = rootProject."${repo}.username"
 		def password = rootProject."${repo}.password"
 
 		repositories.mavenDeployer {
-			if (!isSnapshot) {
-				beforeDeployment { deployment -> signing.signPom(deployment) }
-			}
+			beforeDeployment { deployment -> signing.signPom(deployment) }
 
 			configuration = configurations.deployerJars
 			repository(url:repoUrl) {
