@@ -26,12 +26,12 @@ class UtilizationReportTranslator {
 		else
 			dataCenters[dataCenter].memoryMedium++
 
-		if (memoryUtilLevel == UtilizationLevel.LOW  && cpuUtilLevel == UtilizationLevel.LOW)
-			dataCenters[dataCenter].bothLow++
-		else if (memoryUtilLevel == UtilizationLevel.HIGH  && cpuUtilLevel == UtilizationLevel.HIGH)
-			dataCenters[dataCenter].bothHigh++
-		else if (memoryUtilLevel == UtilizationLevel.MEDIUM  && cpuUtilLevel == UtilizationLevel.MEDIUM)
-			dataCenters[dataCenter].bothMedium++
+		if (memoryUtilLevel == UtilizationLevel.HIGH  || cpuUtilLevel == UtilizationLevel.HIGH)
+			dataCenters[dataCenter].high++
+		else if (memoryUtilLevel == UtilizationLevel.MEDIUM  || cpuUtilLevel == UtilizationLevel.MEDIUM)
+			dataCenters[dataCenter].medium++
+		else
+			dataCenters[dataCenter].low++
 
 		dataCenters[dataCenter].total++
 	}
@@ -78,9 +78,9 @@ class UtilizationReportTranslator {
 				memoryLow: 0d,
 				memoryMedium: 0d,
 				memoryAverage: 0d,
-				bothHigh: 0d,
-				bothLow:0d,
-				bothMedium: 0d,
+				high: 0d,
+				low:0d,
+				medium: 0d,
 				total: 0,
 		]
 	}

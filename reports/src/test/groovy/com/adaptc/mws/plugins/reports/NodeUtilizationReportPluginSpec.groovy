@@ -188,9 +188,9 @@ class NodeUtilizationReportPluginSpec extends Specification {
 			assert result.data[ALL_DATACENTERS].memoryLow==0
 			assert result.data[ALL_DATACENTERS].memoryMedium==0
 			assert result.data[ALL_DATACENTERS].memoryAverage==0
-			assert result.data[ALL_DATACENTERS].bothHigh==0
-			assert result.data[ALL_DATACENTERS].bothLow==0
-			assert result.data[ALL_DATACENTERS].bothMedium==0
+			assert result.data[ALL_DATACENTERS].high==0
+			assert result.data[ALL_DATACENTERS].low==0
+			assert result.data[ALL_DATACENTERS].medium==0
 			return true
 		}) >> new MoabRestResponse(null, null, false)
 		0 * _._
@@ -263,9 +263,9 @@ class NodeUtilizationReportPluginSpec extends Specification {
 			assert result.data[ALL_DATACENTERS].memoryLow==2
 			assert result.data[ALL_DATACENTERS].memoryMedium==2
 			assert result.data[ALL_DATACENTERS].memoryAverage==51.428571428571428571428571428571
-			assert result.data[ALL_DATACENTERS].bothHigh==1
-			assert result.data[ALL_DATACENTERS].bothLow==1
-			assert result.data[ALL_DATACENTERS].bothMedium==1
+			assert result.data[ALL_DATACENTERS].high==5
+			assert result.data[ALL_DATACENTERS].low==1
+			assert result.data[ALL_DATACENTERS].medium==1
 			assert result.data["myDC"].total==1
 			assert result.data["myDC"].cpuHigh==0
 			assert result.data["myDC"].cpuLow==0
@@ -275,9 +275,9 @@ class NodeUtilizationReportPluginSpec extends Specification {
 			assert result.data["myDC"].memoryLow==0
 			assert result.data["myDC"].memoryMedium==1
 			assert result.data["myDC"].memoryAverage==25
-			assert result.data["myDC"].bothHigh==0
-			assert result.data["myDC"].bothLow==0
-			assert result.data["myDC"].bothMedium==1
+			assert result.data["myDC"].high==0
+			assert result.data["myDC"].low==0
+			assert result.data["myDC"].medium==1
 			return true
 		}) >> new MoabRestResponse(null, null, true)
 		0 * _._
@@ -351,9 +351,9 @@ class NodeUtilizationReportPluginSpec extends Specification {
 			assert result.data[ALL_DATACENTERS].memoryLow==2
 			assert result.data[ALL_DATACENTERS].memoryMedium==2
 			assert result.data[ALL_DATACENTERS].memoryAverage==51.428571428571428571428571428571
-			assert result.data[ALL_DATACENTERS].bothHigh==1
-			assert result.data[ALL_DATACENTERS].bothLow==1
-			assert result.data[ALL_DATACENTERS].bothMedium==1
+			assert result.data[ALL_DATACENTERS].high==5
+			assert result.data[ALL_DATACENTERS].low==1
+			assert result.data[ALL_DATACENTERS].medium==1
 			assert result.data["myDC"].total==1
 			assert result.data["myDC"].cpuHigh==0
 			assert result.data["myDC"].cpuLow==0
@@ -363,9 +363,9 @@ class NodeUtilizationReportPluginSpec extends Specification {
 			assert result.data["myDC"].memoryLow==0
 			assert result.data["myDC"].memoryMedium==1
 			assert result.data["myDC"].memoryAverage==25
-			assert result.data["myDC"].bothHigh==0
-			assert result.data["myDC"].bothLow==0
-			assert result.data["myDC"].bothMedium==1
+			assert result.data["myDC"].high==0
+			assert result.data["myDC"].low==0
+			assert result.data["myDC"].medium==1
 			return true
 		}) >> new MoabRestResponse(null, null, true)
 		0 * _._
