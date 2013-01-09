@@ -1,9 +1,12 @@
 package com.adaptc.mws.plugins.reports
 
-import com.adaptc.mws.plugins.*
+import com.adaptc.mws.plugins.AbstractPlugin
+import com.adaptc.mws.plugins.IMoabRestService
+import com.adaptc.mws.plugins.IPluginDatastoreService
+import com.adaptc.mws.plugins.NodeReportState
 import net.sf.json.JSONNull
 
-import static com.adaptc.mws.plugins.PluginConstants.*
+import static com.adaptc.mws.plugins.PluginConstants.METRIC_CPU_UTILIZATION
 
 class VMUtilizationReportPlugin extends AbstractPlugin {
 	IPluginDatastoreService pluginDatastoreService
@@ -41,51 +44,64 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 	public void poll() {
 		log.debug("Verifying that the ${VM_REPORT_NAME} report is created")
-		if (moabRestService.get(REPORTS_URL+VM_REPORT_NAME).response.status==404) {
+		if (moabRestService.get(REPORTS_URL + VM_REPORT_NAME).response.status == 404) {
 			log.debug("Report does not exist, creating")
-			def createResponse = moabRestService.post(REPORTS_URL, data:getCreateJsonMap())
+			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
 			if (!createResponse.success) {
+				logEvent(message(code: "vmUtilizationReportPlugin.could.not.create.report", args: [VM_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
+						"VMReportCreationFailure",
+						"error",
+						VM_REPORT_NAME,
+						"reports"
+				)
 				log.error("Could not create report '${VM_REPORT_NAME}': ${createResponse.data?.messages?.join(", ")}")
 				return
 			}
 		}
 
 		log.debug("Determining the version of MWS being used")
-		def apiVersion
-		def metricsField
-		def lastUpdatedDateField
-		def nameField
-		if (grailsApplication.metadata.'app.version'?.startsWith("7.1")) {
-			apiVersion = 1
-			nameField = "id"
-			metricsField = "genericMetrics"
-			lastUpdatedDateField = "lastUpdateDate"
-		} else {
-			apiVersion = 2
-			nameField = "name"
-			metricsField = "metrics"
-			lastUpdatedDateField = "lastUpdatedDate"
+		def apiVersion = 1
+		def metricsField = "genericMetrics"
+		def lastUpdatedDateField = "lastUpdateDate"
+		def nameField = "id"
+		def hostField = "node.id"
+		def stateField = "state"
+		def nodesResponse
+
+		if (!grailsApplication.metadata.'app.version'?.startsWith("7.1")) {
+			nodesResponse = moabRestService.get(NODES_URL, params: [
+					'api-version': 2,
+					fields: "attributes.MOAB_DATACENTER,name",
+			])
+
+			if (nodesResponse.success) {
+				apiVersion = 2
+				nameField = "name"
+				metricsField = "metrics"
+				lastUpdatedDateField = "lastUpdatedDate"
+				hostField = "host.name"
+				stateField = "states.state"
+			} else {
+				log.warn("Node query using api version 2 failed resulted in error, using api version 1 which does not include data centers.  Error messages are : " + response.data?.messages?.join(", "))
+			}
+
 		}
 
 		log.debug("Querying the CPU and memory utilization values from the vms REST API using API version ${apiVersion}")
 		def response = moabRestService.get(VMS_URL, params:[
 				'api-version':apiVersion,
-				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},host.name,"+
-						"${lastUpdatedDateField},states.state,${nameField},"+
+				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},${hostField},"+
+						"${lastUpdatedDateField},${stateField},${nameField},"+
 						(apiVersion==1?'availableMemory,totalMemory':'resources.memory'),
 			])
-		if (!response.success) {
-			log.error("Vms query resulted in error, not creating samples: "+response.data?.messages?.join(", "))
-			return
-		}
-		
-		def nodesResponse = moabRestService.get(NODES_URL, params:[
-				'api-version':apiVersion,
-				fields: "attributes.MOAB_DATACENTER,${nameField}",
-		])
 
-		if (!nodesResponse.success) {
-			log.error("Nodes query resulted in error, not creating samples: "+nodesResponse.data?.messages?.join(", "))
+		if (!response.success) {
+			logEvent(message(code: "vmUtilizationReportPlugin.vm.query.error", args : [apiVersion, response.data?.messages?.join(", ")]),
+					"VMQueryFailure",
+					"error",
+					null
+			)
+			log.error("Vms query resulted in error, not creating samples: " + response.data?.messages?.join(", "))
 			return
 		}
 
@@ -93,39 +109,100 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		def data = pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
 
 		response.data.results.each {
-			//Include all datacenters regardless if we skip the vms in them or not
 			String vmName = it?.getAt(nameField)
-			String hostName = it?.host?.name
-
-			if (!hostName || hostName instanceof JSONNull) {
-				log.warn("Not including VM ${vmName} in the vm-utilization report because its host name is null.")
-				return
-			}
-
-			def dataCenter = nodesResponse.data.results.find{it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER
-			if(dataCenter && !dataCenters[dataCenter])
-				dataCenters[dataCenter] = utilizationReportTranslator.getDefaultSampleDatacenter()
-
-			def vmLastUpdatedTime = data.find{it.name == vmName}
-
-			if(vmLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
-				log.warn("Not including VM ${vmName} in the vm-utilization report because it hasn not been updated since the last poll at ${it[lastUpdatedDateField]}")
-				return
-			}
-
-			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, VM_LAST_UPDATED_COLLECTION,
-					vmName, [name:vmName, lastUpdatedDate: it[lastUpdatedDateField]])
-
-			if(!it?.states?.state || (it.states.state!=NodeReportState.RUNNING.toString() &&
-					it.states.state!=NodeReportState.BUSY.toString() && it.states.state!=NodeReportState.IDLE.toString())) {
-				log.warn("Not including VM ${vmName} in the vm-utilization report because it has a state of ${it.states.state} and the report shows only Idle, Busy, and Running vms")
-				return
-			}
-
 			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
+
+			NodeReportState state
+			Integer configuredMemory
+			Integer availableMemory
+			def dataCenter
+
+			if (apiVersion==1) {
+				state = NodeReportState.parse(it?.state)
+				configuredMemory = it?.totalMemory
+				availableMemory = it?.availableMemory
+			} else {
+				String hostName = it?.host?.name
+				state = NodeReportState.parse(it?.states?.state)
+				configuredMemory = it?.resources?.memory?.configured
+				availableMemory = it?.resources.memory?.available
+				if (!hostName || hostName instanceof JSONNull) {
+					log.warn("Not including VM ${vmName}'s dataCenter in the vm-utilization report because its host name is null.")
+				}
+				//Include all datacenters regardless if we skip the vms in them or not
+				dataCenter = nodesResponse.data.results.find{it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER
+				if(dataCenter && !dataCenters[dataCenter])
+					dataCenters[dataCenter] = utilizationReportTranslator.getDefaultSampleDatacenter()
+			}
+
+			if (!vmName || vmName instanceof JSONNull) {
+				logEvent(message(code:"vmUtilizationReportPlugin.vm.name.null", args:[vmName]),
+						"InvalidVirtualMachineProperties",
+						"warn",
+						vmName
+				)
+				log.warn("Not including VM ${vmName} in the vm-utilization report because its name is null.")
+				return
+			}
+
+			if (!state) {
+				logEvent(message(code:"vmUtilizationReportPlugin.vm.state.null", args:[vmName]),
+						"InvalidVirtualMachineProperties",
+						"warn",
+						vmName
+				)
+				log.warn("Not including VM ${vmName} in the vm-utilization report because its state is null.")
+				return
+			}
+
+			if (configuredMemory == null || configuredMemory instanceof JSONNull) {
+				logEvent(message(code:"vmUtilizationReportPlugin.vm.configuredMemory.null", args:[vmName]),
+						"InvalidVirtualMachineProperties",
+						"warn",
+						vmName
+				)
+				log.warn("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is null")
+				return
+			}
+
+			if(configuredMemory == 0) {
+				logEvent(message(code:"vmUtilizationReportPlugin.total.memory.zero.message", args:[vmName]),
+						"InvalidVirtualMachineProperties",
+						"error",
+						vmName
+				)
+				log.warn("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is 0")
+				return
+			}
+
+			if (availableMemory == null || availableMemory instanceof JSONNull) {
+				logEvent(message(code:"vmUtilizationReportPlugin.vm.availableMemory.null", args:[vmName]),
+						"InvalidVirtualMachineProperties",
+						"warn",
+						vmName
+				)
+				log.warn("Not including VM ${vmName} in the vm-utilization report because the available memory reported is null")
+				return
+			}
+
+			if (availableMemory == configuredMemory) {
+				logEvent(message(code:"vmUtilizationReportPlugin.available.equals.total.memory.message", args:[
+						vmName, availableMemory, configuredMemory
+				]),
+						"InvalidVirtualMachineProperties",
+						"warn",
+						vmName
+				)
+				log.warn("VM ${vmName} has available and total memory set to the same value")
+			}
 
 			// Make sure that the METRIC_CPU_UTILIZATION is not null
 			if (cpuUtils==null || cpuUtils instanceof JSONNull) {
+				logEvent(message(code:"vmUtilizationReportPlugin.vm.cpuUtils.null", args:[vmName]),
+						"InvalidVirtualMachineProperties",
+						"warn",
+						vmName
+				)
 				log.warn("Not including VM ${vmName} in the vm-utilization report because the CPU utilization is null")
 				return
 			}
@@ -139,48 +216,27 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				log.warn("VM ${vmName} has CPU utilization set to 0")
 			}
 
-			Integer realMemory
-			Integer availableMemory
-			if (apiVersion==1) {
-				realMemory = it?.totalMemory
-				availableMemory = it?.availableMemory
-			} else {
-				realMemory = it?.resources?.memory?.configured
-				availableMemory = it?.resources.memory?.available
-			}
-
-			if (realMemory == null || realMemory instanceof JSONNull) {
-				log.warn("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is null")
+			if(state!=NodeReportState.RUNNING && state != NodeReportState.BUSY && state != NodeReportState.IDLE) {
+				log.info("Not including VM ${vmName} in the vm-utilization report because it has a state of ${state} and the report shows only Idle, Busy, and Running vms")
 				return
 			}
 
-			if(realMemory == 0) {
-				logEvent(message(code:"vmUtilizationReportPlugin.total.memory.zero.message", args:[vmName]),
-						"InvalidVirtualMachineProperties",
-						"error",
-						vmName
-				)
-				log.warn("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is 0")
-				return
-			}
+			def vmLastUpdatedTime = data.find{it.name == vmName}
 
-			if (availableMemory == null || availableMemory instanceof JSONNull) {
-				log.warn("Not including VM ${vmName} in the vm-utilization report because the available memory reported is null")
-				return
-			}
-
-			if (availableMemory == realMemory) {
-				logEvent(message(code:"vmUtilizationReportPlugin.available.equals.total.memory.message", args:[
-						vmName, availableMemory, realMemory
-				]),
+			if(vmLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
+				logEvent(message(code:"vmUtilizationReportPlugin.vm.notUpdated", args:[vmName]),
 						"InvalidVirtualMachineProperties",
 						"warn",
 						vmName
 				)
-				log.warn("VM ${vmName} has available and total memory set to the same value")
+				log.warn("Not including VM ${vmName} in the vm-utilization report because it has not been updated since the last poll at ${it[lastUpdatedDateField]}")
+				return
 			}
 
-			Double memoryUtils = utilizationReportTranslator.calculateUtilization((double)realMemory,
+			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, VM_LAST_UPDATED_COLLECTION,
+					vmName, [name:vmName, lastUpdatedDate: it[lastUpdatedDateField]])
+
+			Double memoryUtils = utilizationReportTranslator.calculateUtilization((double)configuredMemory,
 					(double)availableMemory)
 
 			UtilizationLevel cpuUtilLevel = utilizationReportTranslator.getUtilizationLevel(cpuUtils,
@@ -246,7 +302,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		]
 	}
 
-	private void logEvent(String message, String type, String status, String objectId) {
+	private void logEvent(String message, String type, String status, String objectId, String objectType = "vm") {
 		def response = moabRestService.post("/rest/events") {
 			[
 					details:[
@@ -261,7 +317,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					facility:"reporting",
 					primaryObject:[
 							id:objectId,
-							type: "vm",
+							type: objectType,
 					],
 					sourceComponent:"VMUtilizationReportPlugin",
 					status:status
