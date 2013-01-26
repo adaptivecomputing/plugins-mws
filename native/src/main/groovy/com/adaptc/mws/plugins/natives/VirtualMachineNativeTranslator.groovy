@@ -7,13 +7,14 @@ import com.adaptc.mws.plugins.natives.utils.NativeNumberUtils
 import static com.adaptc.mws.plugins.PluginConstants.*
 
 class VirtualMachineNativeTranslator {
-	public VirtualMachineReport update(Map attrs) {
+	public VirtualMachineReport createReport(Map attrs) {
 		VirtualMachineReport vm = new VirtualMachineReport(attrs.id)
 		
 		vm.state = NodeReportState.parse(attrs.STATE)
 		vm.power = NodeReportPower.parse(attrs.POWER)
 		vm.timestamp = NativeDateUtils.parseSecondsToDate(attrs.UPDATETIME)
 		vm.host = attrs.CONTAINERNODE
+		vm.ipAddress = attrs.NETADDR
 		vm.resources[RESOURCE_PROCESSORS].total = NativeNumberUtils.parseInteger(attrs.CPROC)
 		vm.resources[RESOURCE_PROCESSORS].available = NativeNumberUtils.parseInteger(attrs.APROC)
 		vm.resources[RESOURCE_MEMORY].total = NativeNumberUtils.parseInteger(attrs.CMEMORY)

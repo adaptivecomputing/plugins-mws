@@ -122,7 +122,7 @@ class NativePlugin extends AbstractPlugin {
         def result = readURL(url)
         if (!hasError(result, true)) {
             return parseWiki(result.content).collect { Map attrs ->
-                jobNativeTranslator.update(attrs)
+                jobNativeTranslator.createReport(attrs)
             }
         }
         return []
@@ -136,9 +136,9 @@ class NativePlugin extends AbstractPlugin {
 		if (!hasError(result, true)) {
 			return parseWiki(result.content).collect { Map attrs ->
 				if (attrs.CONTAINERNODE)	// Only VMs have this attribute
-					return virtualMachineNativeTranslator.update(attrs)
+					return virtualMachineNativeTranslator.createReport(attrs)
 				else	// Default to a node
-					return nodeNativeTranslator.update(attrs)
+					return nodeNativeTranslator.createReport(attrs)
 			}
 		}
 		return []
@@ -151,7 +151,7 @@ class NativePlugin extends AbstractPlugin {
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return parseWiki(result.content).collect { Map attrs ->
-				nodeNativeTranslator.update(attrs)
+				nodeNativeTranslator.createReport(attrs)
 			}
 		}
 		return []
@@ -164,7 +164,7 @@ class NativePlugin extends AbstractPlugin {
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return parseWiki(result.content).collect { Map attrs ->
-				virtualMachineNativeTranslator.update(attrs)
+				virtualMachineNativeTranslator.createReport(attrs)
 			}
 		}
 		return []

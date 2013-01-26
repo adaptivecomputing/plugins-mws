@@ -36,7 +36,7 @@ class JobNativeTranslatorSpec extends Specification {
                 "DGRES=dgres;ENV=env;" +
                 "SUSPENDTIME=100;TASKLIST=n03,n04;TASKS=2;TASKPERNODE=2;" +
                 "UNAME=sam;WCLIMIT=2000"
-        JobReport job = translator.update(plugin.parseWiki([wiki]))
+        JobReport job = translator.createReport(plugin.parseWiki([wiki]))
 
         then:
         1 * genericNativeTranslator.getGenericMap("dgres") >> [RES1:1,RES2:2]

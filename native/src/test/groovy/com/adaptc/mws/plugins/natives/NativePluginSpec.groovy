@@ -214,8 +214,8 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getCluster()
 		
 		then:
-		(0..1) * virtualMachineNativeTranslator.update(vmAttrs) >> vm
-		(0..1) * nodeNativeTranslator.update(nodeAttrs) >> node
+		(0..1) * virtualMachineNativeTranslator.createReport(vmAttrs) >> vm
+		(0..1) * nodeNativeTranslator.createReport(nodeAttrs) >> node
 		result.size()==resultSize
 		
 		where:
@@ -251,7 +251,7 @@ class NativePluginSpec extends Specification {
         def result = plugin.getJobs()
 
         then:
-        calls * jobNativeTranslator.update({ it.wiki }) >> job
+        calls * jobNativeTranslator.createReport({ it.wiki }) >> job
         0 * _._
         result.size()==resultSize
 
@@ -287,7 +287,7 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getNodes()
 		
 		then:
-		calls * nodeNativeTranslator.update({ it.wiki }) >> node
+		calls * nodeNativeTranslator.createReport({ it.wiki }) >> node
 		0 * _._
 		result.size()==resultSize
 		
@@ -323,7 +323,7 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getVirtualMachines()
 		
 		then:
-		calls * virtualMachineNativeTranslator.update({ it.wiki }) >> vm
+		calls * virtualMachineNativeTranslator.createReport({ it.wiki }) >> vm
 		0 * _._
 		result.size()==resultSize
 		

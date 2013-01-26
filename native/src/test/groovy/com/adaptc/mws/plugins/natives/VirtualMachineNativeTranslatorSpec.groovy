@@ -29,7 +29,7 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 				";ADISK=512"+
 				";CPULOAD=1.2"+
 				";OS=linux"
-		VirtualMachineReport virtualMachine = translator.update(plugin.parseWiki([wiki]))
+		VirtualMachineReport virtualMachine = translator.createReport(plugin.parseWiki([wiki]))
 		
 		then:
 		0 * _._

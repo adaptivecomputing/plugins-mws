@@ -9,7 +9,7 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class JobNativeTranslator {
 	def genericNativeTranslator
 
-	JobReport update(Map attrs, boolean submit=false) {
+	JobReport createReport(Map attrs, boolean submit=false) {
 		JobReport job = new JobReport(attrs.id)
 		
 		job.account = attrs.ACCOUNT
@@ -71,6 +71,6 @@ class JobNativeTranslator {
 	JobReport create(Map attrs) {
 		//TASKS:1, WCLIMIT:8639999, IWD:/opt/moab/tools, UNAME:adaptive, NAME:moab.5, EXEC:/opt/moab/spool/moab.job.YWnZTy, GNAME:adaptive,
 		attrs.id = attrs.remove("NAME")
-		return update(attrs, true)
+		return createReport(attrs, true)
 	}
 }

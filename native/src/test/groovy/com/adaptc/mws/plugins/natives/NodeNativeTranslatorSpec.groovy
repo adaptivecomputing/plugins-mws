@@ -40,7 +40,7 @@ class NodeNativeTranslatorSpec extends Specification {
 				";RACK=4"+
 				";SLOT=2"+
 				";VARATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
-		NodeReport node = translator.update(plugin.parseWiki([wiki]))
+		NodeReport node = translator.createReport(plugin.parseWiki([wiki]))
 		
 		then:
 		1 * genericNativeTranslator.getGenericMap("ares") >> [res1:"1"]
@@ -95,7 +95,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		when:
 		def wiki = "node1 STATE=${NodeReportState.IDLE}" +
 				";UPDATETIME=${(time).toLong()}"
-		NodeReport node = translator.update(plugin.parseWiki([wiki]))
+		NodeReport node = translator.createReport(plugin.parseWiki([wiki]))
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null

@@ -9,7 +9,7 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class NodeNativeTranslator {
 	def genericNativeTranslator
 
-	public NodeReport update(Map attrs) {
+	public NodeReport createReport(Map attrs) {
 		NodeReport node = new NodeReport(attrs.id)
 		
 		if (attrs.STATE?.contains(":")) {
