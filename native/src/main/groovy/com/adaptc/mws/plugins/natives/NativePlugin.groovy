@@ -334,8 +334,8 @@ class NativePlugin extends AbstractPlugin {
 		def wikiLines = []
 		lines.each { String line ->
 			// Check for # for separation of wiki objects and check for escaped
-			if (!line || line.trim().isEmpty() || line =~ /^#/) {
-				// do nothing with empty commented (starting with #) lines
+			if (!line || line.trim().isEmpty() || line =~ /^#/ || line =~ /^SC=/) {
+				// do nothing with empty commented (starting with #) or status (SC=0) lines
 			} else if (line.contains("#"))	// Catch hashed lines
 				wikiLines.addAll(line.replaceAll(/\\#/, '{HASH}').split("#").collect { it.replaceAll(/\{HASH\}/, "#") })
 			else

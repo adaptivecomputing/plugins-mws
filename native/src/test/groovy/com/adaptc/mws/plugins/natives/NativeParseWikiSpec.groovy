@@ -467,4 +467,23 @@ class NativeParseWikiSpec extends Specification {
 		map.FEATURE=='feature1:feature2:feature 3'
 		map.VARATTR=='attr1:val1+attr 2+attr3:val 3'
 	}
+
+	def "Ignore status (SC) lines"() {
+		when:
+		def wikiStr = "SC=0 This is some random status"
+		def wiki = plugin.parseWiki([wikiStr])
+
+		then:
+		wiki.size()==0
+
+		when:
+		def wikiStrs = ["SC=1 error occurred", "node1 STATE=Idle"]
+		wiki = plugin.parseWiki(wikiStrs)
+
+		then:
+		wiki.size()==1
+		wiki[0].size()==2
+		wiki[0].id=="node1"
+		wiki[0].STATE=="Idle"
+	}
 }
