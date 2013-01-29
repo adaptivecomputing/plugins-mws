@@ -42,10 +42,17 @@ class NodeNativeTranslator {
 		node.power = NodeReportPower.parse(attrs.POWER)
 		node.metrics[METRIC_SPEED] = NativeNumberUtils.parseDouble(attrs.SPEED)
 		node.variables = attrs.VARIABLE ?: [:]
-		node.attributes = genericNativeTranslator.getGenericMap(attrs.VARATTR, "\\+", ":|=")?.findAll {
-			it.key!="HVTYPE"
-		} ?: [:]
+		// Backwards support for 0.9.x commons
+		if (objectHasProperty(node, "attributes")) {
+			node.attributes = genericNativeTranslator.getGenericMap(attrs.VARATTR, "\\+", ":|=")?.findAll {
+				it.key!="HVTYPE"
+			} ?: [:]
+		}
 
 		node
+	}
+
+	private boolean objectHasProperty(object, String property) {
+		return object.getClass().metaClass.getMetaProperty(property).asBoolean()
 	}
 }

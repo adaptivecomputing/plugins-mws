@@ -5,8 +5,10 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 
 import com.adaptc.mws.plugins.testing.*
 
-import spock.lang.Specification
+import spock.lang.*
+import org.apache.commons.lang.StringUtils
 
+@Unroll
 @TestFor(NodeNativeTranslator)
 @TestMixin(PluginUnitTestMixin)
 class NodeNativeTranslatorSpec extends Specification {
@@ -122,5 +124,44 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.messages.size()==0
 		node.variables.size()==0
 		node.attributes.size()==0
+	}
+
+	def "Object for #clazz.simpleName has property #property"(Class clazz, String property, boolean result) {
+		expect:
+		translator.objectHasProperty(clazz.newInstance(), property)==result
+
+		where:
+		clazz						| property		| result
+		MyNodeReport				| "id"			| true
+		MyNodeReport				| "attributes"	| false
+		MyNodeReportWithAttributes	| "id"			| true
+		MyNodeReportWithAttributes	| "attributes"	| true
+	}
+}
+
+class MyNodeReport {
+	private String id
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id
+	}
+}
+
+class MyNodeReportWithAttributes {
+	private String id
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id
+	}
+	private String attributes;
+	public String getAttributes() {
+		return attributes
+	}
+	public void setAttributes(String attributes) {
+		this.attributes = attributes
 	}
 }
