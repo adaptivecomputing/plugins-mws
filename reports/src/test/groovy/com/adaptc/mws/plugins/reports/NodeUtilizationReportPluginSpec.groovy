@@ -29,19 +29,19 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.delete("/rest/reports/node-utilization") >> new MoabRestResponse(null, null, false)
 		1 * moabRestService.post({
-			assert it.data.name=="node-utilization"
+			assert it.data.name == "node-utilization"
 			assert it.data.description
-			assert it.data.consolidationFunction=="average"
-			assert it.data.datapointDuration==10
-			assert it.data.reportSize==2
-			assert it.data.keepSamples==false
+			assert it.data.consolidationFunction == "average"
+			assert it.data.datapointDuration == 10
+			assert it.data.reportSize == 2
+			assert it.data.keepSamples == false
 			return true
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, false)
 		0 * _._
 
 		and:
-		result.messages.size()==1
-		result.messages[0]=="nodeUtilizationReportPlugin.recreateReport.failure.message"
+		result.messages.size() == 1
+		result.messages[0] == "nodeUtilizationReportPlugin.recreateReport.failure.message"
 
 		when: "Report cannot be deleted or created with messages"
 		result = plugin.recreateReport([:])
@@ -49,21 +49,21 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.delete("/rest/reports/node-utilization") >> new MoabRestResponse(null, null, false)
 		1 * moabRestService.post({
-			assert it.data.name=="node-utilization"
+			assert it.data.name == "node-utilization"
 			assert it.data.description
-			assert it.data.consolidationFunction=="average"
-			assert it.data.datapointDuration==10
-			assert it.data.reportSize==2
-			assert it.data.keepSamples==false
+			assert it.data.consolidationFunction == "average"
+			assert it.data.datapointDuration == 10
+			assert it.data.reportSize == 2
+			assert it.data.keepSamples == false
 			return true
-		}, "/rest/reports/") >> new MoabRestResponse(null, [messages:["message1", "message2"]], false)
+		}, "/rest/reports/") >> new MoabRestResponse(null, [messages: ["message1", "message2"]], false)
 		0 * _._
 
 		and:
-		result.messages.size()==3
-		result.messages[0]=="nodeUtilizationReportPlugin.recreateReport.failure.message"
-		result.messages[1]=="message1"
-		result.messages[2]=="message2"
+		result.messages.size() == 3
+		result.messages[0] == "nodeUtilizationReportPlugin.recreateReport.failure.message"
+		result.messages[1] == "message1"
+		result.messages[2] == "message2"
 
 		when: "Report can be deleted and recreated"
 		result = plugin.recreateReport([:])
@@ -71,19 +71,19 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.delete("/rest/reports/node-utilization") >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.post({
-			assert it.data.name=="node-utilization"
+			assert it.data.name == "node-utilization"
 			assert it.data.description
-			assert it.data.consolidationFunction=="average"
-			assert it.data.datapointDuration==10
-			assert it.data.reportSize==2
-			assert it.data.keepSamples==false
+			assert it.data.consolidationFunction == "average"
+			assert it.data.datapointDuration == 10
+			assert it.data.reportSize == 2
+			assert it.data.keepSamples == false
 			return true
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, true)
 		0 * _._
 
 		and:
-		result.messages.size()==1
-		result.messages[0]=="nodeUtilizationReportPlugin.recreateReport.success.message"
+		result.messages.size() == 1
+		result.messages[0] == "nodeUtilizationReportPlugin.recreateReport.success.message"
 	}
 
 	def "Poll"() {
@@ -93,7 +93,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata:['app.version':"7.2.0"]]
+		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
 
 		and:
 		config.reportConsolidationDuration = 10
@@ -108,14 +108,17 @@ class NodeUtilizationReportPluginSpec extends Specification {
 
 		then:
 		1 * moabRestService.post({
-			assert it.data.name=="node-utilization"
+			if (it == "/rest/events")
+				return
+			assert it.data.name == "node-utilization"
 			assert it.data.description
-			assert it.data.consolidationFunction=="average"
-			assert it.data.datapointDuration==10
-			assert it.data.reportSize==2
-			assert it.data.keepSamples==false
+			assert it.data.consolidationFunction == "average"
+			assert it.data.datapointDuration == 10
+			assert it.data.reportSize == 2
+			assert it.data.keepSamples == false
 			return true
-		}, "/rest/reports/") >> new MoabRestResponse(null, [messages:["message1", "message2"]], false)
+		}, "/rest/reports/") >> new MoabRestResponse(null, [messages: ["message1", "message2"]], false)
+		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		0 * _._
 
 		when: "Report does not exist and can be created, but could not get node information v2"
@@ -127,25 +130,28 @@ class NodeUtilizationReportPluginSpec extends Specification {
 
 		then:
 		1 * moabRestService.post({
-			assert it.data.name=="node-utilization"
+			if (it == "/rest/events")
+				return
+			assert it.data.name == "node-utilization"
 			assert it.data.description
-			assert it.data.consolidationFunction=="average"
-			assert it.data.datapointDuration==10
-			assert it.data.reportSize==2
-			assert it.data.keepSamples==false
+			assert it.data.consolidationFunction == "average"
+			assert it.data.datapointDuration == 10
+			assert it.data.reportSize == 2
+			assert it.data.keepSamples == false
 			return true
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, true)
 
 		then:
 		1 * moabRestService.get({
-			assert it.params.'api-version'==2
-			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
+			assert it.params.'api-version' == 2
+			assert it.params.fields == "metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, null, false)
+		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		0 * _._
 
 		when: "Report does exist but could not get node information v1"
-		plugin.grailsApplication = [metadata:['app.version':"7.1.3"]]
+		plugin.grailsApplication = [metadata: ['app.version': "7.1.3"]]
 		plugin.poll()
 
 		then:
@@ -154,14 +160,15 @@ class NodeUtilizationReportPluginSpec extends Specification {
 
 		then:
 		1 * moabRestService.get({
-			assert it.params.'api-version'==1
-			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdateDate,states.state,id,availableMemory,totalMemory"
+			assert it.params.'api-version' == 1
+			assert it.params.fields == "genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdateDate,states.state,id,availableMemory,totalMemory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, null, false)
+		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		0 * _._
 
 		when: "Sample could not be created with no data returned"
-		plugin.grailsApplication = [metadata:['app.version':"7.2.0"]]
+		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
 		plugin.poll()
 
 		then:
@@ -169,30 +176,31 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get({
-			assert it.params.'api-version'==2
-			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
+			assert it.params.'api-version' == 2
+			assert it.params.fields == "metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
 
 		then:
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
 			def result = it.call()
-			assert result.agent=="Node Utilization Report Plugin"
-			assert result.data.size()==1
-			assert result.data[ALL_DATACENTERS].total==0
-			assert result.data[ALL_DATACENTERS].cpuHigh==0
-			assert result.data[ALL_DATACENTERS].cpuLow==0
-			assert result.data[ALL_DATACENTERS].cpuMedium==0
-			assert result.data[ALL_DATACENTERS].cpuAverage==0
-			assert result.data[ALL_DATACENTERS].memoryHigh==0
-			assert result.data[ALL_DATACENTERS].memoryLow==0
-			assert result.data[ALL_DATACENTERS].memoryMedium==0
-			assert result.data[ALL_DATACENTERS].memoryAverage==0
-			assert result.data[ALL_DATACENTERS].high==0
-			assert result.data[ALL_DATACENTERS].low==0
-			assert result.data[ALL_DATACENTERS].medium==0
+			assert result.agent == "Node Utilization Report Plugin"
+			assert result.data.size() == 1
+			assert result.data[ALL_DATACENTERS].total == 0
+			assert result.data[ALL_DATACENTERS].cpuHigh == 0
+			assert result.data[ALL_DATACENTERS].cpuLow == 0
+			assert result.data[ALL_DATACENTERS].cpuMedium == 0
+			assert result.data[ALL_DATACENTERS].cpuAverage == 0
+			assert result.data[ALL_DATACENTERS].memoryHigh == 0
+			assert result.data[ALL_DATACENTERS].memoryLow == 0
+			assert result.data[ALL_DATACENTERS].memoryMedium == 0
+			assert result.data[ALL_DATACENTERS].memoryAverage == 0
+			assert result.data[ALL_DATACENTERS].high == 0
+			assert result.data[ALL_DATACENTERS].low == 0
+			assert result.data[ALL_DATACENTERS].medium == 0
 			return true
 		}) >> new MoabRestResponse(null, null, false)
+		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		0 * _._
 
 		when: "Sample could be created with data returned for all cases v2"
@@ -208,43 +216,43 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.get({
-			assert it.params.'api-version'==2
+			assert it.params.'api-version' == 2
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
-		        [name:"node01", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:100]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0]],
-		        [name:"node02", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:10]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:10]],
-		        [name:"node03", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:25]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:25]],
-		        [name:"node04", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:75]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:50], attributes:[MOAB_DATACENTER:"myDC"]],
-		        [name:"node05", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:50]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:75]],
-		        [name:"node06", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:80]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:80]],
-		        [name:"node07", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:100]],
-				[name:"node09", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.DOWN.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node10", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.DRAINED.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node11", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.FLUSH.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node12", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.NONE.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node13", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.UNKNOWN.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node14", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.UP.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node15", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.RESERVED.toString()], genericMetrics:[cpuUtilization:100]],
-				[name:"node16", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()]],
-		        [name:"node17", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[:]],
-				[name:"node18", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:null]],
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
+				[name: "node01", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 100]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0]],
+				[name: "node02", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 10]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 10]],
+				[name: "node03", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 25]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 25]],
+				[name: "node04", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 75]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 50], attributes: [MOAB_DATACENTER: "myDC"]],
+				[name: "node05", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 50]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 75]],
+				[name: "node06", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 80]],
+				[name: "node07", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 100]],
+				[name: "node09", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.DOWN.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node10", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.DRAINED.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node11", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.FLUSH.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node12", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.NONE.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node13", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.UNKNOWN.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node14", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.UP.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node15", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.RESERVED.toString()], genericMetrics: [cpuUtilization: 100]],
+				[name: "node16", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.IDLE.toString()]],
+				[name: "node17", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [:]],
+				[name: "node18", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 0]],
+						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: null]],
 		]], true)
 		17 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
 		17 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
@@ -252,34 +260,35 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
 			def result = it.call()
-			assert result.agent=="Node Utilization Report Plugin"
-			assert result.data.size()==2
-			assert result.data[ALL_DATACENTERS].total==7
-			assert result.data[ALL_DATACENTERS].cpuHigh==3
-			assert result.data[ALL_DATACENTERS].cpuLow==2
-			assert result.data[ALL_DATACENTERS].cpuMedium==2
-			assert result.data[ALL_DATACENTERS].cpuAverage==48.571428571428571428571428571429
-			assert result.data[ALL_DATACENTERS].memoryHigh==3
-			assert result.data[ALL_DATACENTERS].memoryLow==2
-			assert result.data[ALL_DATACENTERS].memoryMedium==2
-			assert result.data[ALL_DATACENTERS].memoryAverage==51.428571428571428571428571428571
-			assert result.data[ALL_DATACENTERS].high==5
-			assert result.data[ALL_DATACENTERS].low==1
-			assert result.data[ALL_DATACENTERS].medium==1
-			assert result.data["myDC"].total==1
-			assert result.data["myDC"].cpuHigh==0
-			assert result.data["myDC"].cpuLow==0
-			assert result.data["myDC"].cpuMedium==1
-			assert result.data["myDC"].cpuAverage==50
-			assert result.data["myDC"].memoryHigh==0
-			assert result.data["myDC"].memoryLow==0
-			assert result.data["myDC"].memoryMedium==1
-			assert result.data["myDC"].memoryAverage==25
-			assert result.data["myDC"].high==0
-			assert result.data["myDC"].low==0
-			assert result.data["myDC"].medium==1
+			assert result.agent == "Node Utilization Report Plugin"
+			assert result.data.size() == 2
+			assert result.data[ALL_DATACENTERS].total == 7
+			assert result.data[ALL_DATACENTERS].cpuHigh == 3
+			assert result.data[ALL_DATACENTERS].cpuLow == 2
+			assert result.data[ALL_DATACENTERS].cpuMedium == 2
+			assert result.data[ALL_DATACENTERS].cpuAverage == 48.571428571428571428571428571429
+			assert result.data[ALL_DATACENTERS].memoryHigh == 3
+			assert result.data[ALL_DATACENTERS].memoryLow == 2
+			assert result.data[ALL_DATACENTERS].memoryMedium == 2
+			assert result.data[ALL_DATACENTERS].memoryAverage == 51.428571428571428571428571428571
+			assert result.data[ALL_DATACENTERS].high == 5
+			assert result.data[ALL_DATACENTERS].low == 1
+			assert result.data[ALL_DATACENTERS].medium == 1
+			assert result.data["myDC"].total == 1
+			assert result.data["myDC"].cpuHigh == 0
+			assert result.data["myDC"].cpuLow == 0
+			assert result.data["myDC"].cpuMedium == 1
+			assert result.data["myDC"].cpuAverage == 50
+			assert result.data["myDC"].memoryHigh == 0
+			assert result.data["myDC"].memoryLow == 0
+			assert result.data["myDC"].memoryMedium == 1
+			assert result.data["myDC"].memoryAverage == 25
+			assert result.data["myDC"].high == 0
+			assert result.data["myDC"].low == 0
+			assert result.data["myDC"].medium == 1
 			return true
 		}) >> new MoabRestResponse(null, null, true)
+		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		0 * _._
 
 		when: "Sample could be created with data returned for all cases v1"
@@ -287,7 +296,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		config.cpuLowThreshold = 25
 		config.memoryHighThreshold = 75
 		config.memoryLowThreshold = 25
-		plugin.grailsApplication = [metadata:['app.version':"7.1.3"]]
+		plugin.grailsApplication = [metadata: ['app.version': "7.1.3"]]
 		plugin.poll()
 
 		then:
@@ -296,43 +305,43 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], false)
 		1 * moabRestService.get({
-			assert it.params.'api-version'==1
+			assert it.params.'api-version' == 1
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
-				[id:"node01", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:100,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:0]],
-				[id:"node02", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:10,
-						states:[state:NodeReportState.BUSY.toString()], genericMetrics:[cpuUtilization:10]],
-				[id:"node03", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:25,
-						states:[state:NodeReportState.RUNNING.toString()], genericMetrics:[cpuUtilization:25]],
-				[id:"node04", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:75,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:50], attributes:[MOAB_DATACENTER:"myDC"]],
-				[id:"node05", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:50,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:75]],
-				[id:"node06", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:80,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:80]],
-				[id:"node07", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node09", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.DOWN.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node10", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.DRAINED.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node11", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.FLUSH.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node12", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.NONE.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node13", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.UNKNOWN.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node14", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.UP.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node15", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.RESERVED.toString()], genericMetrics:[cpuUtilization:100]],
-				[id:"node16", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.IDLE.toString()]],
-				[id:"node17", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[:]],
-				[id:"node18", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:null]],
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
+				[id: "node01", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 100,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [cpuUtilization: 0]],
+				[id: "node02", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 10,
+						states: [state: NodeReportState.BUSY.toString()], genericMetrics: [cpuUtilization: 10]],
+				[id: "node03", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 25,
+						states: [state: NodeReportState.RUNNING.toString()], genericMetrics: [cpuUtilization: 25]],
+				[id: "node04", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 75,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [cpuUtilization: 50], attributes: [MOAB_DATACENTER: "myDC"]],
+				[id: "node05", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 50,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [cpuUtilization: 75]],
+				[id: "node06", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 80,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [cpuUtilization: 80]],
+				[id: "node07", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node09", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.DOWN.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node10", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.DRAINED.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node11", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.FLUSH.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node12", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.NONE.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node13", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.UNKNOWN.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node14", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.UP.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node15", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.RESERVED.toString()], genericMetrics: [cpuUtilization: 100]],
+				[id: "node16", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.IDLE.toString()]],
+				[id: "node17", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [:]],
+				[id: "node18", lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
+						states: [state: NodeReportState.IDLE.toString()], genericMetrics: [cpuUtilization: null]],
 		]], true)
 		17 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
 		17 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
@@ -340,34 +349,139 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
 			def result = it.call()
-			assert result.agent=="Node Utilization Report Plugin"
-			assert result.data.size()==2
-			assert result.data[ALL_DATACENTERS].total==7
-			assert result.data[ALL_DATACENTERS].cpuHigh==3
-			assert result.data[ALL_DATACENTERS].cpuLow==2
-			assert result.data[ALL_DATACENTERS].cpuMedium==2
-			assert result.data[ALL_DATACENTERS].cpuAverage==48.571428571428571428571428571429
-			assert result.data[ALL_DATACENTERS].memoryHigh==3
-			assert result.data[ALL_DATACENTERS].memoryLow==2
-			assert result.data[ALL_DATACENTERS].memoryMedium==2
-			assert result.data[ALL_DATACENTERS].memoryAverage==51.428571428571428571428571428571
-			assert result.data[ALL_DATACENTERS].high==5
-			assert result.data[ALL_DATACENTERS].low==1
-			assert result.data[ALL_DATACENTERS].medium==1
-			assert result.data["myDC"].total==1
-			assert result.data["myDC"].cpuHigh==0
-			assert result.data["myDC"].cpuLow==0
-			assert result.data["myDC"].cpuMedium==1
-			assert result.data["myDC"].cpuAverage==50
-			assert result.data["myDC"].memoryHigh==0
-			assert result.data["myDC"].memoryLow==0
-			assert result.data["myDC"].memoryMedium==1
-			assert result.data["myDC"].memoryAverage==25
-			assert result.data["myDC"].high==0
-			assert result.data["myDC"].low==0
-			assert result.data["myDC"].medium==1
+			assert result.agent == "Node Utilization Report Plugin"
+			assert result.data.size() == 2
+			assert result.data[ALL_DATACENTERS].total == 13
+			assert result.data[ALL_DATACENTERS].cpuHigh == 9
+			assert result.data[ALL_DATACENTERS].cpuLow == 2
+			assert result.data[ALL_DATACENTERS].cpuMedium == 2
+			assert result.data[ALL_DATACENTERS].cpuAverage == 72.3076923076923
+			assert result.data[ALL_DATACENTERS].memoryHigh == 9
+			assert result.data[ALL_DATACENTERS].memoryLow == 2
+			assert result.data[ALL_DATACENTERS].memoryMedium == 2
+			assert result.data[ALL_DATACENTERS].memoryAverage == 73.84615384615384
+			assert result.data[ALL_DATACENTERS].high == 11
+			assert result.data[ALL_DATACENTERS].low == 1
+			assert result.data[ALL_DATACENTERS].medium == 1
+			assert result.data["myDC"].total == 1
+			assert result.data["myDC"].cpuHigh == 0
+			assert result.data["myDC"].cpuLow == 0
+			assert result.data["myDC"].cpuMedium == 1
+			assert result.data["myDC"].cpuAverage == 50
+			assert result.data["myDC"].memoryHigh == 0
+			assert result.data["myDC"].memoryLow == 0
+			assert result.data["myDC"].memoryMedium == 1
+			assert result.data["myDC"].memoryAverage == 25
+			assert result.data["myDC"].high == 0
+			assert result.data["myDC"].low == 0
+			assert result.data["myDC"].medium == 1
 			return true
 		}) >> new MoabRestResponse(null, null, true)
+		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		0 * _._
 	}
+
+	@Unroll
+	def "Test node event '#errorMessage' is thrown with api-version 2"() {
+		given: "Mock"
+		IMoabRestService moabRestService = Mock()
+
+		plugin.moabRestService = moabRestService
+		IPluginDatastoreService pluginDatastoreService = Mock()
+		plugin.pluginDatastoreService = pluginDatastoreService
+		MockHttpServletResponse httpResponse = Mock()
+		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
+		config.reportConsolidationDuration = 10
+		config.reportSize = 2
+		config.cpuHighThreshold = 75
+		config.cpuLowThreshold = 25
+		config.memoryHighThreshold = 75
+		config.memoryLowThreshold = 25
+
+		when:
+		plugin.poll()
+
+		then:
+		1 * moabRestService.get({
+			return true
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node]], true)
+		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
+			return true
+		}) >> new MoabRestResponse(null, null, true)
+
+		_ * moabRestService.post("/rest/events", {
+			def result = it.call()
+			result.errorMessage.message == errorMessage
+			result.sourceComponent == "VMUtilizationReportPlugin"
+			result.severity == severity
+			return true
+		}) >> new MoabRestResponse(null, null, true)
+
+		where:
+		severity | errorMessage                                                        | node
+		"ERROR"  | "nodeUtilizationReportPlugin.node.name.null"                        | [lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"WARN"   | "nodeUtilizationReportPlugin.node.host.null"                        | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"WARN"   | "nodeUtilizationReportPlugin.node.datacenter.null"                  | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.state.null"                       | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: null], metrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.configuredMemory.null"            | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.total.memory.zero.message"             | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 0, available: 40]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.availableMemory.null"             | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"WARN"   | "nodeUtilizationReportPlugin.available.equals.total.memory.message" | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 80, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.cpuUtils.null"                    | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()]]
+		"WARN"   | "nodeUtilizationReportPlugin.cpu.zero.message"                      | [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0]]
+
+	}
+
+	@Unroll
+	def "Test node event '#errorMessage' is thrown with api-version 1"() {
+		given: "Mock"
+		IMoabRestService moabRestService = Mock()
+
+		plugin.moabRestService = moabRestService
+		IPluginDatastoreService pluginDatastoreService = Mock()
+		plugin.pluginDatastoreService = pluginDatastoreService
+		MockHttpServletResponse httpResponse = Mock()
+		plugin.grailsApplication = [metadata: ['app.version': "7.1.3"]]
+		config.reportConsolidationDuration = 10
+		config.reportSize = 2
+		config.cpuHighThreshold = 75
+		config.cpuLowThreshold = 25
+		config.memoryHighThreshold = 75
+		config.memoryLowThreshold = 25
+
+		when:
+		plugin.poll()
+
+		then:
+		1 * moabRestService.get({
+			return true
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node]], true)
+		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
+			return true
+		}) >> new MoabRestResponse(null, null, true)
+
+		_ * moabRestService.post("/rest/events", {
+			def result = it.call()
+			result.errorMessage.message == errorMessage
+			result.sourceComponent == "VMUtilizationReportPlugin"
+			result.severity == severity
+			return true
+		}) >> new MoabRestResponse(null, null, true)
+
+		where:
+		severity | errorMessage                                                        | node
+		"ERROR"  | "nodeUtilizationReportPlugin.node.id.null"                          | [node: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"WARN"   | "nodeUtilizationReportPlugin.node.node.null"                        | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"WARN"   | "nodeUtilizationReportPlugin.node.datacenter.null"                  | [id: "node1", node: ["id": "node04"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.state.null"                       | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, states: [state: null], genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.configuredMemory.null"            | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", availableMemory: 80, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.total.memory.zero.message"             | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.availableMemory.null"             | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 100, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"WARN"   | "nodeUtilizationReportPlugin.available.equals.total.memory.message" | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "nodeUtilizationReportPlugin.node.cpuUtils.null"                    | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString()]
+		"WARN"   | "nodeUtilizationReportPlugin.cpu.zero.message"                      | [id: "node1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 0]]
+
+	}
+
+
 }

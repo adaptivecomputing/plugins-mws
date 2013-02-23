@@ -1,7 +1,6 @@
 package com.adaptc.mws.plugins.reports
 
 import com.adaptc.mws.plugins.*
-import net.sf.json.JSONNull
 import com.adaptc.mws.plugins.NodeReportState
 
 import static com.adaptc.mws.plugins.PluginConstants.*
@@ -23,28 +22,34 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 
 	static constraints = {
-		cpuHighThreshold type:Double, defaultValue:75d, min:0d, max:100d, validator:{ val, obj ->
-			if (val<obj.config.cpuLowThreshold)
+		cpuHighThreshold type: Double, defaultValue: 75d, min: 0d, max: 100d, validator: { val, obj ->
+			if (val < obj.config.cpuLowThreshold)
 				return "invalid.less.than.cpuLowThreshold"
 		}
-		cpuLowThreshold type:Double, defaultValue:25d, min:0d, max:100d
-		memoryHighThreshold type:Double, defaultValue: 75d, min: 0d, max: 100d, validator: {val, obj ->
-			if (val<obj.config.memoryLowThreshold)
+		cpuLowThreshold type: Double, defaultValue: 25d, min: 0d, max: 100d
+		memoryHighThreshold type: Double, defaultValue: 75d, min: 0d, max: 100d, validator: {val, obj ->
+			if (val < obj.config.memoryLowThreshold)
 				return "invalid.less.than.memoryLowThreshold"
 		}
-		memoryLowThreshold type:Double, defaultValue: 25d, min: 0d, max: 100d
-		reportConsolidationDuration type:Integer, defaultValue:900, min:1
-		reportDocumentSize type:Integer, defaultValue: 20480, min:1
-		reportSize type:Integer, min:1
-		pollInterval defaultValue:60
+		memoryLowThreshold type: Double, defaultValue: 25d, min: 0d, max: 100d
+		reportConsolidationDuration type: Integer, defaultValue: 900, min: 1
+		reportDocumentSize type: Integer, defaultValue: 20480, min: 1
+		reportSize type: Integer, min: 1
+		pollInterval defaultValue: 60
 	}
 
 	public void poll() {
 		log.debug("Verifying that the ${NODE_REPORT_NAME} report is created")
-		if (moabRestService.get(REPORTS_URL+NODE_REPORT_NAME).response.status==404) {
+		if (moabRestService.get(REPORTS_URL + NODE_REPORT_NAME)?.response?.status == 404) {
 			log.debug("Report does not exist, creating")
-			def createResponse = moabRestService.post(REPORTS_URL, data:getCreateJsonMap())
+			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
 			if (!createResponse.success) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report", args: [NODE_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
+						"NodeReportCreationFailure",
+						"ERROR",
+						NODE_REPORT_NAME,
+						"reports"
+				)
 				log.error("Could not create report '${NODE_REPORT_NAME}': ${createResponse.data?.messages?.join(", ")}")
 				return
 			}
@@ -68,58 +73,97 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		}
 
 		log.debug("Querying the CPU and memory utilization values from the nodes REST API using API version ${apiVersion}")
-		def response = moabRestService.get(NODES_URL, params:[
-				'api-version':apiVersion,
-				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER,"+
-						"${lastUpdatedDateField},states.state,${nameField},"+
-						(apiVersion==1?'availableMemory,totalMemory':'resources.memory'),
-			])
-		if (!response.success) {
-			log.error("Nodes query resulted in error, not creating samples: "+response.data?.messages?.join(", "))
+		def response = moabRestService.get(NODES_URL, params: [
+				'api-version': apiVersion,
+				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER," +
+						"${lastUpdatedDateField},states.state,${nameField}," +
+						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
+		])
+		if (!response?.success) {
+			logEvent(message(code: "nodeUtilizationReportPlugin.node.query.error", args: [apiVersion, response?.data?.messages?.join(", ")]),
+					"NodeQueryFailure",
+					"ERROR",
+					null
+			)
+			log.error("Nodes query resulted in error, not creating samples: " + response?.data?.messages?.join(", "))
 			return
 		}
 
 		def dataCenters = [(ALL_DATACENTERS): utilizationReportTranslator.getDefaultSampleDatacenter()]
 		def data = pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 
-		response.data.results.each {
+		response?.convertedData.results.each {
 			//Include all datacenters regardless if we skip the nodes in them or not
 			String dataCenter = it?.attributes?.MOAB_DATACENTER
-			if(dataCenter && !dataCenters[dataCenter])
+			if (dataCenter && !dataCenters[dataCenter])
 				dataCenters[dataCenter] = utilizationReportTranslator.getDefaultSampleDatacenter()
 
 			String nodeName = it[nameField]
+			if (!nodeName) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.name.null", args: [nodeName]),
+						"InvalidVirtualMachineProperties",
+						"ERROR",
+						nodeName
+				)
+				return
+			}
+
 			def nodeLastUpdatedTime = data.find { it.name == nodeName }
 
-			if(nodeLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
-				log.warn("Not including node ${nodeName} in the node-utilization report because it has not been updated "+
+			if (nodeLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.notUpdated", args: [nodeName]),
+						"InvalidNodeProperties",
+						"ERROR",
+						nodeName
+				)
+				log.error("Not including node ${nodeName} in the node-utilization report because it has not been updated " +
 						"since the last poll at ${it[lastUpdatedDateField]}")
 				return
 			}
 
-			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService,	NODE_LAST_UPDATED_COLLECTION,
-					it[nameField], [name:nodeName, lastUpdatedDate: it[lastUpdatedDateField]] )
+			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, NODE_LAST_UPDATED_COLLECTION,
+					nodeName, [name: nodeName, lastUpdatedDate: it[lastUpdatedDateField]])
 
-			if(!it?.states?.state || (it.states.state!=NodeReportState.RUNNING.toString() &&
-					it.states.state!=NodeReportState.BUSY.toString() && it.states.state!=NodeReportState.IDLE.toString())) {
-				log.warn("Not including node ${nodeName} in the node-utilization report because it has a state of "+
-						"${it.states.state} and the report shows only Idle, Busy, and Running nodes")
+			NodeReportState state = NodeReportState.parse(it?.states?.state)
+			if (state == null) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.null", args: [nodeName]),
+						"InvalidNodeProperties",
+						"ERROR",
+						nodeName
+				)
+				log.error("Not including Node ${nodeName} in the node-utilization report because its state is null.")
 				return
+			}
+
+			if (state == NodeReportState.DOWN) {
+				log.info("Not including Node ${nodeName} in the node-utilization report because the report does not include nodes that are down.")
+				return
+			} else if (state != NodeReportState.RUNNING && state != NodeReportState.BUSY && state != NodeReportState.IDLE) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.invalid", args: [nodeName, state.toString()]),
+						"InvalidNodeProperties",
+						"WARN",
+						nodeName
+				)
 			}
 
 			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
 
-			// Make sure that the METRIC_CPU_UTILIZATION is not null
-			if (cpuUtils==null || cpuUtils instanceof JSONNull) {
-				log.warn("Not including node ${nodeName} in the node-utilization report because the CPU utilization "+
+			if (cpuUtils == null) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.cpuUtils.null", args: [nodeName]),
+						"InvalidNodeProperties",
+						"ERROR",
+						nodeName
+				)
+				log.error("Not including node ${nodeName} in the node-utilization report because the CPU utilization " +
 						"metric is not present or null")
 				return
 			}
 
-			if (cpuUtils==0) {
-				logEvent(message(code:"nodeUtilizationReportPlugin.cpu.zero.message", args:[nodeName]),
+			if (cpuUtils == 0) {
+				//In this case we do not ignore the node
+				logEvent(message(code: "nodeUtilizationReportPlugin.cpu.zero.message", args: [nodeName]),
 						"InvalidNodeProperties",
-						"warn",
+						"WARN",
 						nodeName
 				)
 				log.warn("Node ${nodeName} has CPU utilization set to 0")
@@ -127,7 +171,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			Integer realMemory
 			Integer availableMemory
-			if (apiVersion==1) {
+			if (apiVersion == 1) {
 				realMemory = it?.totalMemory
 				availableMemory = it?.availableMemory
 			} else {
@@ -135,39 +179,50 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				availableMemory = it?.resources.memory?.available
 			}
 
-			if (realMemory == null || realMemory instanceof JSONNull) {
-				log.warn("Not including node ${nodeName} in the node-utilization report because the real/total memory reported is null")
-				return
-			}
-
-			if(realMemory == 0) {
-				logEvent(message(code:"nodeUtilizationReportPlugin.total.memory.zero.message", args:[nodeName]),
+			if (realMemory == null) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.realMemory.null", args: [nodeName]),
 						"InvalidNodeProperties",
-						"error",
+						"ERROR",
 						nodeName
 				)
-				log.warn("Not including node ${nodeName} in the node-utilization report because the real/total memory reported is 0")
+				log.error("Not including node ${nodeName} in the node-utilization report because the real memory reported is null")
 				return
 			}
 
-			if (availableMemory == null || availableMemory instanceof JSONNull) {
-				log.warn("Not including node ${nodeName} in the node-utilization report because the available memory reported is null")
+			if (realMemory == 0) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.total.memory.zero.message", args: [nodeName]),
+						"InvalidNodeProperties",
+						"ERROR",
+						nodeName
+				)
+				log.error("Not including node ${nodeName} in the node-utilization report because the real memory reported is 0")
+				return
+			}
+
+			if (availableMemory == null) {
+				logEvent(message(code: "nodeUtilizationReportPlugin.node.availableMemory.null", args: [nodeName]),
+						"InvalidNodeProperties",
+						"ERROR",
+						nodeName
+				)
+				log.error("Not including node ${nodeName} in the node-utilization report because the available memory reported is null")
 				return
 			}
 
 			if (availableMemory == realMemory) {
-				logEvent(message(code:"nodeUtilizationReportPlugin.available.equals.total.memory.message", args:[
-						        nodeName, availableMemory, realMemory
-						]),
+				//In this case we do not ignore the node
+				logEvent(message(code: "nodeUtilizationReportPlugin.available.equals.total.memory.message", args: [
+						nodeName, availableMemory, realMemory
+				]),
 						"InvalidNodeProperties",
-						"warn",
+						"WARN",
 						nodeName
 				)
 				log.warn("Node ${nodeName} has available and total memory set to the same value")
 			}
 
-			Double memoryUtils = utilizationReportTranslator.calculateUtilization((double)realMemory,
-					(double)availableMemory)
+			Double memoryUtils = utilizationReportTranslator.calculateUtilization((double) realMemory,
+					(double) availableMemory)
 
 			UtilizationLevel cpuUtilLevel = utilizationReportTranslator.getUtilizationLevel(cpuUtils,
 					config.cpuLowThreshold, config.cpuHighThreshold)
@@ -181,7 +236,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					memoryUtilLevel, cpuUtils, memoryUtils)
 		}
 
-		dataCenters.each {dataCenterName, metrics->
+		dataCenters.each {dataCenterName, metrics ->
 			// Do not divide by 0
 			if (metrics.total != 0) {
 				metrics.cpuAverage /= metrics.total
@@ -189,71 +244,77 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 		}
 
-		response = moabRestService.post(REPORTS_URL+NODE_REPORT_NAME+SAMPLES_URL) {
+		response = moabRestService.post(REPORTS_URL + NODE_REPORT_NAME + SAMPLES_URL) {
 			[
-					agent:"Node Utilization Report Plugin",
-					data:dataCenters,
+					agent: "Node Utilization Report Plugin",
+					data: dataCenters,
 			]
 		}
-		if (response.success)
+		if (response?.success)
 			log.debug("Successfully created sample for node utilization report")
 		else
-			log.warn("Could not create sample for node utilization report: ${response.data?.messages?.join(", ")}")
+			logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
+					"NodeReportSampleCreationFailure",
+					"ERROR",
+					NODE_REPORT_NAME,
+					"reports"
+			)
+		log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
 	}
 
 	public def recreateReport(Map params) {
 		// Blow away the report and the data (use the new datapointDuration)
 		log.info("Destroying (if it exists) and recreating node utilization report")
-		moabRestService.delete(REPORTS_URL+NODE_REPORT_NAME)
+		moabRestService.delete(REPORTS_URL + NODE_REPORT_NAME)
 		log.debug("Recreating report")
 		def messages = []
-		def response = moabRestService.post(REPORTS_URL, data:getCreateJsonMap())
-		if (response.success)
-			messages << message(code:"nodeUtilizationReportPlugin.recreateReport.success.message", args:[NODE_REPORT_NAME])
+		def response = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
+		if (response?.success)
+			messages << message(code: "nodeUtilizationReportPlugin.recreateReport.success.message", args: [NODE_REPORT_NAME])
 		else {
-			messages << message(code:"nodeUtilizationReportPlugin.recreateReport.failure.message", args:[NODE_REPORT_NAME])
-			if (response.data?.messages)
-				messages.addAll(response.data.messages)
+			messages << message(code: "nodeUtilizationReportPlugin.recreateReport.failure.message", args: [NODE_REPORT_NAME])
+			if (response?.data?.messages)
+				messages.addAll(response?.data.messages)
 		}
 		return [
-			messages:messages
+				messages: messages
 		]
 	}
 
 	private Map getCreateJsonMap() {
 		return [
-				name:NODE_REPORT_NAME,
-				description:"The report for node CPU and memory utilization produced by the NodeUtilizationReport plugin",
-				consolidationFunction:"average",
-				datapointDuration:config.reportConsolidationDuration,
-				reportSize:config.reportSize,
-				keepSamples:false,
-				reportDocumentSize:config.reportDocumentSize
+				name: NODE_REPORT_NAME,
+				description: "The report for node CPU and memory utilization produced by the NodeUtilizationReport plugin",
+				consolidationFunction: "average",
+				datapointDuration: config.reportConsolidationDuration,
+				reportSize: config.reportSize,
+				keepSamples: false,
+				reportDocumentSize: config.reportDocumentSize
 		]
 	}
 
-	private void logEvent(String message, String type, String status, String objectId) {
+	private void logEvent(String message, String type, String severity, String objectId, String objectType = "node") {
 		def response = moabRestService.post("/rest/events") {
 			[
-			        details:[
-			                pluginId:id,
-			        ],
-					errorMessage:[
-					        message:message,
+					details: [
+							pluginId: id,
 					],
-					eventCategory:"nodeReport",
-					eventTime:new Date(),
-					eventType:type,
-					facility:"reporting",
-					primaryObject:[
-							id:objectId,
-							type: "node",
+					errorMessage: [
+							message: message,
 					],
-					sourceComponent:"NodeUtilizationReportPlugin",
-					status:status
+					eventCategory: "nodeReport",
+					eventTime: new Date(),
+					eventType: type,
+					facility: "reporting",
+					primaryObject: [
+							id: objectId,
+							type: objectType,
+					],
+					sourceComponent: "NodeUtilizationReportPlugin",
+					severity: severity
 			]
 		}
-		if (response.success)
+		if (response?.success)
 			log.trace("Successfully logged event")
 		else
 			log.trace("Could not log event ${message} (${objectId})")
