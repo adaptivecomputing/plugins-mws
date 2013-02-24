@@ -117,7 +117,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				)
 				return
 			}
-			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
 
 			NodeReportState state
 			Integer configuredMemory
@@ -142,6 +141,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					)
 					log.warn("Not including VM ${vmName}'s dataCenter in the vm-utilization report because its host name is null.")
 				}
+
 				//Include all datacenters regardless if we skip the vms in them or not
 				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER
 				if (hostName && !dataCenter) {
@@ -185,7 +185,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			if (configuredMemory == 0) {
 				logEvent(message(code: "vmUtilizationReportPlugin.total.memory.zero.message", args: [vmName]),
 						"InvalidVirtualMachineProperties",
-						"ERRor",
+						"ERROR",
 						vmName
 				)
 				log.error("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is 0")
@@ -213,24 +213,25 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				log.warn("VM ${vmName} has available and total memory set to the same value")
 			}
 
+			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
+
 			if (cpuUtils == null) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.cpuUtils.null", args: [vmName]),
 						"InvalidVirtualMachineProperties",
-						"WARN",
+						"ERROR",
 						vmName
 				)
-				log.warn("Not including VM ${vmName} in the vm-utilization report because the CPU utilization is null")
+				log.error("Not including VM ${vmName} in the vm-utilization report because the CPU utilization is null")
 				return
 			}
 
 			if (cpuUtils == 0) {
 				logEvent(message(code: "vmUtilizationReportPlugin.cpu.zero.message", args: [vmName]),
 						"InvalidVirtualMachineProperties",
-						"ERROR",
+						"WARN",
 						vmName
 				)
-				log.error("VM ${vmName} has CPU utilization set to 0")
-				return
+				log.warn("VM ${vmName} has CPU utilization set to 0")
 			}
 
 			def vmLastUpdatedTime = data.find {it.name == vmName}
@@ -238,10 +239,10 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			if (vmLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.notUpdated", args: [vmName]),
 						"InvalidVirtualMachineProperties",
-						"Error",
+						"WARN",
 						vmName
 				)
-				log.error("Not including VM ${vmName} in the vm-utilization report because it has not been updated since the last poll at ${it[lastUpdatedDateField]}")
+				log.warn("Not including VM ${vmName} in the vm-utilization report because it has not been updated since the last poll at ${it[lastUpdatedDateField]}")
 				return
 			}
 
@@ -342,7 +343,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					severity: severity
 			]
 		}
-		log.error("message is " + message)
 		if (response?.success)
 			log.trace("Successfully logged event")
 		else

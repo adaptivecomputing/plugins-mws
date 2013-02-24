@@ -60,23 +60,26 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		def metricsField
 		def lastUpdatedDateField
 		def nameField
+		def stateField
 		if (grailsApplication.metadata.'app.version'?.startsWith("7.1")) {
 			apiVersion = 1
 			nameField = "id"
 			metricsField = "genericMetrics"
 			lastUpdatedDateField = "lastUpdateDate"
+			stateField = "state"
 		} else {
 			apiVersion = 2
 			nameField = "name"
 			metricsField = "metrics"
 			lastUpdatedDateField = "lastUpdatedDate"
+			stateField = "states.state"
 		}
 
 		log.debug("Querying the CPU and memory utilization values from the nodes REST API using API version ${apiVersion}")
 		def response = moabRestService.get(NODES_URL, params: [
 				'api-version': apiVersion,
 				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER," +
-						"${lastUpdatedDateField},states.state,${nameField}," +
+						"${lastUpdatedDateField},${stateField},${nameField}," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
 		if (!response?.success) {
@@ -93,11 +96,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		def data = pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 
 		response?.convertedData.results.each {
-			//Include all datacenters regardless if we skip the nodes in them or not
-			String dataCenter = it?.attributes?.MOAB_DATACENTER
-			if (dataCenter && !dataCenters[dataCenter])
-				dataCenters[dataCenter] = utilizationReportTranslator.getDefaultSampleDatacenter()
-
 			String nodeName = it[nameField]
 			if (!nodeName) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.name.null", args: [nodeName]),
@@ -108,23 +106,50 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				return
 			}
 
+			NodeReportState state
+			Integer realMemory
+			Integer availableMemory
+			String dataCenter
+
+			if (apiVersion == 1) {
+				state = NodeReportState.parse(it?.state)
+				realMemory = it?.totalMemory
+				availableMemory = it?.availableMemory
+			} else {
+				state = NodeReportState.parse(it?.states?.state)
+				realMemory = it?.resources?.memory?.real
+				availableMemory = it?.resources.memory?.available
+
+				//Include all datacenters regardless if we skip the nodes in them or not
+				dataCenter = it?.attributes?.MOAB_DATACENTER
+				if (!dataCenter) {
+					logEvent(message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
+							"InvalidNodeProperties",
+							"WARN",
+							nodeName
+					)
+					log.warn("Not including node ${nodeName}'s dataCenter in the node-utilization report because it was null.")
+				}
+
+				if (dataCenter && !dataCenters[dataCenter])
+					dataCenters[dataCenter] = utilizationReportTranslator.getDefaultSampleDatacenter()
+			}
+
 			def nodeLastUpdatedTime = data.find { it.name == nodeName }
 
 			if (nodeLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.notUpdated", args: [nodeName]),
 						"InvalidNodeProperties",
-						"ERROR",
+						"WARN",
 						nodeName
 				)
-				log.error("Not including node ${nodeName} in the node-utilization report because it has not been updated " +
+				log.warn("Not including node ${nodeName} in the node-utilization report because it has not been updated " +
 						"since the last poll at ${it[lastUpdatedDateField]}")
-				return
 			}
 
 			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, NODE_LAST_UPDATED_COLLECTION,
 					nodeName, [name: nodeName, lastUpdatedDate: it[lastUpdatedDateField]])
 
-			NodeReportState state = NodeReportState.parse(it?.states?.state)
 			if (state == null) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.null", args: [nodeName]),
 						"InvalidNodeProperties",
@@ -167,16 +192,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 						nodeName
 				)
 				log.warn("Node ${nodeName} has CPU utilization set to 0")
-			}
-
-			Integer realMemory
-			Integer availableMemory
-			if (apiVersion == 1) {
-				realMemory = it?.totalMemory
-				availableMemory = it?.availableMemory
-			} else {
-				realMemory = it?.resources?.memory?.real
-				availableMemory = it?.resources.memory?.available
 			}
 
 			if (realMemory == null) {

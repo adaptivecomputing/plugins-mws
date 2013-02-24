@@ -259,37 +259,37 @@ class VMUtilizationReportPluginSpec extends Specification {
 				[name: "vm18", host: ["name": "node02"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 0]],
 						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: null]]
 		]], true)
-		6 * pluginDatastoreService.getData(VM_LAST_UPDATED_COLLECTION, "name", _ as String)
-		6 * pluginDatastoreService.addData(VM_LAST_UPDATED_COLLECTION, _ as Map) >> true
+		7 * pluginDatastoreService.getData(VM_LAST_UPDATED_COLLECTION, "name", _ as String)
+		7 * pluginDatastoreService.addData(VM_LAST_UPDATED_COLLECTION, _ as Map) >> true
 
 		then:
 		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			assert result.data.size() == 3
-			assert result.data[ALL_DATACENTERS].total == 6
+			assert result.data[ALL_DATACENTERS].total == 7
 			assert result.data[ALL_DATACENTERS].cpuHigh == 3
-			assert result.data[ALL_DATACENTERS].cpuLow == 1
+			assert result.data[ALL_DATACENTERS].cpuLow == 2
 			assert result.data[ALL_DATACENTERS].cpuMedium == 2
-			assert result.data[ALL_DATACENTERS].cpuAverage == 56.666666666666664
+			assert result.data[ALL_DATACENTERS].cpuAverage == 48.57142857142857
 			assert result.data[ALL_DATACENTERS].memoryHigh == 3
-			assert result.data[ALL_DATACENTERS].memoryLow == 1
+			assert result.data[ALL_DATACENTERS].memoryLow == 2
 			assert result.data[ALL_DATACENTERS].memoryMedium == 2
-			assert result.data[ALL_DATACENTERS].memoryAverage == 60.0
+			assert result.data[ALL_DATACENTERS].memoryAverage == 51.42857142857143
 			assert result.data[ALL_DATACENTERS].high == 5
-			assert result.data[ALL_DATACENTERS].low == 0
+			assert result.data[ALL_DATACENTERS].low == 1
 			assert result.data[ALL_DATACENTERS].medium == 1
-			assert result.data["myDC"].total == 2
+			assert result.data["myDC"].total == 3
 			assert result.data["myDC"].cpuHigh == 0
-			assert result.data["myDC"].cpuLow == 1
+			assert result.data["myDC"].cpuLow == 2
 			assert result.data["myDC"].cpuMedium == 1
-			assert result.data["myDC"].cpuAverage == 17.5
+			assert result.data["myDC"].cpuAverage == 11.666666666666666
 			assert result.data["myDC"].memoryHigh == 2
-			assert result.data["myDC"].memoryLow == 0
+			assert result.data["myDC"].memoryLow == 1
 			assert result.data["myDC"].memoryMedium == 0
-			assert result.data["myDC"].memoryAverage == 82.5
+			assert result.data["myDC"].memoryAverage == 55.0
 			assert result.data["myDC"].high == 2
-			assert result.data["myDC"].low == 0
+			assert result.data["myDC"].low == 1
 			assert result.data["myDC"].medium == 0
 			assert result.data["myDC2"].total == 4
 			assert result.data["myDC2"].cpuHigh == 3
@@ -359,25 +359,25 @@ class VMUtilizationReportPluginSpec extends Specification {
 				[id: "vm18", node: [id: "node02"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 0,
 						state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: null]],
 		]], true)
-		12 * pluginDatastoreService.getData(VM_LAST_UPDATED_COLLECTION, "name", _ as String)
-		12 * pluginDatastoreService.addData(VM_LAST_UPDATED_COLLECTION, _ as Map) >> true
+		13 * pluginDatastoreService.getData(VM_LAST_UPDATED_COLLECTION, "name", _ as String)
+		13 * pluginDatastoreService.addData(VM_LAST_UPDATED_COLLECTION, _ as Map) >> true
 
 		then:
 		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			assert result.data.size() == 1
-			assert result.data[ALL_DATACENTERS].total == 12
+			assert result.data[ALL_DATACENTERS].total == 13
 			assert result.data[ALL_DATACENTERS].cpuHigh == 9
-			assert result.data[ALL_DATACENTERS].cpuLow == 1
+			assert result.data[ALL_DATACENTERS].cpuLow == 2
 			assert result.data[ALL_DATACENTERS].cpuMedium == 2
-			assert result.data[ALL_DATACENTERS].cpuAverage == 78.33333333333333
+			assert result.data[ALL_DATACENTERS].cpuAverage == 72.3076923076923
 			assert result.data[ALL_DATACENTERS].memoryHigh == 9
-			assert result.data[ALL_DATACENTERS].memoryLow == 1
+			assert result.data[ALL_DATACENTERS].memoryLow == 2
 			assert result.data[ALL_DATACENTERS].memoryMedium == 2
-			assert result.data[ALL_DATACENTERS].memoryAverage == 80.0
+			assert result.data[ALL_DATACENTERS].memoryAverage == 73.84615384615384
 			assert result.data[ALL_DATACENTERS].high == 11
-			assert result.data[ALL_DATACENTERS].low == 0
+			assert result.data[ALL_DATACENTERS].low == 1
 			assert result.data[ALL_DATACENTERS].medium == 1
 			return true
 		}) >> new MoabRestResponse(null, null, true)
@@ -419,27 +419,28 @@ class VMUtilizationReportPluginSpec extends Specification {
 			assert result.agent == "VM Utilization Report Plugin"
 			return true
 		}) >> new MoabRestResponse(null, null, true)
-
+		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION) >> [[name: "vm1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.post("/rest/events", {
 			def result = it.call()
-			result.errorMessage.message == errorMessage
-			result.sourceComponent == "VMUtilizationReportPlugin"
-			result.severity == severity
+			assert result.errorMessage.message == errorMessage
+			assert result.sourceComponent == "VMUtilizationReportPlugin"
+			assert result.severity == severity
 			return true
 		}) >> new MoabRestResponse(null, null, true)
 
 		where:
-		severity | errorMessage                                                      | vm
-		"ERROR"  | "vmUtilizationReportPlugin.vm.name.null"                          | [host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"WARN"   | "vmUtilizationReportPlugin.vm.host.null"                          | [name: "vm1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"WARN"   | "vmUtilizationReportPlugin.vm.datacenter.null"                    | [name: "vm1", host: ["name": "node04"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.state.null"                         | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: null], metrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.configuredMemory.null"              | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.total.memory.zero.message"             | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 0, available: 40]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.availableMemory.null"               | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"WARN"   | "vmUtilizationReportPlugin.available.equals.total.memory.message" | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 80, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.cpuUtils.null"                      | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()]]
-		"WARN"   | "vmUtilizationReportPlugin.cpu.zero.message"                      | [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0]]
+		severity | errorMessage															| vm
+		"ERROR"	| "vmUtilizationReportPlugin.vm.name.null"								| [host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"	| "vmUtilizationReportPlugin.vm.state.null"								| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: null], metrics: [cpuUtilization: 45]]
+		"ERROR"	| "vmUtilizationReportPlugin.vm.configuredMemory.null"					| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"	| "vmUtilizationReportPlugin.total.memory.zero.message"					| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 0, available: 40]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"	| "vmUtilizationReportPlugin.vm.availableMemory.null"					| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"ERROR"	| "vmUtilizationReportPlugin.vm.cpuUtils.null"							| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()]]
+		"WARN"	| "vmUtilizationReportPlugin.available.equals.total.memory.message"		| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 80, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"WARN"	| "vmUtilizationReportPlugin.cpu.zero.message"							| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0]]
+		"WARN"	| "vmUtilizationReportPlugin.vm.notUpdated"								| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-00", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"WARN"	| "vmUtilizationReportPlugin.vm.host.null"								| [name: "vm1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
+		"WARN"	| "vmUtilizationReportPlugin.vm.datacenter.null"						| [name: "vm1", host: ["name": "node04"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
 
 	}
 
@@ -464,6 +465,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		plugin.poll()
 
 		then:
+		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION) >> [[name: "vm1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm]], true)
@@ -475,24 +477,23 @@ class VMUtilizationReportPluginSpec extends Specification {
 
 		1 * moabRestService.post("/rest/events", {
 			def result = it.call()
-			result.errorMessage.message == errorMessage
-			result.sourceComponent == "VMUtilizationReportPlugin"
-			result.severity == severity
+			assert result.errorMessage.message == errorMessage
+			assert result.sourceComponent == "VMUtilizationReportPlugin"
+			assert result.severity == severity
 			return true
 		}) >> new MoabRestResponse(null, null, true)
 
 		where:
-		severity | errorMessage                                                      | vm
-		"ERROR"  | "vmUtilizationReportPlugin.vm.id.null"                            | [node: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"WARN"   | "vmUtilizationReportPlugin.vm.node.null"                          | [id: "vm1", lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"WARN"   | "vmUtilizationReportPlugin.vm.datacenter.null"                    | [id: "vm1", node: ["id": "node04"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.state.null"                         | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, states: [state: null], genericMetrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.configuredMemory.null"              | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", availableMemory: 80, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.total.memory.zero.message"             | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.availableMemory.null"               | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 100, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"WARN"   | "vmUtilizationReportPlugin.available.equals.total.memory.message" | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"ERROR"  | "vmUtilizationReportPlugin.vm.cpuUtils.null"                      | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString()]
-		"WARN"   | "vmUtilizationReportPlugin.cpu.zero.message"                      | [id: "vm1", node: ["id": "node01"], lastUpdatedDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 0]]
+		severity | errorMessage															| vm
+		"ERROR"  | "vmUtilizationReportPlugin.vm.name.null"								| [node: ["name": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "vmUtilizationReportPlugin.vm.state.null"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, states: [state: null], genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "vmUtilizationReportPlugin.vm.configuredMemory.null"					| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", availableMemory: 80, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "vmUtilizationReportPlugin.total.memory.zero.message"				| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 0, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "vmUtilizationReportPlugin.vm.availableMemory.null"					| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"ERROR"  | "vmUtilizationReportPlugin.vm.cpuUtils.null"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString()]
+		"WARN"   | "vmUtilizationReportPlugin.available.equals.total.memory.message"	| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 2, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
+		"WARN"   | "vmUtilizationReportPlugin.cpu.zero.message"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 0]]
+		"WARN"   | "vmUtilizationReportPlugin.vm.notUpdated"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-00", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
 
 	}
 
