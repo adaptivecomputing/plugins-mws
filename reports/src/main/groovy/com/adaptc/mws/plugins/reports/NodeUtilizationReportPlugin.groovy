@@ -61,18 +61,18 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		def lastUpdatedDateField
 		def nameField
 		def stateField
-		if (grailsApplication.metadata.'app.version'?.startsWith("7.1")) {
-			apiVersion = 1
-			nameField = "id"
-			metricsField = "genericMetrics"
-			lastUpdatedDateField = "lastUpdateDate"
-			stateField = "state"
-		} else {
+		if (moabRestService.isAPIVersionSupported(2)) {
 			apiVersion = 2
 			nameField = "name"
 			metricsField = "metrics"
 			lastUpdatedDateField = "lastUpdatedDate"
 			stateField = "states.state"
+		} else {
+			apiVersion = 1
+			nameField = "id"
+			metricsField = "genericMetrics"
+			lastUpdatedDateField = "lastUpdateDate"
+			stateField = "state"
 		}
 
 		log.debug("Querying the CPU and memory utilization values from the nodes REST API using API version ${apiVersion}")

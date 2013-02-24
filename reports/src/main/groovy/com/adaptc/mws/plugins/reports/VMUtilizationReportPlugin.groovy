@@ -67,23 +67,17 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		def stateField = "state"
 		def nodesResponse
 
-		if (!grailsApplication.metadata.'app.version'?.startsWith("7.1")) {
+		if (moabRestService.isAPIVersionSupported(2)) {
 			nodesResponse = moabRestService.get(NODES_URL, params: [
 					'api-version': 2,
 					fields: "attributes.MOAB_DATACENTER,name",
 			])
-
-			if (nodesResponse?.success) {
-				apiVersion = 2
-				nameField = "name"
-				metricsField = "metrics"
-				lastUpdatedDateField = "lastUpdatedDate"
-				hostField = "host.name"
-				stateField = "states.state"
-			} else {
-				log.info("Node query using api version 2 failed resulted in error, using api version 1 which does not include data centers.  Error messages are : " + nodesResponse?.data?.messages?.join(", "))
-			}
-
+			apiVersion = 2
+			nameField = "name"
+			metricsField = "metrics"
+			lastUpdatedDateField = "lastUpdatedDate"
+			hostField = "host.name"
+			stateField = "states.state"
 		}
 
 		log.debug("Querying the CPU and memory utilization values from the vms REST API using API version ${apiVersion}")

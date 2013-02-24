@@ -100,7 +100,6 @@ class VMUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
 
 		and:
 		config.reportConsolidationDuration = 10
@@ -132,6 +131,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, false)
 		1 * httpResponse.getStatus() >> 404
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.post({
 			assert it.data.name == "vm-utilization"
@@ -144,38 +144,35 @@ class VMUtilizationReportPluginSpec extends Specification {
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
-			assert it.params.'api-version' == 2
 			assert it.params.fields == "metrics.cpuUtilization,host.name,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, null, false)
 		0 * _._
 
 		when: "Report does exist but could not get vm information v1"
-		plugin.grailsApplication = [metadata: ['app.version': "7.1.3"]]
 		plugin.poll()
 
 		then:
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, false)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> false
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.get({
-			assert it.params.'api-version' == 1
 			assert it.params.fields == "genericMetrics.cpuUtilization,node.id,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, null, false)
 		0 * _._
 
 		when: "Sample could not be created with no data returned"
-		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
 		plugin.poll()
 
 		then:
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, true)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
-			assert it.params.'api-version' == 2
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
 
@@ -211,17 +208,16 @@ class VMUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, true)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.get({
-			assert it.params.'api-version' == 2
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
 				[name: "node01", attributes: [MOAB_DATACENTER: "myDC"]],
 				[name: "node02", attributes: [MOAB_DATACENTER: "myDC2"]]
 		]], true)
 		1 * moabRestService.get({
-			assert it.params.'api-version' == 2
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
 				[name: "vm01", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 100]],
@@ -312,16 +308,15 @@ class VMUtilizationReportPluginSpec extends Specification {
 		config.cpuLowThreshold = 25
 		config.memoryHighThreshold = 75
 		config.memoryLowThreshold = 25
-		plugin.grailsApplication = [metadata: ['app.version': "7.1.3"]]
 		plugin.poll()
 
 		then:
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, true)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], false)
 		1 * moabRestService.get({
-			assert it.params.'api-version' == 1
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
 				[id: "vm01", node: [id: "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 100,
@@ -393,7 +388,6 @@ class VMUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
 		config.reportConsolidationDuration = 10
 		config.reportSize = 2
 		config.cpuHighThreshold = 75
@@ -405,6 +399,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		plugin.poll()
 
 		then:
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
@@ -453,7 +448,6 @@ class VMUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata: ['app.version': "7.1.3"]]
 		config.reportConsolidationDuration = 10
 		config.reportSize = 2
 		config.cpuHighThreshold = 75
@@ -465,6 +459,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		plugin.poll()
 
 		then:
+		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION) >> [[name: "vm1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true

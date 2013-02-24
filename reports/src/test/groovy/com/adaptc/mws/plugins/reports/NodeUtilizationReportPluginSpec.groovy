@@ -93,7 +93,6 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata:['app.version':"7.2.0"]]
 
 		and:
 		config.reportConsolidationDuration = 10
@@ -129,6 +128,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 404
 
 		then:
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * moabRestService.post({
 			if(it == "/rest/events")
 				return
@@ -143,7 +143,6 @@ class NodeUtilizationReportPluginSpec extends Specification {
 
 		then:
 		1 * moabRestService.get({
-			assert it.params.'api-version'==2
 			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, null, false)
@@ -151,7 +150,6 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		0 * _._
 
 		when: "Report does exist but could not get node information v1"
-		plugin.grailsApplication = [metadata:['app.version':"7.1.3"]]
 		plugin.poll()
 
 		then:
@@ -159,8 +157,8 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 
 		then:
+		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * moabRestService.get({
-			assert it.params.'api-version'==1
 			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, null, false)
@@ -168,15 +166,14 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		0 * _._
 
 		when: "Sample could not be created with no data returned"
-		plugin.grailsApplication = [metadata:['app.version':"7.2.0"]]
 		plugin.poll()
 
 		then:
 		1 * moabRestService.get("/rest/reports/node-utilization") >> new MoabRestResponse(httpResponse, null, true)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get({
-			assert it.params.'api-version'==2
 			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
@@ -213,10 +210,10 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.get("/rest/reports/node-utilization") >> new MoabRestResponse(httpResponse, null, true)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.get({
-			assert it.params.'api-version'==2
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
 		        [name:"node01", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:100]],
@@ -296,16 +293,15 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		config.cpuLowThreshold = 25
 		config.memoryHighThreshold = 75
 		config.memoryLowThreshold = 25
-		plugin.grailsApplication = [metadata:['app.version':"7.1.3"]]
 		plugin.poll()
 
 		then:
 		1 * moabRestService.get("/rest/reports/node-utilization") >> new MoabRestResponse(httpResponse, null, true)
 		1 * httpResponse.getStatus() >> 200
+		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], false)
 		1 * moabRestService.get({
-			assert it.params.'api-version'==1
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
 				[id:"node01", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:100,
@@ -378,7 +374,6 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata: ['app.version': "7.2.0"]]
 		config.reportConsolidationDuration = 10
 		config.reportSize = 2
 		config.cpuHighThreshold = 75
@@ -390,6 +385,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		plugin.poll()
 
 		then:
+		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
@@ -425,12 +421,10 @@ class NodeUtilizationReportPluginSpec extends Specification {
 	def "Test node event '#errorMessage' is thrown with api-version 1"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
-
 		plugin.moabRestService = moabRestService
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
-		plugin.grailsApplication = [metadata:['app.version':"7.1.3"]]
 		config.reportConsolidationDuration = 10
 		config.reportSize = 2
 		config.cpuHighThreshold = 75
@@ -442,6 +436,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		plugin.poll()
 
 		then:
+		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
