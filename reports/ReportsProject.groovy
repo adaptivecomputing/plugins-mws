@@ -7,8 +7,9 @@ class ReportsProject {
 	String website = "http://www.adaptivecomputing.com"
 
 	// Versioning properties
-	String version = "1.2-SNAPSHOT"
+	String version = "1.2"
 	String mwsVersion = "7.1.4 > *"
+	String commonsVersion = "0.9.4 > *"
 	String license = "APACHE"
 	
 	// Documentation properties
