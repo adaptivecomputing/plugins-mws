@@ -1,12 +1,14 @@
 package com.adaptc.mws.plugins.natives
 
-import com.adaptc.mws.plugins.*
+import com.adaptc.mws.plugins.NodeReport
+import com.adaptc.mws.plugins.NodeReportState
+import com.adaptc.mws.plugins.testing.PluginUnitTestMixin
+import com.adaptc.mws.plugins.testing.TestFor
+import com.adaptc.mws.plugins.testing.TestMixin
+import spock.lang.Specification
+import spock.lang.Unroll
+
 import static com.adaptc.mws.plugins.PluginConstants.*
-
-import com.adaptc.mws.plugins.testing.*
-
-import spock.lang.*
-import org.apache.commons.lang.StringUtils
 
 @Unroll
 @TestFor(NodeNativeTranslator)
@@ -47,8 +49,8 @@ class NodeNativeTranslatorSpec extends Specification {
 		then:
 		1 * genericNativeTranslator.getGenericMap("ares") >> [res1:"1"]
 		1 * genericNativeTranslator.getGenericMap("cres") >> [res2:"2"]
-		1 * genericNativeTranslator.getGenericMap("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
-				[HVTYPE:"esx",attr1:"val1"]
+		1 * genericNativeTranslator.getGenericMapWithDisplayName("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
+				[HVTYPE:"esx",attr1:[value:"val1", displayName: "value one"]]
 		0 * _._
 		
 		and:	
@@ -82,7 +84,8 @@ class NodeNativeTranslatorSpec extends Specification {
 
 		and:
 		node.attributes.size()==1
-		node.attributes.attr1=="val1"
+		node.attributes.attr1.value=="val1"
+		node.attributes.attr1.displayName=="value one"
 	}
 
 	def "Wiki to domain null values handled correctly"() {
@@ -101,7 +104,7 @@ class NodeNativeTranslatorSpec extends Specification {
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null
-		1 * genericNativeTranslator.getGenericMap(null, "\\+", ":|=")
+		1 * genericNativeTranslator.getGenericMapWithDisplayName(null, "\\+", ":|=")
 		0 * _._
 
 		and:

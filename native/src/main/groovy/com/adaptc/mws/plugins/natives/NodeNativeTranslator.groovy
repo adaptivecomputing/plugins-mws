@@ -44,11 +44,12 @@ class NodeNativeTranslator {
 		node.variables = attrs.VARIABLE ?: [:]
 		// Backwards support for 0.9.x commons
 		if (objectHasProperty(node, "attributes")) {
-			node.attributes = genericNativeTranslator.getGenericMap(attrs.VARATTR, "\\+", ":|=")?.findAll {
-				it.key!="HVTYPE"
-			} ?: [:]
+			genericNativeTranslator.getGenericMapWithDisplayName(attrs.VARATTR, "\\+", ":|=")?.each {key, value->
+				if(key == "HVTYPE")
+					return
+				node.attributes[key] = new ReportAttribute(value:value.value, displayName : value.displayName)
+			}
 		}
-
 		node
 	}
 
