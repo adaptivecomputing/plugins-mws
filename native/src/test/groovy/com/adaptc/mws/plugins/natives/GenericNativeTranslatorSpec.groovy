@@ -77,6 +77,13 @@ class GenericNativeTranslatorSpec extends Specification {
 		result.attr2.value == "value2"
 		result.attr2.displayName == "v:a=l:u:e=2"
 
-	}
+		when: "Test display names with colon identical values"
+		result = translator.getGenericMapWithDisplayName("attr:value:val:val+attr2:value2:val2:val2", "\\+", ":|=")
 
+		then:
+		result.attr.value == "value"
+		result.attr.displayName == "val:val"
+		result.attr2.value == "value2"
+		result.attr2.displayName == "val2:val2"
+	}
 }
