@@ -142,7 +142,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 			assert it.data.keepSamples == false
 			return true
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, true)
-		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
+		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributesExtended.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
 			assert it.params.fields == "metrics.cpuUtilization,host.name,lastUpdatedDate,states.state,name,resources.memory"
 			return true
@@ -171,7 +171,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
-		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
+		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributesExtended.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
 			return true
 		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
@@ -214,8 +214,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
-				[name: "node01", attributes: [MOAB_DATACENTER: "myDC"]],
-				[name: "node02", attributes: [MOAB_DATACENTER: "myDC2"]]
+				[name: "node01", attributesExtended: [MOAB_DATACENTER: [value:"value", displayName:"myDC"]]],
+				[name: "node02", attributesExtended: [MOAB_DATACENTER: [value:"value", displayName:"myDC2"]]]
 		]], true)
 		1 * moabRestService.get({
 			return true
@@ -403,8 +403,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
-				[name: "node01", attributes: [MOAB_DATACENTER: "myDC"]],
-				[name: "node02", attributes: [MOAB_DATACENTER: "myDC2"]]
+				[name: "node01", attributesExtended: [MOAB_DATACENTER: [value:"value", displayName:"myDC"]]],
+				[name: "node02", attributesExtended: [MOAB_DATACENTER: [value:"value", displayName:"myDC2"]]]
 		]], true)
 		1 * moabRestService.get({
 			return true

@@ -70,7 +70,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		if (moabRestService.isAPIVersionSupported(2)) {
 			nodesResponse = moabRestService.get(NODES_URL, params: [
 					'api-version': 2,
-					fields: "attributes.MOAB_DATACENTER,name",
+					fields: "attributesExtended.MOAB_DATACENTER,name",
 			])
 			apiVersion = 2
 			nameField = "name"
@@ -137,7 +137,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				}
 
 				//Include all datacenters regardless if we skip the vms in them or not
-				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER
+				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributesExtended?.MOAB_DATACENTER?.displayName
 				if (hostName && !dataCenter) {
 					logEvent(message(code: "vmUtilizationReportPlugin.vm.datacenter.null", args: [hostName]),
 							"InvalidVirtualMachineProperties",
