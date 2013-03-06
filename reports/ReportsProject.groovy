@@ -18,20 +18,36 @@ class ReportsProject {
 	String scmLink = ""
 
 	def initialPlugins = {
-		// Removing from 1.0 since it pre-allocates 10 GB of space for this report
-//		'node-report' {
-//			pluginType = "NodeUtilizationReportPlugin"
-//			pollInterval = appConfig.plugins.reports.nodeUtilization.sampleInterval ?:
-//				appConfig.plugins.reports.defaults.sampleInterval ?: 60
-//			autoStart = true
-//			config {
-//				highThreshold = appConfig.plugins.reports.nodeUtilization.highThreshold ?: 75
-//				lowThreshold = appConfig.plugins.reports.nodeUtilization.lowThreshold ?: 25
-//				reportConsolidationDuration = appConfig.plugins.reports.nodeUtilization.reportConsolidationDuration ?:
-//					appConfig.plugins.reports.defaults.reportConsolidationDuration ?: 900 // 15 minutes
-//				reportSize = appConfig.plugins.reports.nodeUtilization.reportSize ?:
-//					appConfig.plugins.reports.defaults.reportSize ?: 672 // 1 week
-//			}
-//		}
+		'node-report' {
+			pluginType = "NodeUtilizationReportPlugin"
+			pollInterval = 60
+			autoStart = true
+            //This should take about 22 MB of disk space for the mongo capped collection
+			config {
+			    cpuHighThreshold = 75 // 75%
+				cpuLowThreshold = 25 // 25%
+			    memoryHighThreshold = 75 // 75%
+				memoryLowThreshold = 25 // 25%
+				reportConsolidationDuration = 14400 // 4 hours
+                reportDocumentSize = 20480 // 20 kB
+				reportSize =  1096 // 6 months
+			}
+		}
+
+		'vm-report' {
+			pluginType = "VMUtilizationReportPlugin"
+			pollInterval = 60
+			autoStart = true
+            //This should take about 22 MB of disk space for the mongo capped collection
+			config {
+			    cpuHighThreshold = 75 // 75%
+				cpuLowThreshold = 25 // 25%
+			    memoryHighThreshold = 75 // 75%
+				memoryLowThreshold = 25 // 25%
+				reportConsolidationDuration = 14400 // 4 hours
+                reportDocumentSize = 20480 // 20 kB
+				reportSize =  1096 // 6 months
+			}
+		}
 	}
 }
