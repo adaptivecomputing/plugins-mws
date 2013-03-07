@@ -1,4 +1,3 @@
-
 class ReportsProject {
 	// Plugin information
 	String title = "Reports"
@@ -22,15 +21,18 @@ class ReportsProject {
 			pluginType = "NodeUtilizationReportPlugin"
 			pollInterval = 60
 			autoStart = true
-            //This should take about 22 MB of disk space for the mongo capped collection
+			// The goal is to keep half a year of data and keep the collection
+			// capped at about 20 MB (arbitrary, but seems reasonable).
+			// Using the numbers below, the total collection size is about
+			// 21 MB (reportDocumentSize * reportSize).
 			config {
-			    cpuHighThreshold = 75 // 75%
+				cpuHighThreshold = 75 // 75%
 				cpuLowThreshold = 25 // 25%
-			    memoryHighThreshold = 75 // 75%
+				memoryHighThreshold = 75 // 75%
 				memoryLowThreshold = 25 // 25%
-				reportConsolidationDuration = 14400 // 4 hours
-                reportDocumentSize = 20480 // 20 kB
-				reportSize =  1096 // 6 months
+				reportConsolidationDuration = 14400 // 4 hours, or 6 datapoints per day
+				reportDocumentSize = 20480 // 20 KB
+				reportSize = 1098 // 183 (days in half a year) times 6 (datapoints per day)
 			}
 		}
 
@@ -38,15 +40,14 @@ class ReportsProject {
 			pluginType = "VMUtilizationReportPlugin"
 			pollInterval = 60
 			autoStart = true
-            //This should take about 22 MB of disk space for the mongo capped collection
 			config {
-			    cpuHighThreshold = 75 // 75%
-				cpuLowThreshold = 25 // 25%
-			    memoryHighThreshold = 75 // 75%
-				memoryLowThreshold = 25 // 25%
-				reportConsolidationDuration = 14400 // 4 hours
-                reportDocumentSize = 20480 // 20 kB
-				reportSize =  1096 // 6 months
+				cpuHighThreshold = 75
+				cpuLowThreshold = 25
+				memoryHighThreshold = 75
+				memoryLowThreshold = 25
+				reportConsolidationDuration = 14400
+				reportDocumentSize = 20480
+				reportSize = 1098
 			}
 		}
 	}
