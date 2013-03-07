@@ -22,6 +22,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 
 	static constraints = {
+		// The goal is to keep half a year of data and keep the collection
+		// capped at about 20 MB (arbitrary, but seems reasonable).
+		// Using the numbers below, the total collection size is about
+		// 21 MB (reportDocumentSize * reportSize).
 		cpuHighThreshold type: Double, defaultValue: 75d, min: 0d, max: 100d, validator: { val, obj ->
 			if (val < obj.config.cpuLowThreshold)
 				return "invalid.less.than.cpuLowThreshold"
@@ -32,9 +36,9 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				return "invalid.less.than.memoryLowThreshold"
 		}
 		memoryLowThreshold type: Double, defaultValue: 25d, min: 0d, max: 100d
-		reportConsolidationDuration type: Integer, defaultValue: 900, min: 1
+		reportConsolidationDuration type: Integer, defaultValue: 14400, min: 1
 		reportDocumentSize type: Integer, defaultValue: 20480, min: 1
-		reportSize type: Integer, min: 1
+		reportSize type: Integer, defaultValue: 1098, min: 1
 		pollInterval defaultValue: 60
 	}
 
