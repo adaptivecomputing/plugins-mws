@@ -29,6 +29,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		// capped at about 20 MB (arbitrary, but seems reasonable).
 		// Using the numbers below, the total collection size is about
 		// 21 MB (reportDocumentSize * reportSize).
+		// Some explanation on the numbers below:
 		//   14400: 4 hours, or 6 datapoints per day
 		//   20480: 20 KB
 		//   1098: 183 (days in half a year) times 6 (datapoints per day)
