@@ -143,7 +143,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 
 		then:
 		1 * moabRestService.get({
-			assert it.params.fields=="metrics.cpuUtilization,attributesExtended.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
+			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, null, false)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
@@ -159,7 +159,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * moabRestService.get({
-			assert it.params.fields=="genericMetrics.cpuUtilization,attributesExtended.MOAB_DATACENTER,lastUpdateDate,state,id,availableMemory,totalMemory"
+			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, null, false)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
@@ -174,7 +174,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get({
-			assert it.params.fields=="metrics.cpuUtilization,attributesExtended.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
+			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 
@@ -223,7 +223,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		        [name:"node03", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:25]],
 						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:25]],
 		        [name:"node04", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:75]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:50], attributesExtended:[MOAB_DATACENTER:[value:"value", displayName:"myDC"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:50], attributes:[MOAB_DATACENTER:[value:"value", displayName:"myDC"]]],
 		        [name:"node05", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:50]],
 						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:75]],
 		        [name:"node06", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:80]],
@@ -311,7 +311,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 				[id:"node03", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:25,
 						state:NodeReportState.RUNNING.toString(), genericMetrics:[cpuUtilization:25]],
 				[id:"node04", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:75,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:50], attributesExtended:[MOAB_DATACENTER:[value:"value", displayName:"myDC"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:50], attributes:[MOAB_DATACENTER:[value:"value", displayName:"myDC"]]],
 				[id:"node05", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:50,
 						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:75]],
 				[id:"node06", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:80,
@@ -404,15 +404,15 @@ class NodeUtilizationReportPluginSpec extends Specification {
 
 		where:
 		severity	| errorMessage															| node
-		"ERROR"		| "nodeUtilizationReportPlugin.node.name.null"							| [lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"ERROR"		| "nodeUtilizationReportPlugin.node.state.null"							| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: null], metrics: [cpuUtilization: 45],attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"ERROR"		| "nodeUtilizationReportPlugin.node.realMemory.null"					| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"ERROR"		| "nodeUtilizationReportPlugin.total.memory.zero.message"				| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 0, available: 40]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"ERROR"		| "nodeUtilizationReportPlugin.node.availableMemory.null"				| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"ERROR"		| "nodeUtilizationReportPlugin.node.cpuUtils.null"						| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"WARN"		| "nodeUtilizationReportPlugin.available.equals.total.memory.message"	| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 80, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"WARN"		| "nodeUtilizationReportPlugin.cpu.zero.message"						| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
-		"WARN"		| "nodeUtilizationReportPlugin.node.notUpdated"							| [name: "node1", lastUpdatedDate: "12:12:12 01-01-00", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributesExtended: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"ERROR"		| "nodeUtilizationReportPlugin.node.name.null"							| [lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"ERROR"		| "nodeUtilizationReportPlugin.node.state.null"							| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: null], metrics: [cpuUtilization: 45],attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"ERROR"		| "nodeUtilizationReportPlugin.node.realMemory.null"					| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"ERROR"		| "nodeUtilizationReportPlugin.total.memory.zero.message"				| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 0, available: 40]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"ERROR"		| "nodeUtilizationReportPlugin.node.availableMemory.null"				| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"ERROR"		| "nodeUtilizationReportPlugin.node.cpuUtils.null"						| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"WARN"		| "nodeUtilizationReportPlugin.available.equals.total.memory.message"	| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 80, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"WARN"		| "nodeUtilizationReportPlugin.cpu.zero.message"						| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
+		"WARN"		| "nodeUtilizationReportPlugin.node.notUpdated"							| [name: "node1", lastUpdatedDate: "12:12:12 01-01-00", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayName:"datacenter"]] ]
 		"WARN"		| "nodeUtilizationReportPlugin.node.datacenter.null"					| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
 
 	}

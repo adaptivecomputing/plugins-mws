@@ -86,7 +86,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		log.debug("Querying the CPU and memory utilization values from the nodes REST API using API version ${apiVersion}")
 		def response = moabRestService.get(NODES_URL, params: [
 				'api-version': apiVersion,
-				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributesExtended.MOAB_DATACENTER," +
+				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER," +
 						"${lastUpdatedDateField},${stateField},${nameField}," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
@@ -129,7 +129,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				availableMemory = it?.resources.memory?.available
 
 				//Include all datacenters regardless if we skip the nodes in them or not
-				dataCenter = it?.attributesExtended?.MOAB_DATACENTER?.displayName
+				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayName
 				if (!dataCenter) {
 					logEvent(message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
 							"InvalidNodeProperties",
