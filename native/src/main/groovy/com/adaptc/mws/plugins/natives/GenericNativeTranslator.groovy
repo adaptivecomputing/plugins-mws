@@ -12,18 +12,18 @@ class GenericNativeTranslator {
 		}
 	}
 
-	public Map getGenericMapWithDisplayName(String wiki, String outerDelimiter="\\+", String innerDelimiter=":|=") {
+	public Map getGenericMapWithDisplayValue(String wiki, String outerDelimiter="\\+", String innerDelimiter=":|=") {
 		return wiki?.split(outerDelimiter)?.inject([:]) { Map map, String attrWiki ->
 			String value
-			String displayName
+			String displayValue
 			def entry = attrWiki.split(innerDelimiter, 3)
 			String key = entry[0]
 			if (entry.size() > 1)
 				value = entry[1]
 			if (entry.size() > 2)
-				displayName = entry[2]
+				displayValue = entry[2]
 
-			map[key] = [value:value, displayName: displayName]
+			map[key] = [value:value, displayValue: displayValue]
 
 			return map
 		}

@@ -145,7 +145,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				}
 
 				//Include all datacenters regardless if we skip the vms in them or not
-				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER?.displayName
+				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER?.displayValue
 				if (hostName && !dataCenter) {
 					logEvent(message(code: "vmUtilizationReportPlugin.vm.datacenter.null", args: [hostName]),
 							"InvalidVirtualMachineProperties",

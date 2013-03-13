@@ -214,8 +214,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
-				[name: "node01", attributes: [MOAB_DATACENTER: [value:"value", displayName:"myDC"]]],
-				[name: "node02", attributes: [MOAB_DATACENTER: [value:"value", displayName:"myDC2"]]]
+				[name: "node01", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC"]]],
+				[name: "node02", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC2"]]]
 		]], true)
 		1 * moabRestService.get({
 			return true
@@ -403,8 +403,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
-				[name: "node01", attributes: [MOAB_DATACENTER: [value:"value", displayName:"myDC"]]],
-				[name: "node02", attributes: [MOAB_DATACENTER: [value:"value", displayName:"myDC2"]]]
+				[name: "node01", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC"]]],
+				[name: "node02", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC2"]]]
 		]], true)
 		1 * moabRestService.get({
 			return true

@@ -129,7 +129,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				availableMemory = it?.resources.memory?.available
 
 				//Include all datacenters regardless if we skip the nodes in them or not
-				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayName
+				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayValue
 				if (!dataCenter) {
 					logEvent(message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
 							"InvalidNodeProperties",

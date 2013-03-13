@@ -33,7 +33,7 @@ class GenericNativeTranslatorSpec extends Specification {
 		result==[attr1:"val1",attr2:null,attr3:"val3"]
 	}
 
-	def "Test getGenericMapWithDisplayName()"() {
+	def "Test getGenericMapWithDisplayValue()"() {
 		when: "No wiki"
 		def result = translator.getGenericMap(null)
 
@@ -41,49 +41,49 @@ class GenericNativeTranslatorSpec extends Specification {
 		!result
 
 		when: "No value or display names"
-		result = translator.getGenericMapWithDisplayName("attr+attr2", "\\+", ":|=")
+		result = translator.getGenericMapWithDisplayValue("attr+attr2", "\\+", ":|=")
 
 		then:
 		result.attr.value == null
-		result.attr.displayName == null
+		result.attr.displayValue == null
 		result.attr2.value == null
-		result.attr2.displayName == null
+		result.attr2.displayValue == null
 
 
 		when: "Test no display names"
-		result = translator.getGenericMapWithDisplayName("attr:value+attr2:value2", "\\+", "[:=]")
+		result = translator.getGenericMapWithDisplayValue("attr:value+attr2:value2", "\\+", "[:=]")
 
 		then:
 		result.attr.value == "value"
-		result.attr.displayName == null
+		result.attr.displayValue == null
 		result.attr2.value == "value2"
-		result.attr2.displayName == null
+		result.attr2.displayValue == null
 
 		when: "Test display names with colons"
-		result = translator.getGenericMapWithDisplayName("attr:value:v:a:l:u:e+attr2:value2:v:a:l:u:e:2", "\\+", ":|=")
+		result = translator.getGenericMapWithDisplayValue("attr:value:v:a:l:u:e+attr2:value2:v:a:l:u:e:2", "\\+", ":|=")
 
 		then:
 		result.attr.value == "value"
-		result.attr.displayName == "v:a:l:u:e"
+		result.attr.displayValue == "v:a:l:u:e"
 		result.attr2.value == "value2"
-		result.attr2.displayName == "v:a:l:u:e:2"
+		result.attr2.displayValue == "v:a:l:u:e:2"
 
 		when: "Test display names with equal and colons"
-		result = translator.getGenericMapWithDisplayName("attr=value=v:a=l:u=e+attr2=value2:v:a=l:u:e=2", "\\+", ":|=")
+		result = translator.getGenericMapWithDisplayValue("attr=value=v:a=l:u=e+attr2=value2:v:a=l:u:e=2", "\\+", ":|=")
 
 		then:
 		result.attr.value == "value"
-		result.attr.displayName == "v:a=l:u=e"
+		result.attr.displayValue == "v:a=l:u=e"
 		result.attr2.value == "value2"
-		result.attr2.displayName == "v:a=l:u:e=2"
+		result.attr2.displayValue == "v:a=l:u:e=2"
 
 		when: "Test display names with colon identical values"
-		result = translator.getGenericMapWithDisplayName("attr:value:val:val+attr2:value2:val2:val2", "\\+", ":|=")
+		result = translator.getGenericMapWithDisplayValue("attr:value:val:val+attr2:value2:val2:val2", "\\+", ":|=")
 
 		then:
 		result.attr.value == "value"
-		result.attr.displayName == "val:val"
+		result.attr.displayValue == "val:val"
 		result.attr2.value == "value2"
-		result.attr2.displayName == "val2:val2"
+		result.attr2.displayValue == "val2:val2"
 	}
 }

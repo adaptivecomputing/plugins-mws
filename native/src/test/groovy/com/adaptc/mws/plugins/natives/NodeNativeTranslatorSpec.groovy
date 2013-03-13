@@ -49,8 +49,8 @@ class NodeNativeTranslatorSpec extends Specification {
 		then:
 		1 * genericNativeTranslator.getGenericMap("ares") >> [res1:"1"]
 		1 * genericNativeTranslator.getGenericMap("cres") >> [res2:"2"]
-		1 * genericNativeTranslator.getGenericMapWithDisplayName("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
-				[HVTYPE:"esx",attr1:[value:"val1", displayName: "value one"]]
+		1 * genericNativeTranslator.getGenericMapWithDisplayValue("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
+				[HVTYPE:"esx",attr1:[value:"val1", displayValue: "value one"]]
 		0 * _._
 		
 		and:	
@@ -85,7 +85,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		and:
 		node.attributes.size()==1
 		node.attributes.attr1.value=="val1"
-		node.attributes.attr1.displayName=="value one"
+		node.attributes.attr1.displayValue=="value one"
 	}
 
 	def "Wiki to domain null values handled correctly"() {
@@ -104,7 +104,7 @@ class NodeNativeTranslatorSpec extends Specification {
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null
-		1 * genericNativeTranslator.getGenericMapWithDisplayName(null, "\\+", ":|=")
+		1 * genericNativeTranslator.getGenericMapWithDisplayValue(null, "\\+", ":|=")
 		0 * _._
 
 		and:
