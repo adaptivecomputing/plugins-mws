@@ -464,8 +464,34 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		"WARN"		| "nodeUtilizationReportPlugin.cpu.zero.message"						| [id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0]]
 		"WARN"		| "nodeUtilizationReportPlugin.available.equals.total.memory.message"	| [id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 1, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
 		"WARN"		| "nodeUtilizationReportPlugin.node.notUpdated"							| [id: "node1",  lastUpdateDate: "12:12:12 01-01-00", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
-
 	}
 
+	def "Events are only logged once per object id and message"() {
+		given:
+		IMoabRestService moabRestService = Mock()
+		plugin.moabRestService = moabRestService
 
+		when: "Log a couple of events"
+		plugin.logEvent("message1", "type1", "INFO", "object1")
+		plugin.logEvent("message2", "type2", "INFO", "object2")
+
+		then:
+		2 * moabRestService.post(*_)
+		0 * _._
+
+		when: "Duplicates are ignored"
+		plugin.logEvent("message1", "type1", "INFO", "object1")
+		plugin.logEvent("message2", "type2", "INFO", "object2")
+
+		then:
+		0 * _._
+
+		when: "Duplicate messages with different objects are NOT ignored"
+		plugin.logEvent("message1", "type1", "INFO", "object2")
+		plugin.logEvent("message2", "type2", "INFO", "object1")
+
+		then:
+		2 * moabRestService.post(*_)
+		0 * _._
+	}
 }

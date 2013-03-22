@@ -23,6 +23,12 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	private static final VM_LAST_UPDATED_COLLECTION = "vm-last-updated-date"
 	private static final ALL_DATACENTERS = "all"
 
+	/**
+	 * In memory cache for events that are created (objectId -> messages).  This is used to prevent
+	 * creating multiple events that are identical, but they are created only once per instance of
+	 * the plugin.
+	 */
+	private Map<String, List<String>> eventCache = [:]
 
 	static constraints = {
 		// The goal is to keep half a year of data and keep the collection
@@ -325,6 +331,13 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	}
 
 	private void logEvent(String message, String type, String severity, String objectId, String objectType = "vm") {
+		if (!eventCache.containsKey(objectId))
+			eventCache[objectId] = []
+		if (eventCache[objectId].contains(message)) {
+			log.trace("Event ${message} was already created for object ${objectId}, not creating another")
+			return
+		} else
+			eventCache[objectId] << message
 		def response = moabRestService.post("/rest/events") {
 			[
 					details: [
