@@ -288,7 +288,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					NODE_REPORT_NAME,
 					"reports"
 			)
-		log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
+			log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
 		}
 	}
 
