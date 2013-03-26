@@ -28,7 +28,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	 * creating multiple events that are identical, but they are created only once per instance of
 	 * the plugin.
 	 */
-	private Map<String, List<String>> eventCache = [:]
+	private Map<String, Set<String>> eventCache = [:]
 
 	static constraints = {
 		// The goal is to keep half a year of data and keep the collection
@@ -332,7 +332,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 	private void logEvent(String message, String type, String severity, String objectId, String objectType = "vm") {
 		if (!eventCache.containsKey(objectId))
-			eventCache[objectId] = []
+			eventCache[objectId] = [] as Set
 		if (eventCache[objectId].contains(message)) {
 			log.trace("Event ${message} was already created for object ${objectId}, not creating another")
 			return
