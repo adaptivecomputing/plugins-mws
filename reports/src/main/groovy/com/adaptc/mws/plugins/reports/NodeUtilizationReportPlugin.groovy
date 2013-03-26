@@ -278,9 +278,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					data: dataCenters,
 			]
 		}
+
 		if (response?.success)
 			log.debug("Successfully created sample for node utilization report")
-		else
+		else {
 			logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
 					"NodeReportSampleCreationFailure",
 					"ERROR",
@@ -288,6 +289,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					"reports"
 			)
 		log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
+		}
 	}
 
 	public def recreateReport(Map params) {
