@@ -61,11 +61,12 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			log.debug("Report does not exist, creating")
 			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
 			if (!createResponse.success) {
-				logEvent(message(code: "vmUtilizationReportPlugin.could.not.create.report", args: [VM_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
-						"VMReportCreationFailure",
+				logEvent(message(code: "vmUtilizationReportPlugin.could.not.create.report", args:
+							[VM_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
 						"ERROR",
 						VM_REPORT_NAME,
-						"reports"
+						"Report",
+						"Create"
 				)
 				log.error("Could not create report '${VM_REPORT_NAME}': ${createResponse.data?.messages?.join(", ")}")
 				return
@@ -104,9 +105,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 		if (!response?.success) {
 			logEvent(message(code: "vmUtilizationReportPlugin.vm.query.error", args: [apiVersion, response?.data?.messages?.join(", ")]),
-					"VMQueryFailure",
-					"ERROR",
-					null
+					"ERROR"
 			)
 			log.error("Vms query resulted in error, not creating samples: " + response?.data?.messages?.join(", "))
 			return
@@ -119,7 +118,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			String vmName = it?.getAt(nameField)
 			if (!vmName) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.name.null", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						vmName
 				)
@@ -143,7 +141,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				log.error("hostName is $hostName")
 				if (!hostName) {
 					logEvent(message(code: "vmUtilizationReportPlugin.vm.host.null", args: [vmName]),
-							"InvalidVirtualMachineProperties",
 							"WARN",
 							vmName
 					)
@@ -154,7 +151,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER?.displayValue
 				if (hostName && !dataCenter) {
 					logEvent(message(code: "vmUtilizationReportPlugin.vm.datacenter.null", args: [hostName]),
-							"InvalidVirtualMachineProperties",
 							"WARN",
 							vmName
 					)
@@ -167,7 +163,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (!state) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.state.null", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						vmName
 				)
@@ -182,7 +177,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (configuredMemory == null) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.configuredMemory.null", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						vmName
 				)
@@ -192,7 +186,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (configuredMemory == 0) {
 				logEvent(message(code: "vmUtilizationReportPlugin.total.memory.zero.message", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						vmName
 				)
@@ -202,7 +195,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (availableMemory == null) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.availableMemory.null", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						vmName
 				)
@@ -212,9 +204,8 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (availableMemory == configuredMemory) {
 				logEvent(message(code: "vmUtilizationReportPlugin.available.equals.total.memory.message", args: [
-						vmName, availableMemory, configuredMemory
-				]),
-						"InvalidVirtualMachineProperties",
+							vmName, availableMemory, configuredMemory
+						]),
 						"WARN",
 						vmName
 				)
@@ -225,7 +216,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (cpuUtils == null) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.cpuUtils.null", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						vmName
 				)
@@ -235,7 +225,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (cpuUtils == 0) {
 				logEvent(message(code: "vmUtilizationReportPlugin.cpu.zero.message", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"WARN",
 						vmName
 				)
@@ -246,7 +235,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (vmLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
 				logEvent(message(code: "vmUtilizationReportPlugin.vm.notUpdated", args: [vmName]),
-						"InvalidVirtualMachineProperties",
 						"WARN",
 						vmName
 				)
@@ -290,10 +278,10 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			log.debug("Successfully created sample for VM utilization report")
 		else {
 			logEvent(message(code: "vmUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
-					"VMReportSampleCreationFailure",
 					"ERROR",
 					VM_REPORT_NAME,
-					"reports"
+					"Sample",
+					"Create"
 			)
 			log.error("Could not create sample for VM utilization report: ${response?.data?.messages?.join(", ")}")
 		}
@@ -330,34 +318,41 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		]
 	}
 
-	private void logEvent(String message, String type, String severity, String objectId, String objectType = "vm") {
-		if (!eventCache.containsKey(objectId))
-			eventCache[objectId] = [] as Set
-		if (eventCache[objectId].contains(message)) {
-			log.trace("Event ${message} was already created for object ${objectId}, not creating another")
+	private void logEvent(String message, String severity, String objectId = null,
+						  String objectType = "VM", String type = "Configuration") {
+		if (!eventCache.containsKey(objectType+objectId))
+			eventCache[objectType+objectId] = [] as Set
+		if (eventCache[objectType+objectId].contains(message)) {
+			log.trace("Event ${message} was already created for object ${objectType}:${objectId}, not creating another")
 			return
 		} else
-			eventCache[objectId] << message
-		def response = moabRestService.post("/rest/events") {
-			[
-					details: [
-							pluginId: id,
-					],
-					errorMessage: [
-							message: message,
-					],
-					eventCategory: "vmReport",
-					eventTime: new Date(),
-					eventType: type,
-					facility: "reporting",
-					primaryObject: [
-							id: objectId,
-							type: objectType,
-					],
-					sourceComponent: "VMUtilizationReportPlugin",
-					severity: severity
+			eventCache[objectType+objectId] << message
+
+		def eventType = objectType + " " + type
+		def data = [
+				details: [
+						pluginType: "VMUtilizationReport",
+						pluginId: id,
+				],
+				errorMessage: [
+						message: message,
+				],
+				eventTime: new Date(),
+				eventType: eventType,
+				primaryObject: [
+						id: objectId,
+						type: objectType.toLowerCase(),
+				],
+				sourceComponent: "VM Utilization Report Plugin",
+				severity: severity,
+		]
+		if (objectId) {
+			data.primaryObject = [
+			        id: objectId,
+					type: objectType,
 			]
 		}
+		def response = moabRestService.post("/rest/events") { data }
 		if (response?.success)
 			log.trace("Successfully logged event")
 		else

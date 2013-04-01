@@ -418,7 +418,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.post("/rest/events", {
 			def result = it.call()
 			assert result.errorMessage.message == errorMessage
-			assert result.sourceComponent == "VMUtilizationReportPlugin"
+			assert result.sourceComponent == "VM Utilization Report Plugin"
 			assert result.severity == severity
 			return true
 		}) >> new MoabRestResponse(null, null, true)
@@ -473,7 +473,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.post("/rest/events", {
 			def result = it.call()
 			assert result.errorMessage.message == errorMessage
-			assert result.sourceComponent == "VMUtilizationReportPlugin"
+			assert result.sourceComponent == "VM Utilization Report Plugin"
 			assert result.severity == severity
 			return true
 		}) >> new MoabRestResponse(null, null, true)
@@ -490,33 +490,35 @@ class VMUtilizationReportPluginSpec extends Specification {
 		"WARN"   | "vmUtilizationReportPlugin.cpu.zero.message"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 0]]
 		"WARN"   | "vmUtilizationReportPlugin.vm.notUpdated"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-00", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
 	}
-
-	def "Events are only logged once per object id and message"() {
+	def "Events are only logged once per object id/type and message"() {
 		given:
 		IMoabRestService moabRestService = Mock()
 		plugin.moabRestService = moabRestService
 
-		when: "Log a couple of events"
-		plugin.logEvent("message1", "type1", "INFO", "object1")
-		plugin.logEvent("message2", "type2", "INFO", "object2")
+		when: "Log a few events"
+		plugin.logEvent("message1", "INFO", "object1", "type1")
+		plugin.logEvent("message1", "INFO", "object2", "type2")
+		plugin.logEvent("message2", "INFO", "object2", "type2")
 
 		then:
-		2 * moabRestService.post(*_)
+		3 * moabRestService.post(*_)
 		0 * _._
 
 		when: "Duplicates are ignored"
-		plugin.logEvent("message1", "type1", "INFO", "object1")
-		plugin.logEvent("message2", "type2", "INFO", "object2")
+		plugin.logEvent("message1", "INFO", "object1", "type1")
+		plugin.logEvent("message1", "INFO", "object2", "type2")
+		plugin.logEvent("message2", "INFO", "object2", "type2")
 
 		then:
 		0 * _._
 
-		when: "Duplicate messages with different objects are NOT ignored"
-		plugin.logEvent("message1", "type1", "INFO", "object2")
-		plugin.logEvent("message2", "type2", "INFO", "object1")
+		when: "Duplicate messages with different object ids or types are NOT ignored"
+		plugin.logEvent("message1", "INFO", "object2", "type1")
+		plugin.logEvent("message2", "INFO", "object1", "type3")
+		plugin.logEvent("message2", "INFO", "object2", "type4")
 
 		then:
-		2 * moabRestService.post(*_)
+		3 * moabRestService.post(*_)
 		0 * _._
 	}
 }

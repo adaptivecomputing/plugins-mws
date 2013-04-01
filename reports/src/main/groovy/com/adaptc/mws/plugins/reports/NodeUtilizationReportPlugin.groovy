@@ -58,10 +58,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
 			if (!createResponse.success) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report", args: [NODE_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
-						"NodeReportCreationFailure",
 						"ERROR",
 						NODE_REPORT_NAME,
-						"reports"
+						"Report",
+						"Create"
 				)
 				log.error("Could not create report '${NODE_REPORT_NAME}': ${createResponse.data?.messages?.join(", ")}")
 				return
@@ -97,7 +97,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		])
 		if (!response?.success) {
 			logEvent(message(code: "nodeUtilizationReportPlugin.node.query.error", args: [apiVersion, response?.data?.messages?.join(", ")]),
-					"NodeQueryFailure",
 					"ERROR",
 					null
 			)
@@ -112,7 +111,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			String nodeName = it[nameField]
 			if (!nodeName) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.name.null", args: [nodeName]),
-						"InvalidVirtualMachineProperties",
 						"ERROR",
 						nodeName
 				)
@@ -137,7 +135,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayValue
 				if (!dataCenter) {
 					logEvent(message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
-							"InvalidNodeProperties",
 							"WARN",
 							nodeName
 					)
@@ -152,7 +149,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (nodeLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.notUpdated", args: [nodeName]),
-						"InvalidNodeProperties",
 						"WARN",
 						nodeName
 				)
@@ -165,7 +161,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (state == null) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.null", args: [nodeName]),
-						"InvalidNodeProperties",
 						"ERROR",
 						nodeName
 				)
@@ -178,7 +173,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				return
 			} else if (state != NodeReportState.RUNNING && state != NodeReportState.BUSY && state != NodeReportState.IDLE) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.invalid", args: [nodeName, state.toString()]),
-						"InvalidNodeProperties",
 						"WARN",
 						nodeName
 				)
@@ -188,7 +182,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (cpuUtils == null) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.cpuUtils.null", args: [nodeName]),
-						"InvalidNodeProperties",
 						"ERROR",
 						nodeName
 				)
@@ -200,7 +193,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			if (cpuUtils == 0) {
 				//In this case we do not ignore the node
 				logEvent(message(code: "nodeUtilizationReportPlugin.cpu.zero.message", args: [nodeName]),
-						"InvalidNodeProperties",
 						"WARN",
 						nodeName
 				)
@@ -209,7 +201,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (realMemory == null) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.realMemory.null", args: [nodeName]),
-						"InvalidNodeProperties",
 						"ERROR",
 						nodeName
 				)
@@ -219,7 +210,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (realMemory == 0) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.total.memory.zero.message", args: [nodeName]),
-						"InvalidNodeProperties",
 						"ERROR",
 						nodeName
 				)
@@ -229,7 +219,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (availableMemory == null) {
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.availableMemory.null", args: [nodeName]),
-						"InvalidNodeProperties",
 						"ERROR",
 						nodeName
 				)
@@ -240,9 +229,8 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			if (availableMemory == realMemory) {
 				//In this case we do not ignore the node
 				logEvent(message(code: "nodeUtilizationReportPlugin.available.equals.total.memory.message", args: [
-						nodeName, availableMemory, realMemory
-				]),
-						"InvalidNodeProperties",
+							nodeName, availableMemory, realMemory
+						]),
 						"WARN",
 						nodeName
 				)
@@ -283,10 +271,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			log.debug("Successfully created sample for node utilization report")
 		else {
 			logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
-					"NodeReportSampleCreationFailure",
 					"ERROR",
 					NODE_REPORT_NAME,
-					"reports"
+					"Sample",
+					"Create"
 			)
 			log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
 		}
@@ -323,34 +311,41 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		]
 	}
 
-	private void logEvent(String message, String type, String severity, String objectId, String objectType = "node") {
-		if (!eventCache.containsKey(objectId))
-			eventCache[objectId] = [] as Set
-		if (eventCache[objectId].contains(message)) {
-			log.trace("Event ${message} was already created for object ${objectId}, not creating another")
+	private void logEvent(String message, String severity, String objectId = null,
+						  String objectType = "Node", String type = "Configuration") {
+		if (!eventCache.containsKey(objectType+objectId))
+			eventCache[objectType+objectId] = [] as Set
+		if (eventCache[objectType+objectId].contains(message)) {
+			log.trace("Event ${message} was already created for object ${objectType}:${objectId}, not creating another")
 			return
 		} else
-			eventCache[objectId] << message
-		def response = moabRestService.post("/rest/events") {
-			[
-					details: [
-							pluginId: id,
-					],
-					errorMessage: [
-							message: message,
-					],
-					eventCategory: "nodeReport",
-					eventTime: new Date(),
-					eventType: type,
-					facility: "reporting",
-					primaryObject: [
-							id: objectId,
-							type: objectType,
-					],
-					sourceComponent: "NodeUtilizationReportPlugin",
-					severity: severity
+			eventCache[objectType+objectId] << message
+
+		def eventType = objectType + " " + type
+		def data = [
+				details: [
+						pluginType: "NodeUtilizationReport",
+						pluginId: id,
+				],
+				errorMessage: [
+						message: message,
+				],
+				eventTime: new Date(),
+				eventType: eventType,
+				primaryObject: [
+						id: objectId,
+						type: objectType.toLowerCase(),
+				],
+				sourceComponent: "Node Utilization Report Plugin",
+				severity: severity,
+		]
+		if (objectId) {
+			data.primaryObject = [
+					id: objectId,
+					type: objectType,
 			]
 		}
+		def response = moabRestService.post("/rest/events") { data }
 		if (response?.success)
 			log.trace("Successfully logged event")
 		else
