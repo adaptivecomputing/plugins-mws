@@ -138,7 +138,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				state = NodeReportState.parse(it?.states?.state)
 				configuredMemory = it?.resources?.memory?.configured
 				availableMemory = it?.resources.memory?.available
-				log.error("hostName is $hostName")
+				log.debug("hostName is $hostName")
 				if (!hostName) {
 					logEvent(message(code: "vmUtilizationReportPlugin.vm.host.null", args: [vmName]),
 							"WARN",
