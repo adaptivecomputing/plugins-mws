@@ -106,10 +106,13 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 		def dataCenters = [(ALL_DATACENTERS): utilizationReportTranslator.getDefaultSampleDatacenter()]
 		def data = pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
+		int nodeEventCount = 0
+		int nodeSuccessCount = 0
 
 		response?.convertedData.results.each {
 			String nodeName = it[nameField]
 			if (!nodeName) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.name.null", args: [nodeName]),
 						"ERROR",
 						nodeName
@@ -134,11 +137,12 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				//Include all datacenters regardless if we skip the nodes in them or not
 				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayValue
 				if (!dataCenter) {
+					nodeEventCount++
 					logEvent(message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
 							"WARN",
 							nodeName
 					)
-					log.warn("Not including node ${nodeName}'s dataCenter in the node-utilization report because it was null.")
+					log.warn("The node ${nodeName}'s dataCenter is null.")
 				}
 
 				if (dataCenter && !dataCenters[dataCenter])
@@ -148,18 +152,21 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			def nodeLastUpdatedTime = data.find { it.name == nodeName }
 
 			if (nodeLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.notUpdated", args: [nodeName]),
 						"WARN",
 						nodeName
 				)
 				log.warn("Not including node ${nodeName} in the node-utilization report because it has not been updated " +
 						"since the last poll at ${it[lastUpdatedDateField]}")
+				return
 			}
 
 			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, NODE_LAST_UPDATED_COLLECTION,
 					nodeName, [name: nodeName, lastUpdatedDate: it[lastUpdatedDateField]])
 
 			if (state == null) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.null", args: [nodeName]),
 						"ERROR",
 						nodeName
@@ -172,6 +179,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				log.info("Not including Node ${nodeName} in the node-utilization report because the report does not include nodes that are down.")
 				return
 			} else if (state != NodeReportState.RUNNING && state != NodeReportState.BUSY && state != NodeReportState.IDLE) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.invalid", args: [nodeName, state.toString()]),
 						"WARN",
 						nodeName
@@ -181,6 +189,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
 
 			if (cpuUtils == null) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.cpuUtils.null", args: [nodeName]),
 						"ERROR",
 						nodeName
@@ -192,6 +201,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (cpuUtils == 0) {
 				//In this case we do not ignore the node
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.cpu.zero.message", args: [nodeName]),
 						"WARN",
 						nodeName
@@ -200,6 +210,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 
 			if (realMemory == null) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.realMemory.null", args: [nodeName]),
 						"ERROR",
 						nodeName
@@ -209,6 +220,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 
 			if (realMemory == 0) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.total.memory.zero.message", args: [nodeName]),
 						"ERROR",
 						nodeName
@@ -218,6 +230,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 
 			if (availableMemory == null) {
+				nodeEventCount++
 				logEvent(message(code: "nodeUtilizationReportPlugin.node.availableMemory.null", args: [nodeName]),
 						"ERROR",
 						nodeName
@@ -227,6 +240,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 
 			if (availableMemory == realMemory) {
+				nodeEventCount++
 				//In this case we do not ignore the node
 				logEvent(message(code: "nodeUtilizationReportPlugin.available.equals.total.memory.message", args: [
 							nodeName, availableMemory, realMemory
@@ -250,6 +264,13 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 						memoryUtilLevel, cpuUtils, memoryUtils)
 			utilizationReportTranslator.countUtilizationLevels(dataCenters, ALL_DATACENTERS, cpuUtilLevel,
 					memoryUtilLevel, cpuUtils, memoryUtils)
+			nodeSuccessCount++
+		}
+
+		if(!nodeEventCount && eventCache.keySet().size() != 1) {
+			//Clear the cache so that if an error happens again, the admin will receive a new event in the log notifying of a new failure.
+			eventCache = [:]
+			logEvent(message(code: "nodeUtilizationReportPlugin.no.node.issues", args: []), "INFO")
 		}
 
 		dataCenters.each {dataCenterName, metrics ->
@@ -260,24 +281,28 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 		}
 
-		response = moabRestService.post(REPORTS_URL + NODE_REPORT_NAME + SAMPLES_URL) {
-			[
-					agent: "Node Utilization Report Plugin",
-					data: dataCenters,
-			]
+		if(!nodeSuccessCount && nodeEventCount) {
+			logEvent(message(code: "nodeUtilizationReportPlugin.no.samples", args: []), "ERROR")
+		} else {
+			response = moabRestService.post(REPORTS_URL + NODE_REPORT_NAME + SAMPLES_URL) {
+				[
+						agent: "Node Utilization Report Plugin",
+						data: dataCenters,
+				]
+			}
+			if (response?.success)
+				log.debug("Successfully created sample for node utilization report")
+			else {
+				logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
+						"ERROR",
+						NODE_REPORT_NAME,
+						"Sample",
+						"Create"
+				)
+				log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
+			}
 		}
 
-		if (response?.success)
-			log.debug("Successfully created sample for node utilization report")
-		else {
-			logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
-					"ERROR",
-					NODE_REPORT_NAME,
-					"Sample",
-					"Create"
-			)
-			log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
-		}
 	}
 
 	public def recreateReport(Map params) {
