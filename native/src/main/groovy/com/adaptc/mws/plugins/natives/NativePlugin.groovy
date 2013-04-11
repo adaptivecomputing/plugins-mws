@@ -377,7 +377,7 @@ class NativePlugin extends AbstractPlugin {
 				
 				// Check for variables
 				if (it.startsWith("VARIABLE")) {
-					def match = pair =~ /VARIABLE\=(.*?)(?:\=(.*)|)$/
+					def match = pair =~ /VARIABLE\=(.*?)(?:[=:](.*)|)$/
 					def key = match[0][1]
 					def val = match[0][2]
 					if (!map.VARIABLE)

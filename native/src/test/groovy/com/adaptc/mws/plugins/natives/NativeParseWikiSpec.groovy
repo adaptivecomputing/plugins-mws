@@ -318,7 +318,42 @@ class NativeParseWikiSpec extends Specification {
 		map.UPDATETIME=="1039483"
 		map.COMMENTS=="'SemiColon;'"
     }
-	
+
+	@Unroll
+	void testParseVariableWiki() {
+		when:
+		String wikiStr = "vm1 CONTAINERNODE=node001;$line"
+		def wiki = plugin.parseWiki([wikiStr])
+
+		then:
+		wiki.size() == 1
+
+		when:
+		def map = wiki[0]
+
+		then:
+		map["VARIABLE"].size() == expectedVariables.size()
+		expectedVariables.each { def key, def val ->
+			assert map["VARIABLE"][key] == val
+		}
+
+		where:
+		line                                     | expectedVariables
+		'VARIABLE=abc123'                        | [abc123: '']
+		'VARIABLE=def456=ghi789'                 | [def456: 'ghi789'] // test with = as a delimiter
+		'VARIABLE=jkl012=mno~!@$%^&*()_+|pqr'    | [jkl012: 'mno~!@$%^&*()_+|pqr']
+		'VARIABLE=stu345=vwx`-\\[]{}.,?yza'      | [stu345: 'vwx`-\\[]{}.,?yza']
+		'VARIABLE=a=1;VARIABLE=b=2;VARIABLE=c=3' | [a: '1', b: '2', c: '3']
+		'VARIABLE=d=1+2=3'                       | [d: '1+2=3']
+		'VARIABLE=e=http://example.com?a=1&b=2'  | [e: 'http://example.com?a=1&b=2']
+		'VARIABLE=def456:ghi789'                 | [def456: 'ghi789'] // test with : as a delimiter
+		'VARIABLE=jkl012:mno~!@$%^&*()_+|pqr'    | [jkl012: 'mno~!@$%^&*()_+|pqr']
+		'VARIABLE=stu345:vwx`-\\[]{}.,?yza'      | [stu345: 'vwx`-\\[]{}.,?yza']
+		'VARIABLE=a:1;VARIABLE=b:2;VARIABLE=c:3' | [a: '1', b: '2', c: '3']
+		'VARIABLE=d:1+2=3'                       | [d: '1+2=3']
+		'VARIABLE=e:http://example.com?a=1&b=2'  | [e: 'http://example.com?a=1&b=2']
+	}
+
 	void testFullClusterWiki() {
 		when:
 		def wikiStr = this.class.classLoader.getResource("testfiles/msm-cluster-query.wiki").text
