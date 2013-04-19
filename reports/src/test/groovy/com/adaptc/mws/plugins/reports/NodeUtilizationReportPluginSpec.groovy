@@ -389,7 +389,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node,[name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayValue:"datacenter"]] ]]], true)
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node]], true)
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
 			return true
 		}) >> new MoabRestResponse(null, null, true)
@@ -414,7 +414,6 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		"WARN"		| "nodeUtilizationReportPlugin.cpu.zero.message"						| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0], attributes: [ MOAB_DATACENTER: [value:"value", displayValue:"datacenter"]] ]
 		"WARN"		| "nodeUtilizationReportPlugin.node.notUpdated"							| [name: "node1", lastUpdatedDate: "12:12:12 01-01-00", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayValue:"datacenter"]] ]
 		"WARN"		| "nodeUtilizationReportPlugin.node.datacenter.null"					| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"INFO"		| "nodeUtilizationReportPlugin.no.node.issues"							| [name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayValue:"datacenter"]] ]
 
 	}
 
@@ -441,7 +440,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node,[id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45] ] ]], true)
+		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node]], true)
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
 			return true
 		}) >> new MoabRestResponse(null, null, true)
@@ -465,43 +464,6 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		"WARN"		| "nodeUtilizationReportPlugin.cpu.zero.message"						| [id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0]]
 		"WARN"		| "nodeUtilizationReportPlugin.available.equals.total.memory.message"	| [id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 1, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
 		"WARN"		| "nodeUtilizationReportPlugin.node.notUpdated"							| [id: "node1",  lastUpdateDate: "12:12:12 01-01-00", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
-		"INFO"		| "nodeUtilizationReportPlugin.no.node.issues"							| [id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
-	}
-
-	def "Test all nodes failed message"() {
-		given: "Mock"
-		IMoabRestService moabRestService = Mock()
-		plugin.moabRestService = moabRestService
-		IPluginDatastoreService pluginDatastoreService = Mock()
-		plugin.pluginDatastoreService = pluginDatastoreService
-		MockHttpServletResponse httpResponse = Mock()
-		config.reportConsolidationDuration = 10
-		config.reportSize = 2
-		config.cpuHighThreshold = 75
-		config.cpuLowThreshold = 25
-		config.memoryHighThreshold = 75
-		config.memoryLowThreshold = 25
-
-		when:
-		plugin.poll()
-
-		then:
-		1 * moabRestService.isAPIVersionSupported(2) >> false
-		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
-		1 * moabRestService.get({
-			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node]], true)
-		2 * moabRestService.post( "/rest/events", {
-			def result = it.call()
-			assert (result.errorMessage.message == errorMessage)  || (result.errorMessage.message == errorMessage2 )
-			assert result.sourceComponent == "Node Utilization Report Plugin"
-			assert result.severity == severity
-			return true
-		}) >> new MoabRestResponse(null, null, true)
-
-		where:
-		severity	| errorMessage									|	errorMessage2								| node
-		"ERROR"		| "nodeUtilizationReportPlugin.node.name.null"	|	"nodeUtilizationReportPlugin.no.samples"	| [lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
 	}
 
 	def "Events are only logged once per object id/type and message"() {
