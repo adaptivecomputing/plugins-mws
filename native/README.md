@@ -39,7 +39,7 @@ stopUrl | No | String | The URL to call when stopping the associated Plugin.
 > `getNodes` and `getVirtualMachines` URLs will never be called.
 
 > If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes.
-> For example:_
+> For example:
 
 > ```
 > # This value would fail to be parsed correctly and COMMENT would be set to "my"
@@ -143,8 +143,8 @@ Moab.1 STATE=Idle;UNAME=username;GNAME=groupname
 Moab.2 STATE=Completed;UNAME=username;GNAME=groupname
 ```
 
-_While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
-If no `STATE` value is provided, `UNKNOWN` will be used._
+> While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
+> If no `STATE` value is provided, `UNKNOWN` will be used.
 
 ### getNodes
 
