@@ -1,8 +1,8 @@
 The Native plugin type uses the Wiki interface to communicate with Moab Resource Managers and return
 the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 
-**_To use the Native plugin type, Moab Workload Manager must be properly configured as described in the
-Configuring MWM section of the MWS user's guide._**
+> **To use the Native plugin type, Moab Workload Manager must be properly configured as described in the
+> Configuring MWM section of the MWS user's guide.**
 
 # Configuration
 
@@ -18,7 +18,7 @@ URL | http://domain.com/nodes | \- | Executes a web call using the defined URL
 
 Parameter | Required | Type | Description
 --------- | -------- | ---- | -----------
-environment | No | Query String | The environment to be set when running scripts (only if <code>exec</code> URLs are used).
+environment | No | Query String | The environment to be set when running scripts (only if `exec` URLs are used).
 getJobs | No | String | The URL to call when retrieving job information.
 getNodes | No | String | The URL to call when retrieving node information.
 getVirtualMachines | No | String | The URL to call when retrieving virtual machine information.
@@ -35,21 +35,21 @@ nodePower | No | String | The URL to call when changing the power state of a nod
 startUrl | No | String | The URL to call when starting the associated Plugin.
 stopUrl | No | String | The URL to call when stopping the associated Plugin.
 
-_Do not use <code>getNodes</code> and <code>getVirtualMachines</code> in combination with <code>getCluster</code>.  If <code>getCluster</code> is used, the
-<code>getNodes</code> and <code>getVirtualMachines</code> URLs will never be called._
+> Do not use `getNodes` and `getVirtualMachines` in combination with `getCluster`.  If `getCluster` is used, the
+> `getNodes` and `getVirtualMachines` URLs will never be called.
 
-_If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes.
-For example:_
+> If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes.
+> For example:_
 
-```
-# This value would fail to be parsed correctly and COMMENT would be set to "my"
-node1 STATE=IDLE COMMENT=my comment
-# This value would work as expected and COMMENT would be set to "my comment"
-node1 STATE=IDLE COMMENT="my comment"
-```
+> ```
+> # This value would fail to be parsed correctly and COMMENT would be set to "my"
+> node1 STATE=IDLE COMMENT=my comment
+> # This value would work as expected and COMMENT would be set to "my comment"
+> node1 STATE=IDLE COMMENT="my comment"
+> ```
 
-**_While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any
-resources._**
+> **While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any
+> resources.**
 
 # Exposed Web Services
 
@@ -97,8 +97,8 @@ PARDESTROYURL | \- | Deprecated
 QUEUEQUERYURL | \- | Deprecated
 RESOURCECREATEURL | \- | Deprecated
 RMINITIALIZEURL | \- | Deprecated
-RMSTARTURL | startUrl | This URL is no longer called by Moab, but by the plugin during the <code>beforeStart</code> phase.
-RMSTOPURL | stopUrl | This URL is no longer called by Moab, but by the Plugin during the <code>afterStop</code> phase.
+RMSTARTURL | startUrl | This URL is no longer called by Moab, but by the plugin during the `beforeStart` phase.
+RMSTOPURL | stopUrl | This URL is no longer called by Moab, but by the Plugin during the `afterStop` phase.
 RSVCTLURL | \- | Deprecated
 SYSTEMMODIFYURL | \- | Deprecated
 SYSTEMQUERYURL | \- | Deprecated
@@ -113,10 +113,10 @@ be configured.  All URLs are expected to return a line with a status code and an
 SC=0 RESPONSE=Custom message here
 ```
 
-Additionally, if the URL type is a script (<code>exec</code> scheme), the exit code must be zero for success and non-zero for
+Additionally, if the URL type is a script (`exec` scheme), the exit code must be zero for success and non-zero for
 a failure case.
 
-The environment can be set for any scripts run by using the <code>environment</code> configuration parameter as described above.
+The environment can be set for any scripts run by using the `environment` configuration parameter as described above.
 
 ```
 config {
@@ -124,7 +124,7 @@ config {
 }
 ```
 
-The above configuration would set <code>HOMEDIR</code>, <code>LIBDIR</code>, and <code>EXTRAOPTION</code> environment parameters on all scripts executed
+The above configuration would set `HOMEDIR`, `LIBDIR`, and `EXTRAOPTION` environment parameters on all scripts executed
 through the plugin.
 
 ### getJobs
@@ -143,8 +143,8 @@ Moab.1 STATE=Idle;UNAME=username;GNAME=groupname
 Moab.2 STATE=Completed;UNAME=username;GNAME=groupname
 ```
 
-_While the Wiki interface requires a <code>STATE</code> value to be reported, the Native plugin does not have this same requirement.
-If no <code>STATE</code> value is provided, <code>UNKNOWN</code> will be used._
+_While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
+If no `STATE` value is provided, `UNKNOWN` will be used._
 
 ### getNodes
 
@@ -162,10 +162,8 @@ node01 STATE=Busy;CPROC=4;APROC=0
 node02 STATE=Idle;CPROC=4;APROC=4
 ```
 
-{note}
-While the Wiki interface requires a <code>STATE</code> value to be reported, the Native plugin does not have this same requirement.
-If no <code>STATE</code> value is provided, <code>UNKNOWN</code> will be used.
-{note}
+> While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
+> If no `STATE` value is provided, `UNKNOWN` will be used.
 
 ### getVirtualMachines
 
@@ -177,8 +175,8 @@ None
 
 Native Wiki for virtual machines, one per line.
 
-{note}Virtual machines without container nodes (e.g. their <code>node</code> property is null) will be ignored and Wiki will not
-be generated for them.  This is to prevent issues with Moab recognizing virtual machines as nodes.{note}
+> Virtual machines without container nodes (e.g. their `node` property is null) will be ignored and Wiki will not
+> be generated for them.  This is to prevent issues with Moab recognizing virtual machines as nodes.
 
 ```
 SC=0 RESPONSE=Success
@@ -186,10 +184,8 @@ vm1 STATE=Busy;CPROC=4;APROC=0;CONTAINERNODE=hv1
 vm2 STATE=Idle;CPROC=4;APROC=4;CONTAINERNODE=hv1
 ```
 
-{note}
-While the Wiki interface requires a <code>STATE</code> value to be reported, the Native plugin does not have this same requirement.
-If no <code>STATE</code> value is provided, <code>UNKNOWN</code> will be used.
-{note}
+> While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
+> If no `STATE` value is provided, `UNKNOWN` will be used.
 
 ### getCluster
 
@@ -199,7 +195,7 @@ None
 
 #### Response
 
-Native Wiki for nodes and virtual machines, one per line.  The key difference between them is that VMs have <code>CONTAINERNODE</code>
+Native Wiki for nodes and virtual machines, one per line.  The key difference between them is that VMs have `CONTAINERNODE`
 reported, while nodes do not.
 
 ```
@@ -210,10 +206,8 @@ vm1 STATE=Busy;CPROC=2;APROC=0;CONTAINERNODE=hv1;OS=linux
 vm2 STATE=Idle;CPROC=2;APROC=2;CONTAINERNODE=hv1;OS=linux
 ```
 
-{note}
-While the Wiki interface requires a <code>STATE</code> value to be reported, the Native plugin does not have this same requirement.
-If no <code>STATE</code> value is provided, <code>UNKNOWN</code> will be used.
-{note}
+> While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
+> If no `STATE` value is provided, `UNKNOWN` will be used.
 
 ### jobCancel
 
@@ -358,7 +352,7 @@ vm1 OFF
 hv1,hv2,hv3 OFF
 ```
 
-<code>powerState</code> is one of the node power states.
+`powerState` is one of the node power states.
 
 #### Response
 
