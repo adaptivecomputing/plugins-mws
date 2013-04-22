@@ -55,7 +55,7 @@ stopUrl | No | String | The URL to call when stopping the associated Plugin.
 
 Method | Parameters | Parameter Type | Description
 ------ | ---------- | -------------- | -----------
-None | | |
+None | | | |
 
 # Initially Created Plugins
 
@@ -79,19 +79,19 @@ ALLOCURL | \- | Deprecated
 CREDCTLURL | \- | Deprecated
 CLUSTERQUERYURL | getCluster *or* getNodes/getVirtualMachines | See above note in the configuration descriptions.
 INFOQUERYURL | \- | Deprecated
-JOBCANCELURL | jobCancel | 
+JOBCANCELURL | jobCancel | |
 JOBMIGRATEURL | \- | Deprecated
-JOBMODIFYURL | jobModify | 
-JOBREQUEUEURL | jobRequeue |
-JOBRESUMEURL | jobResume | 
+JOBMODIFYURL | jobModify | |
+JOBREQUEUEURL | jobRequeue | |
+JOBRESUMEURL | jobResume | |
 JOBSIGNALURL | \- | Deprecated
-JOBSTARTURL | jobStart | 
-JOBSUBMITURL | jobSubmit | 
-JOBSUSPENDURL | jobSuspend | 
+JOBSTARTURL | jobStart | |
+JOBSUBMITURL | jobSubmit | |
+JOBSUSPENDURL | jobSuspend | |
 JOBVALIDATEURL | \- | Deprecated
 NODEMIGRATEURL | \- | Deprecated
-NODEMODIFYURL | nodeModify | 
-NODEPOWERURL | nodePower | 
+NODEMODIFYURL | nodeModify | |
+NODEPOWERURL | nodePower | |
 PARCREATEURL | \- | Deprecated
 PARDESTROYURL | \- | Deprecated
 QUEUEQUERYURL | \- | Deprecated
@@ -102,7 +102,7 @@ RMSTOPURL | stopUrl | This URL is no longer called by Moab, but by the Plugin du
 RSVCTLURL | \- | Deprecated
 SYSTEMMODIFYURL | \- | Deprecated
 SYSTEMQUERYURL | \- | Deprecated
-WORKLOADQUERYURL | getJobs |
+WORKLOADQUERYURL | getJobs | |
 
 # Calling URLs
 
