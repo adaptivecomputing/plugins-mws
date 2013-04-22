@@ -4,52 +4,26 @@ the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 > **To use the Native plugin type, Moab Workload Manager must be properly configured as described in the
 > Configuring MWM section of the MWS user's guide.**
 
-# Configuration
+# Configuration Notes
 
-For configuration parameters, all URLs can be defined as one of three different types:
+* While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any resources.
+* Do not use `getNodes` and `getVirtualMachines` in combination with `getCluster`.  If `getCluster` is used, the `getNodes` and `getVirtualMachines` URLs will never be called.
+* If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes. For example:
+
+```
+# This value would fail to be parsed correctly and COMMENT would be set to "my"
+node1 STATE=IDLE COMMENT=my comment
+# This value would work as expected and COMMENT would be set to "my comment"
+node1 STATE=IDLE COMMENT="my comment"
+```
+
+* For configuration parameters, all URLs can be defined as one of three different types:
 
 Type | Example | File | Action
 ---- | ------- | ---- | ------
 Flat File | file:///nodes.txt | /nodes.txt | Reads the file as a flat text file
 Script | exec:///tmp/nodes.pl | /tmp/nodes.pl | Executes the file as a script and uses the output.  Must return a non-zero value for failure.
 URL | http://domain.com/nodes | \- | Executes a web call using the defined URL
-
-## Plugin Configuration
-
-Parameter | Required | Type | Description
---------- | -------- | ---- | -----------
-environment | No | Query String | The environment to be set when running scripts (only if `exec` URLs are used).
-getJobs | No | String | The URL to call when retrieving job information.
-getNodes | No | String | The URL to call when retrieving node information.
-getVirtualMachines | No | String | The URL to call when retrieving virtual machine information.
-getCluster | No | String | The URL to call when retrieving node and virtual machine information.
-jobCancel | No | String | The URL to call when canceling a job.
-jobModify | No | String | The URL to call when modifying a job.
-jobRequeue | No | String | The URL to call when requeuing a job.
-jobResume | No | String | The URL to call when resuming a job.
-jobStart | No | String | The URL to call when starting a job.
-jobSubmit | No | String | The URL to call when submitting a job.
-jobSuspend | No | String | The URL to call when suspending a job.
-nodeModify | No | String | The URL to call when modifying a node.
-nodePower | No | String | The URL to call when changing the power state of a node.
-startUrl | No | String | The URL to call when starting the associated Plugin.
-stopUrl | No | String | The URL to call when stopping the associated Plugin.
-
-> Do not use `getNodes` and `getVirtualMachines` in combination with `getCluster`.  If `getCluster` is used, the
-> `getNodes` and `getVirtualMachines` URLs will never be called.
-
-> If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes.
-> For example:
-
-> ```
-> # This value would fail to be parsed correctly and COMMENT would be set to "my"
-> node1 STATE=IDLE COMMENT=my comment
-> # This value would work as expected and COMMENT would be set to "my comment"
-> node1 STATE=IDLE COMMENT="my comment"
-> ```
-
-> **While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any
-> resources.**
 
 # Exposed Web Services
 
