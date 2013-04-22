@@ -26,12 +26,8 @@ class NativePlugin extends AbstractPlugin {
 		jobSuspend required:false, scriptableUrl:true
 		nodeModify required:false, scriptableUrl:true
 		nodePower required:false, scriptableUrl:true
-		resourceCreate required:false, scriptableUrl:true
 		startUrl required:false, scriptableUrl:true
 		stopUrl required:false, scriptableUrl:true
-		systemModify required:false, scriptableUrl:true
-		systemQuery required:false, scriptableUrl:true
-		virtualMachineMigrate required:false, scriptableUrl:true
 	}
 
 	JobNativeTranslator jobNativeTranslator
@@ -273,55 +269,6 @@ class NativePlugin extends AbstractPlugin {
 		def result = readURL(url)
 		return !hasError(result)
 	}
-	
-	public boolean resourceCreate(String type, String id, Map<String, String> attributes) {
-		def url = getConfigKey("resourceCreate")?.toURL()
-		if (!url)
-			return false
-		url.query = [type, id].join("&")+"&"
-		url.query += attributes.collect { "${it.key}="+(it.value?.contains(" ")?"\"${it.value}\"":it.value) }.join("&")
-		log.debug("Creating ${type} resource with ID ${id} and attributes ${attributes}")
-		def result = readURL(url)
-		return !hasError(result)
-	}
-
-	public boolean systemModify(Map<String, String> properties) {
-		def url = getConfigKey("systemModify")?.toURL()
-		if (!url)
-			return false
-		def operation = properties.remove("operation")
-		url.query = operation + "&" + properties.collect { "${it.key}="+
-			(it.value?.contains(" ")?"\"${it.value}\"":it.value) }.join("&")
-		log.debug("Modifying system with operation ${operation} and properties ${properties}")
-		def result = readURL(url)
-		return !hasError(result)
-	}
-
-	// TODO Implement querying multiple system attributes
-	public List<String> systemQuery(List<String> attributes) {
-		def url = getConfigKey("systemQuery")?.toURL()
-		if (!url)
-			return []
-		def attribute = attributes[0]
-		url.query = attribute
-		log.debug("Querying system for ${attribute}")
-		def result = readURL(url)
-		if (!hasError(result))
-			return result.content
-		return []
-	}
-
-	public boolean virtualMachineMigrate(String vmId, String hypervisorId, String operationId) {
-		def url = getConfigKey("virtualMachineMigrate")?.toURL()
-		if (!url)
-			return false
-		// --vmigrate vm1.pn=hv1 operationid=vmmigrate-1 ??
-		url.query = ["--vmigrate", "${vmId}.pn=${hypervisorId}", "operationid=${operationId}"].join("&")
-		log.debug("Migrating VM ${vmId} to hypervisor ${hypervisorId}${operationId?' (${operationId})':''}")
-		def result = readURL(url)
-		return !hasError(result)
-	}
-	
 	
 	/**
 	 * Returns a list of maps containing the wiki parameters, with the id stored as id
