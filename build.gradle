@@ -7,6 +7,7 @@ buildscript {
 	}
 	dependencies {
 		classpath ('com.adaptc.gradle:moab-sdk:0.9-SNAPSHOT')
+		classpath ('com.adaptc.gradle:nexus-workflow:0.3')
 	}
 	// check for updates every build
 	configurations.all {
@@ -18,6 +19,7 @@ apply plugin: com.adaptc.gradle.moabsdk.plugins.MoabSdkInitPlugin
 apply plugin: com.adaptc.gradle.coberturamaster.CoberturaMasterPlugin
 apply plugin: 'idea'
 apply plugin:'eclipse'
+apply plugin:com.adaptc.gradle.nexusworkflow.NexusWorkflowPlugin
 
 // TODO Remove with released versions
 configurations.all {
