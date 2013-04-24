@@ -1,8 +1,8 @@
 The Native plugin type uses the Wiki interface to communicate with Moab Resource Managers and return
 the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 
-> **To use the Native plugin type, Moab Workload Manager must be properly configured as described in the
-> Configuring MWM section of the MWS user's guide.**
+> **Warning:** To use the Native plugin type, Moab Workload Manager must be properly configured as described in the
+> Configuring MWM section of the MWS user's guide.
 
 # Configuration Notes
 
