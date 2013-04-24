@@ -4,6 +4,10 @@ the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 > **Warning:** To use the Native plugin type, Moab Workload Manager must be properly configured as described in the
 > Configuring MWM section of the MWS user's guide.
 
+# Available Configuration Parameters
+
+<div class="configuration-table">This section will be replaced by MWS with the configuration parameters table</div>
+
 # Configuration Notes
 
 * While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any resources.
