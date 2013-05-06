@@ -1,11 +1,18 @@
 package com.adaptc.mws.plugins.reports
 
-import com.adaptc.mws.plugins.*
-import com.adaptc.mws.plugins.testing.*
-import spock.lang.*
-
+import com.adaptc.mws.plugins.IMoabRestService
+import com.adaptc.mws.plugins.IPluginDatastoreService
+import com.adaptc.mws.plugins.MoabRestResponse
+import com.adaptc.mws.plugins.NodeReportState
+import com.adaptc.mws.plugins.testing.TestFor
+import com.adaptc.mws.plugins.testing.TestMixin
+import com.adaptc.mws.plugins.testing.TranslatorUnitTestMixin
 import org.springframework.mock.web.MockHttpServletResponse
-import static com.adaptc.mws.plugins.reports.NodeUtilizationReportPlugin.*
+import spock.lang.Specification
+import spock.lang.Unroll
+
+import static com.adaptc.mws.plugins.reports.NodeUtilizationReportPlugin.ALL_DATACENTERS
+import static com.adaptc.mws.plugins.reports.NodeUtilizationReportPlugin.NODE_LAST_UPDATED_COLLECTION
 
 @TestFor(NodeUtilizationReportPlugin)
 @TestMixin(TranslatorUnitTestMixin)
@@ -93,6 +100,8 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
+		Date startDate = new Date(new Date().time - (6400 * 1000))
+		Date endDate = new Date(new Date().time + (6400 * 1000))
 
 		and:
 		config.reportConsolidationDuration = 10
@@ -173,10 +182,8 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
-		1 * moabRestService.get({
-			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"
-			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
+		1 * moabRestService.get(['params':['api-version':2, 'fields':"metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,resources.memory"]], '/rest/nodes') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
+		1 * moabRestService.get(['params':['api-version':1, 'fields':'label,allocatedNodes,flags,startDate,endDate']], '/rest/reservations') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 
 		then:
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
@@ -213,9 +220,30 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
+		1 * moabRestService.get(['params':['api-version':1, 'fields':'label,allocatedNodes,flags,startDate,endDate']], '/rest/reservations') >> new MoabRestResponse(null, [totalCount:1, resultCount:1, results:[[
+			allocatedNodes: [
+					[
+						id: "reservedNode"
+					]
+			],
+			endDate: endDate.toString(),
+			flags: [
+					"EVACVMS",
+					"ISCLOSED",
+					"ISACTIVE",
+					"REQFULL",
+					"TRIGHASFIRED"
+			],
+			label: "test",
+			startDate: startDate.toString()
+		]]], true)
+		1 * moabRestService.convertDateString(startDate.toString()) >> startDate
+		1 * moabRestService.convertDateString(endDate.toString()) >> endDate
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
+				[name:"reservedNode", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:100]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0]],
 		        [name:"node01", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:100]],
 						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0]],
 		        [name:"node02", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:10]],
@@ -251,8 +279,8 @@ class NodeUtilizationReportPluginSpec extends Specification {
 				[name:"node18", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
 						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:null]],
 		]], true)
-		17 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
-		17 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
+		18 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
+		18 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
 
 		then:
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
@@ -301,9 +329,30 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], false)
+		1 * moabRestService.get(['params':['api-version':1, 'fields':'label,allocatedNodes,flags,startDate,endDate']], '/rest/reservations') >> new MoabRestResponse(null, [totalCount:1, resultCount:1, results:[[
+				allocatedNodes: [
+						[
+								id: "reservedNode"
+						]
+				],
+				endDate: endDate.toString(),
+				flags: [
+						"EVACVMS",
+						"ISCLOSED",
+						"ISACTIVE",
+						"REQFULL",
+						"TRIGHASFIRED"
+				],
+				label: "test",
+				startDate: startDate.toString()
+		]]], true)
+		1 * moabRestService.convertDateString(startDate.toString()) >> startDate
+		1 * moabRestService.convertDateString(endDate.toString()) >> endDate
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
+				[id:"reservedNode", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:100,
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0]],
 				[id:"node01", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:100,
 						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0]],
 				[id:"node02", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:10,
@@ -339,8 +388,8 @@ class NodeUtilizationReportPluginSpec extends Specification {
 				[id:"node18", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
 						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:null]],
 		]], true)
-		17 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
-		17 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
+		18 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
+		18 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
 
 		then:
 		1 * moabRestService.post("/rest/reports/node-utilization/samples", {
@@ -387,6 +436,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
+		1 * moabRestService.get(['params':['api-version':1, 'fields':'label,allocatedNodes,flags,startDate,endDate']], '/rest/reservations') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node,[name: "node1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [real: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45], attributes: [ MOAB_DATACENTER: [value:"value", displayValue:"datacenter"]] ]]], true)
@@ -439,6 +489,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
+		1 * moabRestService.get(['params':['api-version':1, 'fields':'label,allocatedNodes,flags,startDate,endDate']], '/rest/reservations') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node,[id: "node1",  lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45] ] ]], true)
@@ -488,6 +539,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		then:
 		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION) >> [[name: "node1", lastUpdatedDate: "12:12:12 01-01-00" ]]
+		1 * moabRestService.get(['params':['api-version':1, 'fields':'label,allocatedNodes,flags,startDate,endDate']], '/rest/reservations') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [node]], true)

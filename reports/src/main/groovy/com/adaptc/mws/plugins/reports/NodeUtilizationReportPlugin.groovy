@@ -1,8 +1,11 @@
 package com.adaptc.mws.plugins.reports
 
-import com.adaptc.mws.plugins.*
+import com.adaptc.mws.plugins.AbstractPlugin
+import com.adaptc.mws.plugins.IMoabRestService
+import com.adaptc.mws.plugins.IPluginDatastoreService
+import com.adaptc.mws.plugins.NodeReportState
 
-import static com.adaptc.mws.plugins.PluginConstants.*
+import static com.adaptc.mws.plugins.PluginConstants.METRIC_CPU_UTILIZATION
 
 class NodeUtilizationReportPlugin extends AbstractPlugin {
 	IPluginDatastoreService pluginDatastoreService
@@ -16,6 +19,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 	private static final REPORTS_URL = "/rest/reports/"
 	private static final SAMPLES_URL = "/samples"
 	private static final NODES_URL = "/rest/nodes"
+	private static final RESERVATIONS_URL = "/rest/reservations"
 	private static final NODE_LAST_UPDATED_COLLECTION = "node-last-updated-date"
 	private static final ALL_DATACENTERS = "all"
 
@@ -104,6 +108,34 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			return
 		}
 
+		def reservationResponse = moabRestService.get(RESERVATIONS_URL, params: ["api-version" : 1, fields: "label,allocatedNodes,flags,startDate,endDate"])
+		if (!reservationResponse?.success) {
+			logEvent(message(code: "nodeUtilizationReportPlugin.reservation.query.error", args: [reservationResponse?.data?.messages?.join(", ")]),
+					"ERROR",
+					null
+			)
+			log.error("Reservation query resulted in error, not creating samples: " + reservationResponse?.data?.messages?.join(", "))
+			return
+		}
+		Map nodeUnderReservation = [:]
+
+		reservationResponse?.convertedData?.results.each { def reservation ->
+			List flags = reservation.flags
+			log.error("Looking at reservation ${flags}")
+
+			if (flags.contains("EVACVMS")) {
+				long currentTime = new Date().time
+				long startTime = moabRestService.convertDateString(reservation.startDate).time
+				long endTime = moabRestService.convertDateString(reservation.endDate).time
+				if (startTime <= currentTime && currentTime <= endTime) {
+					reservation.allocatedNodes.collect {it.id}.each { nodeId ->
+						log.debug("Adding node $nodeId to reservation list")
+						nodeUnderReservation[nodeId] = true
+					}
+				}
+			}
+		}
+
 		def dataCenters = [(ALL_DATACENTERS): utilizationReportTranslator.getDefaultSampleDatacenter()]
 		def data = pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		int nodeEventCount = 0
@@ -164,6 +196,11 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, NODE_LAST_UPDATED_COLLECTION,
 					nodeName, [name: nodeName, lastUpdatedDate: it[lastUpdatedDateField]])
+
+			if (nodeUnderReservation[nodeName]) {
+				log.error(message(code: "nodeUtilizationReportPlugin.node.reserved", args: [nodeName]))
+				return
+			}
 
 			if (state == null) {
 				nodeEventCount++
