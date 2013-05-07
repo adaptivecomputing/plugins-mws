@@ -17,9 +17,9 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 	static description = "Creates a node-utilization report with data on node CPU and memory utilization metrics."
 	private static final NODE_REPORT_NAME = "node-utilization"
 	private static final REPORTS_URL = "/rest/reports/"
-	private static final SAMPLES_URL = "/samples"
-	private static final NODES_URL = "/rest/nodes"
-	private static final RESERVATIONS_URL = "/rest/reservations"
+	private static final SAMPLES_URL = "/samples/"
+	private static final NODES_URL = "/rest/nodes/"
+	private static final RESERVATIONS_URL = "/rest/reservations/"
 	private static final NODE_LAST_UPDATED_COLLECTION = "node-last-updated-date"
 	private static final ALL_DATACENTERS = "all"
 
@@ -295,6 +295,14 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					config.cpuLowThreshold, config.cpuHighThreshold)
 			UtilizationLevel memoryUtilLevel = utilizationReportTranslator.getUtilizationLevel(memoryUtils,
 					config.memoryLowThreshold, config.memoryHighThreshold)
+
+			//Update Nodes with categories
+			def nodesResponse = moabRestService.put(NODES_URL + nodeName) {
+				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel]]
+			}
+
+			if (!nodesResponse?.success)
+				log.warn("Failed to update node $nodeName with utilization categories.")
 
 			if (dataCenter)
 				utilizationReportTranslator.countUtilizationLevels(dataCenters, dataCenter, cpuUtilLevel,

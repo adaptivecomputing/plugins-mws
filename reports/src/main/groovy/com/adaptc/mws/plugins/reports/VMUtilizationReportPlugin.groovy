@@ -17,9 +17,9 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	static description = "Creates a vm-utilization report with data on vm CPU and memory utilization metrics."
 	private static final VM_REPORT_NAME = "vm-utilization"
 	private static final REPORTS_URL = "/rest/reports/"
-	private static final SAMPLES_URL = "/samples"
-	private static final NODES_URL = "/rest/nodes"
-	private static final VMS_URL = "/rest/vms"
+	private static final SAMPLES_URL = "/samples/"
+	private static final NODES_URL = "/rest/nodes/"
+	private static final VMS_URL = "/rest/vms/"
 	private static final VM_LAST_UPDATED_COLLECTION = "vm-last-updated-date"
 	private static final ALL_DATACENTERS = "all"
 
@@ -266,6 +266,14 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					config.cpuLowThreshold, config.cpuHighThreshold)
 			UtilizationLevel memoryUtilLevel = utilizationReportTranslator.getUtilizationLevel(memoryUtils,
 					config.memoryLowThreshold, config.memoryHighThreshold)
+
+			//Update VMs with categories
+			def vmsResponse = moabRestService.put(VMS_URL + vmName) {
+				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel]]
+			}
+
+			if (!vmsResponse?.success)
+				log.warn("Failed to update vm $vmName with utilization categories.")
 
 			if (dataCenter)
 				utilizationReportTranslator.countUtilizationLevels(dataCenters, dataCenter, cpuUtilLevel,

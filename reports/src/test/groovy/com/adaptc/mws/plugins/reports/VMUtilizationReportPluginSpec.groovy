@@ -142,11 +142,11 @@ class VMUtilizationReportPluginSpec extends Specification {
 			assert it.data.keepSamples == false
 			return true
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, true)
-		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
+		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes/') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
 			assert it.params.fields == "metrics.cpuUtilization,host.name,lastUpdatedDate,states.state,name,resources.memory"
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, null, false)
+		}, "/rest/vms/") >> new MoabRestResponse(null, null, false)
 		0 * _._
 
 		when: "Report does exist but could not get vm information v1"
@@ -160,7 +160,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			assert it.params.fields == "genericMetrics.cpuUtilization,node.id,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, null, false)
+		}, "/rest/vms/") >> new MoabRestResponse(null, null, false)
 		0 * _._
 
 		when: "Sample could not be created with no data returned"
@@ -171,13 +171,13 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
-		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes') >> new MoabRestResponse(null, null, true)
+		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes/') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
+		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
 
 		then:
-		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
+		1 * moabRestService.post("/rest/reports/vm-utilization/samples/", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			assert result.data.size() == 1
@@ -213,13 +213,13 @@ class VMUtilizationReportPluginSpec extends Specification {
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.get({
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
+		}, "/rest/nodes/") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
 				[name: "node01", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC"]]],
 				[name: "node02", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC2"]]]
 		]], true)
 		1 * moabRestService.get({
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
+		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
 				[name: "vm01", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 100]],
 						states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 0]],
 				[name: "vm02", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 10]],
@@ -257,9 +257,10 @@ class VMUtilizationReportPluginSpec extends Specification {
 		]], true)
 		7 * pluginDatastoreService.getData(VM_LAST_UPDATED_COLLECTION, "name", _ as String)
 		7 * pluginDatastoreService.addData(VM_LAST_UPDATED_COLLECTION, _ as Map) >> true
+		7 * moabRestService.put(_, _) >> new MoabRestResponse(null,null,true)
 
 		then:
-		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
+		1 * moabRestService.post("/rest/reports/vm-utilization/samples/", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			assert result.data.size() == 3
@@ -318,7 +319,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], false)
 		1 * moabRestService.get({
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
+		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
 				[id: "vm01", node: [id: "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 100,
 						state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 0]],
 				[id: "vm02", node: [id: "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 100, availableMemory: 10,
@@ -356,9 +357,10 @@ class VMUtilizationReportPluginSpec extends Specification {
 		]], true)
 		13 * pluginDatastoreService.getData(VM_LAST_UPDATED_COLLECTION, "name", _ as String)
 		13 * pluginDatastoreService.addData(VM_LAST_UPDATED_COLLECTION, _ as Map) >> true
+		13 * moabRestService.put(_, _) >> new MoabRestResponse(null,null,true)
 
 		then:
-		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
+		1 * moabRestService.post("/rest/reports/vm-utilization/samples/", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			assert result.data.size() == 1
@@ -402,14 +404,14 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * moabRestService.get({
 			return true
-		}, "/rest/nodes") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
+		}, "/rest/nodes/") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
 				[name: "node01", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC"]]],
 				[name: "node02", attributes: [MOAB_DATACENTER: [value:"value", displayValue:"myDC2"]]]
 		]], true)
 		1 * moabRestService.get({
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm,[name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]]], true)
-		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
+		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm,[name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]]], true)
+		1 * moabRestService.post("/rest/reports/vm-utilization/samples/", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			return true
@@ -464,8 +466,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION) >> [[name: "vm1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm,[id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]]], true)
-		1 * moabRestService.post("/rest/reports/vm-utilization/samples", {
+		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm,[id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]]], true)
+		1 * moabRestService.post("/rest/reports/vm-utilization/samples/", {
 			def result = it.call()
 			assert result.agent == "VM Utilization Report Plugin"
 			return true
@@ -516,7 +518,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION) >> [[name: "vm1", lastUpdatedDate: "12:12:12 01-01-00" ]]
 		1 * moabRestService.get({
 			return true
-		}, "/rest/vms") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm]], true)
+		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm]], true)
 		2 * moabRestService.post("/rest/events", {
 			def result = it.call()
 			assert (result.errorMessage.message == errorMessage)  || (result.errorMessage.message == errorMessage2 )
