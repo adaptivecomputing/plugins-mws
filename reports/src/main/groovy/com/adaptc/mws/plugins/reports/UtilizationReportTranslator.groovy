@@ -9,7 +9,7 @@ import com.adaptc.mws.plugins.IPluginDatastoreService
 class UtilizationReportTranslator {
 	public void countUtilizationLevels(Map<String, Map<String, Object>> dataCenters, String dataCenter,
 									UtilizationLevel cpuUtilLevel, UtilizationLevel memoryUtilLevel,
-									BigDecimal cpuUtils, BigDecimal memoryUtils) {
+									UtilizationLevel bothUtilLevel, BigDecimal cpuUtils, BigDecimal memoryUtils) {
 		dataCenters[dataCenter].cpuAverage += cpuUtils
 		if (cpuUtilLevel == UtilizationLevel.LOW)
 			dataCenters[dataCenter].cpuLow++
@@ -26,12 +26,12 @@ class UtilizationReportTranslator {
 		else
 			dataCenters[dataCenter].memoryMedium++
 
-		if (memoryUtilLevel == UtilizationLevel.HIGH || cpuUtilLevel == UtilizationLevel.HIGH)
-			dataCenters[dataCenter].high++
-		else if (memoryUtilLevel == UtilizationLevel.MEDIUM || cpuUtilLevel == UtilizationLevel.MEDIUM)
-			dataCenters[dataCenter].medium++
-		else
+		if (bothUtilLevel == UtilizationLevel.LOW)
 			dataCenters[dataCenter].low++
+		else if (bothUtilLevel == UtilizationLevel.HIGH)
+			dataCenters[dataCenter].high++
+		else
+			dataCenters[dataCenter].medium++
 
 		dataCenters[dataCenter].total++
 	}
@@ -62,6 +62,15 @@ class UtilizationReportTranslator {
 		else if (utilization >= highThreshold)
 			return UtilizationLevel.HIGH
 		return UtilizationLevel.MEDIUM
+	}
+
+	public UtilizationLevel getCPUAndMemoryUtilizationLevel(UtilizationLevel cpuUtilLevel, UtilizationLevel memoryUtilLevel) {
+		if (memoryUtilLevel == UtilizationLevel.HIGH || cpuUtilLevel == UtilizationLevel.HIGH)
+			return UtilizationLevel.HIGH
+		else if (memoryUtilLevel == UtilizationLevel.MEDIUM || cpuUtilLevel == UtilizationLevel.MEDIUM)
+			return  UtilizationLevel.MEDIUM
+		else
+			return UtilizationLevel.LOW
 	}
 
 	public double calculateUtilization(Double total, Double available) {

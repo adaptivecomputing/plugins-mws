@@ -266,10 +266,11 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					config.cpuLowThreshold, config.cpuHighThreshold)
 			UtilizationLevel memoryUtilLevel = utilizationReportTranslator.getUtilizationLevel(memoryUtils,
 					config.memoryLowThreshold, config.memoryHighThreshold)
+			UtilizationLevel bothUtilLevel = utilizationReportTranslator.getCPUAndMemoryUtilizationLevel(cpuUtilLevel, memoryUtilLevel)
 
 			//Update VMs with categories
 			def vmsResponse = moabRestService.put(VMS_URL + vmName) {
-				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel]]
+				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY:bothUtilLevel]]
 			}
 
 			if (!vmsResponse?.success)
@@ -277,9 +278,9 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 			if (dataCenter)
 				utilizationReportTranslator.countUtilizationLevels(dataCenters, dataCenter, cpuUtilLevel,
-						memoryUtilLevel, cpuUtils, memoryUtils)
+						memoryUtilLevel, bothUtilLevel, cpuUtils, memoryUtils)
 			utilizationReportTranslator.countUtilizationLevels(dataCenters, ALL_DATACENTERS, cpuUtilLevel,
-					memoryUtilLevel, cpuUtils, memoryUtils)
+					memoryUtilLevel, bothUtilLevel, cpuUtils, memoryUtils)
 			vmSuccessCount++
 		}
 

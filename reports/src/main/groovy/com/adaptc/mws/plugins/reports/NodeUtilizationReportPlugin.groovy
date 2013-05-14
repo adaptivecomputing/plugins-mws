@@ -295,10 +295,12 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					config.cpuLowThreshold, config.cpuHighThreshold)
 			UtilizationLevel memoryUtilLevel = utilizationReportTranslator.getUtilizationLevel(memoryUtils,
 					config.memoryLowThreshold, config.memoryHighThreshold)
+			UtilizationLevel bothUtilLevel = utilizationReportTranslator.getCPUAndMemoryUtilizationLevel(
+					cpuUtilLevel, memoryUtilLevel)
 
 			//Update Nodes with categories
 			def nodesResponse = moabRestService.put(NODES_URL + nodeName) {
-				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel]]
+				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY:bothUtilLevel]]
 			}
 
 			if (!nodesResponse?.success)
@@ -306,9 +308,9 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (dataCenter)
 				utilizationReportTranslator.countUtilizationLevels(dataCenters, dataCenter, cpuUtilLevel,
-						memoryUtilLevel, cpuUtils, memoryUtils)
+						memoryUtilLevel, bothUtilLevel, cpuUtils, memoryUtils)
 			utilizationReportTranslator.countUtilizationLevels(dataCenters, ALL_DATACENTERS, cpuUtilLevel,
-					memoryUtilLevel, cpuUtils, memoryUtils)
+					memoryUtilLevel, bothUtilLevel, cpuUtils, memoryUtils)
 			nodeSuccessCount++
 		}
 
