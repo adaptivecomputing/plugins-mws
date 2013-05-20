@@ -96,7 +96,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		def response = moabRestService.get(NODES_URL, params: [
 				'api-version': apiVersion,
 				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER," +
-						"${lastUpdatedDateField},${stateField},${nameField}," +
+						"${lastUpdatedDateField},${stateField},${nameField},virtualMachines," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
 		if (!response?.success) {
@@ -123,15 +123,13 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			List flags = reservation.flags
 			log.error("Looking at reservation ${flags}")
 
-			if (flags.contains("EVACVMS")) {
-				long currentTime = new Date().time
-				long startTime = moabRestService.convertDateString(reservation.startDate).time
-				long endTime = moabRestService.convertDateString(reservation.endDate).time
-				if (startTime <= currentTime && currentTime <= endTime) {
-					reservation.allocatedNodes.collect {it.id}.each { nodeId ->
-						log.debug("Adding node $nodeId to reservation list")
-						nodeUnderReservation[nodeId] = true
-					}
+			long currentTime = new Date().time
+			long startTime = moabRestService.convertDateString(reservation.startDate).time
+			long endTime = moabRestService.convertDateString(reservation.endDate).time
+			if (startTime <= currentTime && currentTime <= endTime) {
+				reservation.allocatedNodes.collect {it.id}.each { nodeId ->
+					log.debug("Adding node $nodeId to reservation list")
+					nodeUnderReservation[nodeId] = true
 				}
 			}
 		}
@@ -197,8 +195,8 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, NODE_LAST_UPDATED_COLLECTION,
 					nodeName, [name: nodeName, lastUpdatedDate: it[lastUpdatedDateField]])
 
-			if (nodeUnderReservation[nodeName]) {
-				log.error(message(code: "nodeUtilizationReportPlugin.node.reserved", args: [nodeName]))
+			if (nodeUnderReservation[nodeName]  && it.virtualMachines?.size() == 0) {
+				log.warn(message(code: "nodeUtilizationReportPlugin.node.reserved", args: [nodeName]))
 				return
 			}
 
