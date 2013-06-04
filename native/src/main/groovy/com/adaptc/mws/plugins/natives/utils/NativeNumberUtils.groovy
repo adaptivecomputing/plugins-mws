@@ -65,15 +65,19 @@ class NativeNumberUtils {
 		}
 	}
 
-	private static String getSafeNumeric(String valueString, String defaultVal=null) {
+	private static String getSafeNumeric(String valueString, String defaultVal = null) {
 		if (!valueString)
 			return defaultVal
-		def isNegative = valueString.startsWith("-")
-		valueString = valueString.replaceAll("[^\\d]+", "")
-		if (!valueString)
-			return defaultVal
-		// At this point, valueString contains one or more decimal
-		// digits and nothing else.
-		return isNegative ? "-${valueString}" : valueString
+		try {
+			return Math.round(valueString.toDouble()).toString()
+		} catch (NumberFormatException nfs) {
+			def isNegative = valueString.startsWith("-")
+			valueString = valueString.replaceAll("[^\\d]+", "")
+			if (!valueString)
+				return defaultVal
+			// At this point, valueString contains one or more decimal
+			// digits and nothing else.
+			return isNegative ? "-${valueString}" : valueString
+		}
 	}
 }

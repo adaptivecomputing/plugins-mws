@@ -129,6 +129,30 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.attributes.size()==0
 	}
 
+	def "Floating point update time is handled correctly"() {
+		given:
+		GenericNativeTranslator genericNativeTranslator = Mock()
+		translator.genericNativeTranslator = genericNativeTranslator
+		def plugin = mockPlugin(NativePlugin)
+
+		and:
+		String time = "1363865607.000"
+
+		when:
+		def wiki = "node1 STATE=$NodeReportState.IDLE;UPDATETIME=$time"
+		NodeReport node = translator.createReport(plugin.parseWiki([wiki]))
+
+		then:
+		2 * genericNativeTranslator.getGenericMap(null) >> null
+		1 * genericNativeTranslator.getGenericMapWithDisplayValue(null, "\\+", ":|=")
+		0 * _._
+
+		and:
+		node.name == "node1"
+		node.state == NodeReportState.IDLE
+		node.timestamp.time == 1363865607000
+	}
+
 	def "Object for #clazz.simpleName has property #property"(Class clazz, String property, boolean result) {
 		expect:
 		translator.objectHasProperty(clazz.newInstance(), property)==result
