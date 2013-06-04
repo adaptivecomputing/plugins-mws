@@ -24,7 +24,7 @@ class NativeParseWikiSpec extends Specification {
 		"1039483"==map.UPDATETIME
     }
 	
-    void testParseDelimeterEndedWiki() {
+    void testParseDelimiterEndedWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle;UPDATETIME=1039483;"
 		def wiki = plugin.parseWiki([wikiStr])
