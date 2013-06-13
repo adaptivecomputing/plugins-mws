@@ -418,7 +418,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 	}
 
 	@Unroll
-	def "Test notification '#errorMessage' is created with api-version 2"() {
+	def "Notification '#errorMessage' is created with api-version 2"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
 		plugin.moabRestService = moabRestService
@@ -473,7 +473,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 	}
 
 	@Unroll
-	def "Test notification '#errorMessage' is created with api-version 1"() {
+	def "Notification '#errorMessage' is created with api-version 1"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
 		plugin.moabRestService = moabRestService
@@ -522,7 +522,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		"WARN"		| "nodeUtilizationReportPlugin.node.notUpdated"							| [id: "node1",  lastUpdateDate: "12:12:12 01-01-00", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:45]]
 	}
 
-	def "Test all nodes failed message"() {
+	def "All nodes had errors"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
 		plugin.moabRestService = moabRestService

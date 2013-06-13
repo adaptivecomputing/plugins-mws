@@ -2,6 +2,7 @@ package com.adaptc.mws.plugins.reports
 
 import com.adaptc.mws.plugins.IMoabRestService
 import com.adaptc.mws.plugins.IPluginDatastoreService
+import com.adaptc.mws.plugins.IPluginEventService
 import com.adaptc.mws.plugins.MoabRestResponse
 import com.adaptc.mws.plugins.NodeReportState
 import com.adaptc.mws.plugins.testing.TestFor
@@ -97,6 +98,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		given:
 		IMoabRestService moabRestService = Mock()
 		plugin.moabRestService = moabRestService
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
@@ -113,7 +116,6 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 404
 
 		then:
-		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
 		1 * moabRestService.post({
 			assert it.data.name == "vm-utilization"
 			assert it.data.description
@@ -123,6 +125,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 			assert it.data.keepSamples == false
 			return true
 		}, "/rest/reports/") >> new MoabRestResponse(null, [messages: ["message1", "message2"]], false)
+		1 * pluginEventService.createEvent(UtilizationReportEvents.REPORT_1NAME_CREATE_ERROR_2MESSAGES,
+				['vm-utilization', 'message1, message2'], null)
 		0 * _._
 
 		when: "Report does not exist and can be created, but could not get vm information v2"
@@ -132,7 +136,9 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, false)
 		1 * httpResponse.getStatus() >> 404
 		1 * moabRestService.isAPIVersionSupported(2) >> true
-		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
+		1 * pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
+				['/rest/vms/', 2, null], null)
+		_ * pluginEventService.updateNotificationCondition(*_)
 		1 * moabRestService.post({
 			assert it.data.name == "vm-utilization"
 			assert it.data.description
@@ -156,7 +162,9 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get("/rest/reports/vm-utilization") >> new MoabRestResponse(httpResponse, null, false)
 		1 * httpResponse.getStatus() >> 200
 		1 * moabRestService.isAPIVersionSupported(2) >> false
-		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
+		1 * pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
+				['/rest/vms/', 1, null], null)
+		_ * pluginEventService.updateNotificationCondition(*_)
 		1 * moabRestService.get({
 			assert it.params.fields == "genericMetrics.cpuUtilization,node.id,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
@@ -172,9 +180,8 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes/') >> new MoabRestResponse(null, null, true)
-		1 * moabRestService.get({
-			return true
-		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
+		1 * moabRestService.get(_, "/rest/vms/") >>
+				new MoabRestResponse(null, [totalCount: 0, resultCount: 0, results: []], true)
 
 		then:
 		1 * moabRestService.post("/rest/reports/vm-utilization/samples/", {
@@ -195,7 +202,9 @@ class VMUtilizationReportPluginSpec extends Specification {
 			assert result.data[ALL_DATACENTERS].medium == 0
 			return true
 		}) >> new MoabRestResponse(null, null, false)
-		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
+		_ * pluginEventService.updateNotificationCondition(*_)
+		1 * pluginEventService.createEvent(UtilizationSampleEvents.CREATE_1REPORT_ERROR_2MESSAGES,
+				['vm-utilization', null], null)
 		0 * _._
 
 		when: "Sample could be created with data returned for all cases v2"
@@ -210,7 +219,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 		1 * moabRestService.isAPIVersionSupported(2) >> true
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
-		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], true)
+		_ * pluginEventService.updateNotificationCondition(*_)
 		1 * moabRestService.get({
 			return true
 		}, "/rest/nodes/") >> new MoabRestResponse(null, [totalCount: 2, resultCount: 2, results: [
@@ -316,7 +325,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * httpResponse.getStatus() >> 200
 		1 * moabRestService.isAPIVersionSupported(2) >> false
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
-		_ * moabRestService.post("/rest/events", _ as Closure) >> new MoabRestResponse(null, [:], false)
+		_ * pluginEventService.updateNotificationCondition(*_)
 		1 * moabRestService.get({
 			return true
 		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 17, resultCount: 17, results: [
@@ -382,11 +391,12 @@ class VMUtilizationReportPluginSpec extends Specification {
 	}
 
 	@Unroll
-	def "Test vm event '#errorMessage' is thrown with api-version 2"() {
+	def "Notification '#errorMessage' is created with api-version 2"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
-
 		plugin.moabRestService = moabRestService
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
@@ -417,13 +427,13 @@ class VMUtilizationReportPluginSpec extends Specification {
 			return true
 		}) >> new MoabRestResponse(null, null, true)
 		1 * pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION) >> [[name: "vm1", lastUpdatedDate: "12:12:12 01-01-00" ]]
-		1 * moabRestService.post("/rest/events", {
-			def result = it.call()
-			assert result.errorMessage.message == errorMessage
-			assert result.sourceComponent == "VM Utilization Report Plugin"
-			assert result.severity == severity
-			return true
-		}) >> new MoabRestResponse(null, null, true)
+		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN, errorMessage,
+				{ it.type=="VM" && it.id==vm.name }, null)
+		1 * moabRestService.get('/rest/reports/vm-utilization')
+		_ * pluginDatastoreService.getData('vm-last-updated-date', 'name', 'vm1')
+		_ * pluginDatastoreService.addData('vm-last-updated-date', ['name':'vm1', 'lastUpdatedDate':'12:12:12 01-01-01'])
+		_ * moabRestService.put('/rest/vms/vm1', _ as Closure)
+		0 * _._
 
 		where:
 		severity | errorMessage															| vm
@@ -438,16 +448,16 @@ class VMUtilizationReportPluginSpec extends Specification {
 		"WARN"	| "vmUtilizationReportPlugin.vm.notUpdated"								| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-00", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
 		"WARN"	| "vmUtilizationReportPlugin.vm.host.null"								| [name: "vm1", lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
 		"WARN"	| "vmUtilizationReportPlugin.vm.datacenter.null"						| [name: "vm1", host: ["name": "node04"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
-		"INFO"	| "vmUtilizationReportPlugin.no.vm.issues"								| [name: "vm1", host: ["name": "node01"], lastUpdatedDate: "12:12:12 01-01-01", resources: [memory: [configured: 100, available: 80]], states: [state: NodeReportState.IDLE.toString()], metrics: [cpuUtilization: 45]]
 
 	}
 
 	@Unroll
-	def "Test vm event '#errorMessage' is thrown with api-version 1"() {
+	def "Notification '#errorMessage' is created with api-version 1"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
-
 		plugin.moabRestService = moabRestService
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
@@ -472,14 +482,13 @@ class VMUtilizationReportPluginSpec extends Specification {
 			assert result.agent == "VM Utilization Report Plugin"
 			return true
 		}) >> new MoabRestResponse(null, null, true)
-
-		1 * moabRestService.post("/rest/events", {
-			def result = it.call()
-			assert result.errorMessage.message == errorMessage
-			assert result.sourceComponent == "VM Utilization Report Plugin"
-			assert result.severity == severity
-			return true
-		}) >> new MoabRestResponse(null, null, true)
+		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN, errorMessage,
+				{ it.type=="VM" && it.id==vm.id }, null)
+		1 * moabRestService.get('/rest/reports/vm-utilization')
+		_ * pluginDatastoreService.getData('vm-last-updated-date', 'name', 'vm1')
+		_ * pluginDatastoreService.addData('vm-last-updated-date', ['name':'vm1', 'lastUpdatedDate':'12:12:12 01-01-01'])
+		_ * moabRestService.put('/rest/vms/vm1', _ as Closure)
+		0 * _._
 
 		where:
 		severity | errorMessage															| vm
@@ -492,14 +501,14 @@ class VMUtilizationReportPluginSpec extends Specification {
 		"WARN"   | "vmUtilizationReportPlugin.available.equals.total.memory.message"	| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 2, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
 		"WARN"   | "vmUtilizationReportPlugin.cpu.zero.message"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 0]]
 		"WARN"   | "vmUtilizationReportPlugin.vm.notUpdated"							| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-00", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-		"INFO"   | "vmUtilizationReportPlugin.no.vm.issues"								| [id: "vm1", node: ["id": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
 	}
 
-	def "Test all vms failed message"() {
+	def "All VMs had errors"() {
 		given: "Mock"
 		IMoabRestService moabRestService = Mock()
-
 		plugin.moabRestService = moabRestService
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 		IPluginDatastoreService pluginDatastoreService = Mock()
 		plugin.pluginDatastoreService = pluginDatastoreService
 		MockHttpServletResponse httpResponse = Mock()
@@ -519,48 +528,14 @@ class VMUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			return true
 		}, "/rest/vms/") >> new MoabRestResponse(null, [totalCount: 1, resultCount: 1, results: [vm]], true)
-		2 * moabRestService.post("/rest/events", {
-			def result = it.call()
-			assert (result.errorMessage.message == errorMessage)  || (result.errorMessage.message == errorMessage2 )
-			assert result.sourceComponent == "VM Utilization Report Plugin"
-			assert result.severity == severity
-			return true
-		}) >> new MoabRestResponse(null, null, true)
+		1 * moabRestService.get('/rest/reports/vm-utilization')
+		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN, errorMessage,
+				{ it.type=="VM" && it.id==vm.name }, null)
+		1 * pluginEventService.createEvent(UtilizationReportEvents.NO_SAMPLES_1TYPE, null, null)
+		0 * _._
 
 		where:
-		severity | errorMessage									| errorMessage2								| vm
-		"ERROR"  | "vmUtilizationReportPlugin.vm.name.null"		| "vmUtilizationReportPlugin.no.samples"	| [node: ["name": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
-	}
-
-	def "Events are only logged once per object id/type and message"() {
-		given:
-		IMoabRestService moabRestService = Mock()
-		plugin.moabRestService = moabRestService
-
-		when: "Log a few events"
-		plugin.logEvent("message1", "INFO", "object1", "type1")
-		plugin.logEvent("message1", "INFO", "object2", "type2")
-		plugin.logEvent("message2", "INFO", "object2", "type2")
-
-		then:
-		3 * moabRestService.post(*_)
-		0 * _._
-
-		when: "Duplicates are ignored"
-		plugin.logEvent("message1", "INFO", "object1", "type1")
-		plugin.logEvent("message1", "INFO", "object2", "type2")
-		plugin.logEvent("message2", "INFO", "object2", "type2")
-
-		then:
-		0 * _._
-
-		when: "Duplicate messages with different object ids or types are NOT ignored"
-		plugin.logEvent("message1", "INFO", "object2", "type1")
-		plugin.logEvent("message2", "INFO", "object1", "type3")
-		plugin.logEvent("message2", "INFO", "object2", "type4")
-
-		then:
-		3 * moabRestService.post(*_)
-		0 * _._
+		severity | errorMessage									| vm
+		"ERROR"  | "vmUtilizationReportPlugin.vm.name.null"		| [node: ["name": "node01"], lastUpdateDate: "12:12:12 01-01-01", totalMemory: 1, availableMemory: 2, state: NodeReportState.IDLE.toString(), genericMetrics: [cpuUtilization: 45]]
 	}
 }

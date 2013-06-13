@@ -3,6 +3,9 @@ package com.adaptc.mws.plugins.reports
 import com.adaptc.mws.plugins.AbstractPlugin
 import com.adaptc.mws.plugins.IMoabRestService
 import com.adaptc.mws.plugins.IPluginDatastoreService
+import com.adaptc.mws.plugins.IPluginEventService
+import com.adaptc.mws.plugins.IPluginEventService.AssociatedObject
+import com.adaptc.mws.plugins.IPluginEventService.EscalationLevel
 import com.adaptc.mws.plugins.NodeReportState
 
 import static com.adaptc.mws.plugins.PluginConstants.METRIC_CPU_UTILIZATION
@@ -11,7 +14,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	IPluginDatastoreService pluginDatastoreService
 	IMoabRestService moabRestService
 	UtilizationReportTranslator utilizationReportTranslator
-	def grailsApplication
+	IPluginEventService pluginEventService
 
 	static title = "Virtual Machine Utilization Report"
 	static description = "Creates a vm-utilization report with data on vm CPU and memory utilization metrics."
@@ -22,13 +25,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	private static final VMS_URL = "/rest/vms/"
 	private static final VM_LAST_UPDATED_COLLECTION = "vm-last-updated-date"
 	private static final ALL_DATACENTERS = "all"
-
-	/**
-	 * In memory cache for events that are created (objectId -> messages).  This is used to prevent
-	 * creating multiple events that are identical, but they are created only once per instance of
-	 * the plugin.
-	 */
-	private Map<String, Set<String>> eventCache = [:]
+	private static final VM_OBJECT_TYPE = "VM"
 
 	static constraints = {
 		// The goal is to keep half a year of data and keep the collection
@@ -61,13 +58,9 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			log.debug("Report does not exist, creating")
 			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
 			if (!createResponse.success) {
-				logEvent(message(code: "vmUtilizationReportPlugin.could.not.create.report", args:
-							[VM_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
-						"ERROR",
-						VM_REPORT_NAME,
-						"Report",
-						"Create"
-				)
+				def messages = createResponse.data?.messages?.collect { it?.toString() }?.join(", ")
+				pluginEventService.createEvent(UtilizationReportEvents.REPORT_1NAME_CREATE_ERROR_2MESSAGES,
+					[VM_REPORT_NAME, messages], null)
 				log.error("Could not create report '${VM_REPORT_NAME}': ${createResponse.data?.messages?.join(", ")}")
 				return
 			}
@@ -104,26 +97,25 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		])
 
 		if (!response?.success) {
-			logEvent(message(code: "vmUtilizationReportPlugin.vm.query.error", args: [apiVersion, response?.data?.messages?.join(", ")]),
-					"ERROR"
-			)
-			log.error("Vms query resulted in error, not creating samples: " + response?.data?.messages?.join(", "))
+			def messages = response?.data?.messages?.collect { it?.toString() }?.join(", ")
+			pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
+				[VMS_URL, apiVersion, messages], null)
+			log.error("Vms query resulted in error, not creating samples: ${messages}")
 			return
 		}
 
 		def dataCenters = [(ALL_DATACENTERS): utilizationReportTranslator.getDefaultSampleDatacenter()]
 		def data = pluginDatastoreService.getCollection(VM_LAST_UPDATED_COLLECTION)
-		int vmEventCount = 0
+		int vmErrorCount = 0
 		int vmSuccessCount = 0
 
 		response?.convertedData?.results?.each {
 			String vmName = it?.getAt(nameField)
 			if (!vmName) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.vm.name.null", args: [vmName]),
-						"ERROR",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.vm.name.null", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				return
 			}
 
@@ -143,22 +135,20 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				availableMemory = it?.resources.memory?.available
 				log.debug("hostName is $hostName")
 				if (!hostName) {
-					vmEventCount++
-					logEvent(message(code: "vmUtilizationReportPlugin.vm.host.null", args: [vmName]),
-							"WARN",
-							vmName
-					)
+					vmErrorCount++
+					pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+							message(code: "vmUtilizationReportPlugin.vm.host.null", args: [vmName]),
+							new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 					log.warn("Not including VM ${vmName}'s dataCenter in the vm-utilization report because its host name is null.")
 				}
 
 				//Include all datacenters regardless if we skip the vms in them or not
 				dataCenter = nodesResponse.convertedData.results.find {it?.getAt(nameField) == hostName}?.attributes?.MOAB_DATACENTER?.displayValue
 				if (hostName && !dataCenter) {
-					vmEventCount++
-					logEvent(message(code: "vmUtilizationReportPlugin.vm.datacenter.null", args: [hostName]),
-							"WARN",
-							vmName
-					)
+					vmErrorCount++
+					pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+							message(code: "vmUtilizationReportPlugin.vm.datacenter.null", args: [hostName]),
+							new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 					log.warn("Not including VM ${vmName}'s dataCenter in the vm-utilization report because its host name is null.")
 				}
 
@@ -167,91 +157,82 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			}
 
 			if (!state) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.vm.state.null", args: [vmName]),
-						"ERROR",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.vm.state.null", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.error("Not including VM ${vmName} in the vm-utilization report because its state is null.")
 				return
 			}
 
 			if (state == NodeReportState.DOWN) {
-				vmEventCount++
+				vmErrorCount++
 				log.info("Not including VM ${vmName} in the vm-utilization report because the report does not include vms that are down.")
 				return
 			}
 
 			if (configuredMemory == null) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.vm.configuredMemory.null", args: [vmName]),
-						"ERROR",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.vm.configuredMemory.null", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.error("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is null")
 				return
 			}
 
 			if (configuredMemory == 0) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.total.memory.zero.message", args: [vmName]),
-						"ERROR",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.total.memory.zero.message", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.error("Not including VM ${vmName} in the vm-utilization report because the configured memory reported is 0")
 				return
 			}
 
 			if (availableMemory == null) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.vm.availableMemory.null", args: [vmName]),
-						"ERROR",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.vm.availableMemory.null", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.error("Not including VM ${vmName} in the vm-utilization report because the available memory reported is null")
 				return
 			}
 
 			if (availableMemory == configuredMemory) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.available.equals.total.memory.message", args: [
-							vmName, availableMemory, configuredMemory
-						]),
-						"WARN",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.available.equals.total.memory.message",
+								args: [vmName, availableMemory, configuredMemory]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.warn("VM ${vmName} has available and total memory set to the same value")
 			}
 
 			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
 
 			if (cpuUtils == null) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.vm.cpuUtils.null", args: [vmName]),
-						"ERROR",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.vm.cpuUtils.null", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.error("Not including VM ${vmName} in the vm-utilization report because the CPU utilization is null")
 				return
 			}
 
 			if (cpuUtils == 0) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.cpu.zero.message", args: [vmName]),
-						"WARN",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.cpu.zero.message", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.warn("VM ${vmName} has CPU utilization set to 0")
 			}
 
 			def vmLastUpdatedTime = data.find {it.name == vmName}
 
 			if (vmLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
-				vmEventCount++
-				logEvent(message(code: "vmUtilizationReportPlugin.vm.notUpdated", args: [vmName]),
-						"WARN",
-						vmName
-				)
+				vmErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "vmUtilizationReportPlugin.vm.notUpdated", args: [vmName]),
+						new AssociatedObject(type:VM_OBJECT_TYPE, id:vmName), null)
 				log.warn("Not including VM ${vmName} in the vm-utilization report because it has not been updated since the last poll at ${it[lastUpdatedDateField]}")
 				return
 			}
@@ -284,12 +265,6 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			vmSuccessCount++
 		}
 
-		if(!vmEventCount && eventCache.keySet().size() != 1) {
-			//Clear the cache so that if an error happens again, the admin will receive a new event in the log notifying of a new failure.
-			eventCache = [:]
-			logEvent(message(code: "vmUtilizationReportPlugin.no.vm.issues", args: []), "INFO")
-		}
-
 		dataCenters.each {dataCenterName, metrics ->
 			// Do not divide by 0
 			if (metrics.total != 0) {
@@ -298,8 +273,8 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			}
 		}
 
-		if (!vmSuccessCount && vmEventCount) {
-			logEvent(message(code: "vmUtilizationReportPlugin.no.samples", args: []), "ERROR")
+		if (!vmSuccessCount && vmErrorCount) {
+			pluginEventService.createEvent(UtilizationReportEvents.NO_SAMPLES_1TYPE, null, null)
 		} else {
 			response = moabRestService.post(REPORTS_URL + VM_REPORT_NAME + SAMPLES_URL) {
 				[
@@ -310,13 +285,10 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 			if (response?.success)
 				log.debug("Successfully created sample for VM utilization report")
 			else {
-				logEvent(message(code: "vmUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
-						"ERROR",
-						VM_REPORT_NAME,
-						"Sample",
-						"Create"
-				)
-				log.error("Could not create sample for VM utilization report: ${response?.data?.messages?.join(", ")}")
+				def messages = response?.data?.messages?.collect { it?.toString }?.join(", ")
+				pluginEventService.createEvent(UtilizationSampleEvents.CREATE_1REPORT_ERROR_2MESSAGES,
+					[VM_REPORT_NAME, messages], null)
+				log.error("Could not create sample for VM utilization report: ${messages}")
 			}
 		}
 	}
@@ -350,46 +322,5 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 				keepSamples: false,
 				reportDocumentSize: config.reportDocumentSize
 		]
-	}
-
-	private void logEvent(String message, String severity, String objectId = null,
-						  String objectType = "VM", String type = "Configuration") {
-		if (!eventCache.containsKey(objectType+objectId))
-			eventCache[objectType+objectId] = [] as Set
-		if (eventCache[objectType+objectId].contains(message)) {
-			log.trace("Event ${message} was already created for object ${objectType}:${objectId}, not creating another")
-			return
-		} else
-			eventCache[objectType+objectId] << message
-
-		def eventType = objectType + " " + type
-		def data = [
-				details: [
-						pluginType: "VMUtilizationReport",
-						pluginId: id,
-				],
-				errorMessage: [
-						message: message,
-				],
-				eventTime: new Date(),
-				eventType: eventType,
-				primaryObject: [
-						id: objectId,
-						type: objectType.toLowerCase(),
-				],
-				sourceComponent: "VM Utilization Report Plugin",
-				severity: severity,
-		]
-		if (objectId) {
-			data.primaryObject = [
-			        id: objectId,
-					type: objectType,
-			]
-		}
-		def response = moabRestService.post("/rest/events") { data }
-		if (response?.success)
-			log.trace("Successfully logged event")
-		else
-			log.trace("Could not log event ${message} (${objectId})")
 	}
 }
