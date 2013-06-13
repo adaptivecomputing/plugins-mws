@@ -6,12 +6,15 @@ import com.adaptc.mws.plugins.IPluginDatastoreService
 import com.adaptc.mws.plugins.NodeReportState
 
 import static com.adaptc.mws.plugins.PluginConstants.METRIC_CPU_UTILIZATION
+import com.adaptc.mws.plugins.IPluginEventService
+import com.adaptc.mws.plugins.IPluginEventService.EscalationLevel
+import com.adaptc.mws.plugins.IPluginEventService.AssociatedObject
 
 class NodeUtilizationReportPlugin extends AbstractPlugin {
 	IPluginDatastoreService pluginDatastoreService
 	IMoabRestService moabRestService
 	UtilizationReportTranslator utilizationReportTranslator
-	def grailsApplication
+	IPluginEventService pluginEventService
 
 	static title = "Node Utilization Report"
 	static description = "Creates a node-utilization report with data on node CPU and memory utilization metrics."
@@ -22,13 +25,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 	private static final RESERVATIONS_URL = "/rest/reservations/"
 	private static final NODE_LAST_UPDATED_COLLECTION = "node-last-updated-date"
 	private static final ALL_DATACENTERS = "all"
-
-	/**
-	 * In memory cache for events that are created (objectId -> messages).  This is used to prevent
-	 * creating multiple events that are identical, but they are created only once per instance of
-	 * the plugin.
-	 */
-	private Map<String, Set<String>> eventCache = [:]
+	private static final NODE_OBJECT_TYPE = "Node"
 
 	static constraints = {
 		// The goal is to keep half a year of data and keep the collection
@@ -61,13 +58,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			log.debug("Report does not exist, creating")
 			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
 			if (!createResponse.success) {
-				logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report", args: [NODE_REPORT_NAME, createResponse.data?.messages?.join(", ")]),
-						"ERROR",
-						NODE_REPORT_NAME,
-						"Report",
-						"Create"
-				)
-				log.error("Could not create report '${NODE_REPORT_NAME}': ${createResponse.data?.messages?.join(", ")}")
+				def messages = createResponse.data?.messages?.collect { it?.toString() }?.join(", ")
+				pluginEventService.createEvent(UtilizationReportEvents.REPORT_1NAME_CREATE_ERROR_2MESSAGES,
+								[NODE_REPORT_NAME, messages], null)
+				log.error("Could not create report '${NODE_REPORT_NAME}': ${messages}")
 				return
 			}
 		}
@@ -100,20 +94,18 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
 		if (!response?.success) {
-			logEvent(message(code: "nodeUtilizationReportPlugin.node.query.error", args: [apiVersion, response?.data?.messages?.join(", ")]),
-					"ERROR",
-					null
-			)
-			log.error("Nodes query resulted in error, not creating samples: " + response?.data?.messages?.join(", "))
+			def messages = response?.data?.messages?.collect { it?.toString() }?.join(", ")
+			pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
+					[NODES_URL, apiVersion, messages], null)
+			log.error("Nodes query resulted in error, not creating samples: ${messages}")
 			return
 		}
 
 		def reservationResponse = moabRestService.get(RESERVATIONS_URL, params: ["api-version" : 1, fields: "label,allocatedNodes,flags,startDate,endDate"])
 		if (!reservationResponse?.success) {
-			logEvent(message(code: "nodeUtilizationReportPlugin.reservation.query.error", args: [reservationResponse?.data?.messages?.join(", ")]),
-					"ERROR",
-					null
-			)
+			reservationResponse?.data?.messages?.collect { it?.toString() }?.join(", ")
+			pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
+					[RESERVATIONS_URL, 1, ], null)
 			log.error("Reservation query resulted in error, not creating samples: " + reservationResponse?.data?.messages?.join(", "))
 			return
 		}
@@ -136,16 +128,16 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 		def dataCenters = [(ALL_DATACENTERS): utilizationReportTranslator.getDefaultSampleDatacenter()]
 		def data = pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
-		int nodeEventCount = 0
+		int nodeErrorCount = 0
 		int nodeSuccessCount = 0
 
 		response?.convertedData.results.each {
 			String nodeName = it[nameField]
 			if (!nodeName) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.name.null", args: [nodeName]),
-						"ERROR",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.name.null", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				return
 			}
@@ -167,12 +159,12 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				//Include all datacenters regardless if we skip the nodes in them or not
 				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayValue
 				if (!dataCenter) {
-					nodeEventCount++
-					logEvent(message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
-							"WARN",
-							nodeName
+					nodeErrorCount++
+					pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+							message(code: "nodeUtilizationReportPlugin.node.datacenter.null", args: [nodeName]),
+							new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 					)
-					log.warn("The node ${nodeName}'s dataCenter is null.")
+					log.warn("The node '${nodeName}' has a null datacenter")
 				}
 
 				if (dataCenter && !dataCenters[dataCenter])
@@ -182,10 +174,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			def nodeLastUpdatedTime = data.find { it.name == nodeName }
 
 			if (nodeLastUpdatedTime?.lastUpdatedDate == it[lastUpdatedDateField]) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.notUpdated", args: [nodeName]),
-						"WARN",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.notUpdated", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.warn("Not including node ${nodeName} in the node-utilization report because it has not been updated " +
 						"since the last poll at ${it[lastUpdatedDateField]}")
@@ -201,10 +193,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 
 			if (state == null) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.null", args: [nodeName]),
-						"ERROR",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.state.null", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.error("Not including Node ${nodeName} in the node-utilization report because its state is null.")
 				return
@@ -214,20 +206,20 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				log.info("Not including Node ${nodeName} in the node-utilization report because the report does not include nodes that are down.")
 				return
 			} else if (state != NodeReportState.RUNNING && state != NodeReportState.BUSY && state != NodeReportState.IDLE) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.state.invalid", args: [nodeName, state.toString()]),
-						"WARN",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.state.invalid", args: [nodeName, state.toString()]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 			}
 
 			def cpuUtils = it?.getAt(metricsField)?.getAt(METRIC_CPU_UTILIZATION)
 
 			if (cpuUtils == null) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.cpuUtils.null", args: [nodeName]),
-						"ERROR",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.cpuUtils.null", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.error("Not including node ${nodeName} in the node-utilization report because the CPU utilization " +
 						"metric is not present or null")
@@ -236,52 +228,51 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 			if (cpuUtils == 0) {
 				//In this case we do not ignore the node
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.cpu.zero.message", args: [nodeName]),
-						"WARN",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.cpu.zero.message", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.warn("Node ${nodeName} has CPU utilization set to 0")
 			}
 
 			if (realMemory == null) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.realMemory.null", args: [nodeName]),
-						"ERROR",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.realMemory.null", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.error("Not including node ${nodeName} in the node-utilization report because the real memory reported is null")
 				return
 			}
 
 			if (realMemory == 0) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.total.memory.zero.message", args: [nodeName]),
-						"ERROR",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.total.memory.zero.message", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.error("Not including node ${nodeName} in the node-utilization report because the real memory reported is 0")
 				return
 			}
 
 			if (availableMemory == null) {
-				nodeEventCount++
-				logEvent(message(code: "nodeUtilizationReportPlugin.node.availableMemory.null", args: [nodeName]),
-						"ERROR",
-						nodeName
+				nodeErrorCount++
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.node.availableMemory.null", args: [nodeName]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.error("Not including node ${nodeName} in the node-utilization report because the available memory reported is null")
 				return
 			}
 
 			if (availableMemory == realMemory) {
-				nodeEventCount++
+				nodeErrorCount++
 				//In this case we do not ignore the node
-				logEvent(message(code: "nodeUtilizationReportPlugin.available.equals.total.memory.message", args: [
-							nodeName, availableMemory, realMemory
-						]),
-						"WARN",
-						nodeName
+				pluginEventService.updateNotificationCondition(EscalationLevel.ADMIN,
+						message(code: "nodeUtilizationReportPlugin.available.equals.total.memory.message",
+								args: [nodeName, availableMemory, realMemory]),
+						new AssociatedObject(type:NODE_OBJECT_TYPE, id:nodeName), null
 				)
 				log.warn("Node ${nodeName} has available and total memory set to the same value")
 			}
@@ -312,12 +303,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			nodeSuccessCount++
 		}
 
-		if(!nodeEventCount && eventCache.keySet().size() != 1) {
-			//Clear the cache so that if an error happens again, the admin will receive a new event in the log notifying of a new failure.
-			eventCache = [:]
-			logEvent(message(code: "nodeUtilizationReportPlugin.no.node.issues", args: []), "INFO")
-		}
-
 		dataCenters.each {dataCenterName, metrics ->
 			// Do not divide by 0
 			if (metrics.total != 0) {
@@ -326,8 +311,8 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			}
 		}
 
-		if(!nodeSuccessCount && nodeEventCount) {
-			logEvent(message(code: "nodeUtilizationReportPlugin.no.samples", args: []), "ERROR")
+		if(!nodeSuccessCount && nodeErrorCount) {
+			pluginEventService.createEvent(UtilizationReportEvents.NO_SAMPLES_1TYPE, ["nodes"], null)
 		} else {
 			response = moabRestService.post(REPORTS_URL + NODE_REPORT_NAME + SAMPLES_URL) {
 				[
@@ -338,12 +323,8 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			if (response?.success)
 				log.debug("Successfully created sample for node utilization report")
 			else {
-				logEvent(message(code: "nodeUtilizationReportPlugin.could.not.create.report.sample", args: [response?.data?.messages?.join(", ")]),
-						"ERROR",
-						NODE_REPORT_NAME,
-						"Sample",
-						"Create"
-				)
+				pluginEventService.createEvent(UtilizationSampleEvents.CREATE_1REPORT_ERROR_2MESSAGES,
+						[NODE_REPORT_NAME, response?.data?.messages?.join(", ")], null)
 				log.error("Could not create sample for node utilization report: ${response?.data?.messages?.join(", ")}")
 			}
 		}
@@ -379,46 +360,5 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				keepSamples: false,
 				reportDocumentSize: config.reportDocumentSize
 		]
-	}
-
-	private void logEvent(String message, String severity, String objectId = null,
-						  String objectType = "Node", String type = "Configuration") {
-		if (!eventCache.containsKey(objectType+objectId))
-			eventCache[objectType+objectId] = [] as Set
-		if (eventCache[objectType+objectId].contains(message)) {
-			log.trace("Event ${message} was already created for object ${objectType}:${objectId}, not creating another")
-			return
-		} else
-			eventCache[objectType+objectId] << message
-
-		def eventType = objectType + " " + type
-		def data = [
-				details: [
-						pluginType: "NodeUtilizationReport",
-						pluginId: id,
-				],
-				errorMessage: [
-						message: message,
-				],
-				eventTime: new Date(),
-				eventType: eventType,
-				primaryObject: [
-						id: objectId,
-						type: objectType.toLowerCase(),
-				],
-				sourceComponent: "Node Utilization Report Plugin",
-				severity: severity,
-		]
-		if (objectId) {
-			data.primaryObject = [
-					id: objectId,
-					type: objectType,
-			]
-		}
-		def response = moabRestService.post("/rest/events") { data }
-		if (response?.success)
-			log.trace("Successfully logged event")
-		else
-			log.trace("Could not log event ${message} (${objectId})")
 	}
 }
