@@ -7,7 +7,7 @@ buildscript {
 	}
 	dependencies {
 		classpath ('com.adaptc.gradle:moab-sdk:0.9-SNAPSHOT')
-		classpath ('com.adaptc.gradle:nexus-workflow:0.4')
+		classpath ('com.adaptc.gradle:nexus-workflow:0.5')
 	}
 	// check for updates every build
 	configurations.all {
