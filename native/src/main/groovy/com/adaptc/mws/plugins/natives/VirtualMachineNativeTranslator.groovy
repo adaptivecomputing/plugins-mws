@@ -12,7 +12,7 @@ class VirtualMachineNativeTranslator {
 		
 		vm.state = NodeReportState.parse(attrs.STATE)
 		vm.power = NodeReportPower.parse(attrs.POWER)
-		vm.timestamp = NativeDateUtils.parseSecondsToDate(attrs.UPDATETIME)
+		vm.timestamp = NativeDateUtils.secondsToDate(attrs.UPDATETIME)
 		vm.host = attrs.CONTAINERNODE
 		vm.ipAddress = attrs.NETADDR
 		vm.resources[RESOURCE_PROCESSORS].total = NativeNumberUtils.parseInteger(attrs.CPROC)

@@ -15,11 +15,11 @@ class JobNativeTranslator {
 		job.account = attrs.ACCOUNT
 		job.commandLineArguments = attrs.ARGS
 		job.extension = attrs.COMMENT
-		job.completedDate = NativeDateUtils.parseSecondsToDate(attrs.COMPLETETIME)
+		job.completedDate = NativeDateUtils.secondsToDate(attrs.COMPLETETIME)
         genericNativeTranslator.getGenericMap(attrs.DGRES)?.each {
             job.requirements.resourcesPerTask[it.key] = getResource(NativeNumberUtils.parseInteger(it.value))
         }
-		job.deadlineDate = NativeDateUtils.parseSecondsToDate(attrs.ENDDATE)
+		job.deadlineDate = NativeDateUtils.secondsToDate(attrs.ENDDATE)
 		genericNativeTranslator.getGenericMap(attrs.ENV)?.each { job.environmentVariables[it.key] = it.value }
 		job.standardErrorFilePath = attrs.ERROR
 		job.commandFile = attrs.EXEC
@@ -38,7 +38,7 @@ class JobNativeTranslator {
 		if (!attrs.QUEUETIME && submit)
 			job.submitDate = new Date()
 		else
-			job.submitDate = NativeDateUtils.parseSecondsToDate(attrs.QUEUETIME)
+			job.submitDate = NativeDateUtils.secondsToDate(attrs.QUEUETIME)
 		job.requirements.architecture = attrs.RARCH
 		job.requirements.resourcesPerTask[RESOURCE_DISK] = getResource(NativeNumberUtils.parseInteger(attrs.RDISK))
 		job.reservationRequested = attrs.REQRSV
@@ -46,8 +46,8 @@ class JobNativeTranslator {
 		job.requirements.resourcesPerTask[RESOURCE_MEMORY] = getResource(NativeNumberUtils.parseInteger(attrs.RMEM))
 		job.image = attrs.ROPSYS
 		job.requirements.resourcesPerTask[RESOURCE_SWAP] = getResource(NativeNumberUtils.parseInteger(attrs.RSWAP))
-		job.earliestStartDate = NativeDateUtils.parseSecondsToDate(attrs.STARTDATE)
-		job.startDate = NativeDateUtils.parseSecondsToDate(attrs.STARTTIME)
+		job.earliestStartDate = NativeDateUtils.secondsToDate(attrs.STARTDATE)
+		job.startDate = NativeDateUtils.secondsToDate(attrs.STARTTIME)
 		job.state = JobReportState.parse(attrs.STATE)
 		job.durationSuspended = NativeNumberUtils.parseLong(attrs.SUSPENDTIME)
 		attrs.TASKLIST?.split(",")?.each { job.requirements.nodes << it }

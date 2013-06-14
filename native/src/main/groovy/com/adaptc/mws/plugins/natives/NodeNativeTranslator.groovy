@@ -19,7 +19,7 @@ class NodeNativeTranslator {
 		} else {
 			node.state = NodeReportState.parse(attrs.STATE)
 		}
-		node.timestamp = NativeDateUtils.parseSecondsToDate(attrs.UPDATETIME)
+		node.timestamp = NativeDateUtils.secondsToDate(attrs.UPDATETIME)
 		node.resources[RESOURCE_PROCESSORS].total = NativeNumberUtils.parseInteger(attrs.CPROC)
 		node.resources[RESOURCE_PROCESSORS].available = NativeNumberUtils.parseInteger(attrs.APROC)
 		node.resources[RESOURCE_MEMORY].total = NativeNumberUtils.parseInteger(attrs.CMEMORY)
