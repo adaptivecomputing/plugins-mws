@@ -6,7 +6,7 @@ the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 
 # Available Configuration Parameters
 
-<div class="configuration-table">This section will be replaced by MWS with the configuration parameters table</div>
+<div class="configuration-table">MWS replaces this section with the configuration parameters table.</div>
 
 # Configuration Notes
 
