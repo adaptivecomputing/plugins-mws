@@ -27,6 +27,10 @@ recreate-report | Yes | None | \- | Destroys (if it exists) and recreates the vm
 > call if the reports parameters must be changed and the historical data does not need to be preserved.
 
 # Report
+The plugin looks at the parameters AMEMORY, CMEMORY, and GMETRIC[cpuUtilization] on each vm reported by the resource manager. AMEMORY
+is the available RAM on the vm, CMEMORY is the configured RAM on the vm, and GMETRIC[cpuUtilization] is a percentage of CPU utilization
+on the vm.  The plugin calculates the memory utilization with this equation: (CMEMORY-AMEMORY)/CMEMORY * 100. The plugin uses GMETRIC[cpuUtilization]
+directly. For more information on these parameters, please refer to the resource manager documentation.
 
 The first time the plugin is started, a report called "vm-utilization" will be created using the plugin's
 configuration parameters.  Each polling iteration then performs the following functions:

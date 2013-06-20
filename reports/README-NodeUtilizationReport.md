@@ -27,6 +27,10 @@ recreate-report | Yes | None | \- | Destroys (if it exists) and recreates the no
 > Only use this call if the reports parameters must be changed and the historical data does not need to be preserved.
 
 # Report
+The plugin looks at the parameters AMEMORY, CMEMORY, and GMETRIC[cpuUtilization] on each node reported by the resource manager. AMEMORY
+is the available RAM on the node, CMEMORY is the configured RAM on the node, and GMETRIC[cpuUtilization] is a percentage of CPU utilization
+on the node.  The plugin calculates the memory utilization with this equation: (CMEMORY-AMEMORY)/CMEMORY * 100. The plugin uses GMETRIC[cpuUtilization]
+directly. For more information on these parameters, please refer to the resource manager documentation.
 
 The first time the plugin is started, a report called "node-utilization" will be created using the plugin's
 configuration parameters.  Each polling iteration then performs the following functions:
