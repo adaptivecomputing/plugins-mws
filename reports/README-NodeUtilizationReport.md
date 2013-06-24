@@ -19,12 +19,7 @@ The Poll Interval controls how often samples are created for the report.  It is 
 
 # Exposed Web Services
 
-Method | Secured | Parameters | Parameter Types | Description
------- | ------- | ---------- | --------------- | -----------
-recreate-report | Yes | None | \- | Destroys (if it exists) and recreates the node-utilization report using the current plugin configuration.
-
-> **Warning:** This web service will destroy any associated samples and datapoints for the node-utilization report.
-> Only use this call if the reports parameters must be changed and the historical data does not need to be preserved.
+<div class="webservice-table">This section will be replaced by MWS with the exposed web service sections</div>
 
 # Report
 The plugin looks at the parameters AMEMORY, CMEMORY, and GMETRIC[cpuUtilization] on each node reported by the resource manager. AMEMORY
