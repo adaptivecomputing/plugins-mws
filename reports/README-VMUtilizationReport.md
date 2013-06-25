@@ -19,7 +19,7 @@ The Poll Interval controls how often samples are created for the report.  It is 
 
 # Exposed Web Services
 
-<div class="webservice-table">This section will be replaced by MWS with the exposed web service sections</div>
+<div class="webservice-sections">This section will be replaced by MWS with the exposed web service sections</div>
 
 # Report
 The plugin looks at the parameters AMEMORY, CMEMORY, and GMETRIC[cpuUtilization] on each vm reported by the resource manager. AMEMORY
