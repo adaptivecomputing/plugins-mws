@@ -8,7 +8,7 @@ class NativeProject {
 	String website = "http://www.adaptivecomputing.com"
 
 	// Versioning properties
-	String version = "1.5-SNAPSHOT"
+	String version = "1.5"
 	String mwsVersion = "7.1.4 > *"
 	String license = "APACHE"
 	
