@@ -3,11 +3,12 @@ package com.adaptc.mws.plugins.natives
 import com.adaptc.mws.plugins.*
 import com.adaptc.mws.plugins.natives.utils.NativeDateUtils
 import com.adaptc.mws.plugins.natives.utils.NativeNumberUtils
+import com.adaptc.mws.plugins.natives.utils.NativeUtils
 
 import static com.adaptc.mws.plugins.PluginConstants.*
 
 class NodeNativeTranslator {
-	def genericNativeTranslator
+	GenericNativeTranslator genericNativeTranslator
 
 	public NodeReport createReport(Map attrs) {
 		NodeReport node = new NodeReport(attrs.id)
@@ -42,18 +43,33 @@ class NodeNativeTranslator {
 		node.power = NodeReportPower.parse(attrs.POWER)
 		node.metrics[METRIC_SPEED] = NativeNumberUtils.parseDouble(attrs.SPEED)
 		node.variables = attrs.VARIABLE ?: [:]
-		// Backwards support for 0.9.x commons
-		if (objectHasProperty(node, "attributes")) {
-			genericNativeTranslator.getGenericMapWithDisplayValue(attrs.VARATTR, "\\+", ":|=")?.each {key, value->
-				if(key == "HVTYPE")
-					return
-				node.attributes[key] = new ReportAttribute(value:value.value, displayValue : value.displayValue)
-			}
-		}
-		node
-	}
 
-	private boolean objectHasProperty(object, String property) {
-		return object.getClass().metaClass.getMetaProperty(property).asBoolean()
+		def hasMigrationDisabledProp = NativeUtils.objectHasProperty(node, "migrationDisabled")
+
+		// Backwards support for 0.9.x commons
+		if (NativeUtils.objectHasProperty(node, "attributes")) {
+			genericNativeTranslator.getGenericMapWithDisplayValue(attrs.VARATTR, "\\+", ":|=")?.each {key, value->
+				if (key?.equalsIgnoreCase("HVTYPE"))
+					return
+				if (hasMigrationDisabledProp) {
+					if (key?.equalsIgnoreCase("allowvmmigrations")) {
+						node.migrationDisabled = false
+						return
+					}
+					if (key?.equalsIgnoreCase("novmmigrations")) {
+						node.migrationDisabled = true
+						return
+					}
+				}
+				node.attributes[key] = new ReportAttribute(value:value.value, displayValue:value.displayValue)
+			}
+			// Backwards compatible with PS implementations and MWS RM
+		}
+		// If the correct wiki key is present, set migration disabled based on this
+		if (attrs.containsKey("MIGRATIONDISABLED") && hasMigrationDisabledProp) {
+			node.migrationDisabled = attrs.MIGRATIONDISABLED?.toBoolean() ?: false
+		}
+
+		return node
 	}
 }

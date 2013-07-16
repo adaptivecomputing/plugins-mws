@@ -2,6 +2,7 @@ package com.adaptc.mws.plugins.natives
 
 import com.adaptc.mws.plugins.NodeReport
 import com.adaptc.mws.plugins.NodeReportState
+import com.adaptc.mws.plugins.natives.utils.NativeUtils
 import com.adaptc.mws.plugins.testing.PluginUnitTestMixin
 import com.adaptc.mws.plugins.testing.TestFor
 import com.adaptc.mws.plugins.testing.TestMixin
@@ -18,8 +19,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		given:
 		GenericNativeTranslator genericNativeTranslator = Mock()
 		translator.genericNativeTranslator = genericNativeTranslator
-		def plugin = mockPlugin(NativePlugin)
-		
+
 		and:
 		long time = 12348473
 		
@@ -44,9 +44,10 @@ class NodeNativeTranslatorSpec extends Specification {
 				";RACK=4"+
 				";SLOT=2"+
 				";VARATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
-		NodeReport node = translator.createReport(plugin.parseWiki([wiki]))
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
 		
 		then:
+		node
 		1 * genericNativeTranslator.getGenericMap("ares") >> [res1:"1"]
 		1 * genericNativeTranslator.getGenericMap("cres") >> [res2:"2"]
 		1 * genericNativeTranslator.getGenericMapWithDisplayValue("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
@@ -92,7 +93,6 @@ class NodeNativeTranslatorSpec extends Specification {
 		given:
 		GenericNativeTranslator genericNativeTranslator = Mock()
 		translator.genericNativeTranslator = genericNativeTranslator
-		def plugin = mockPlugin(NativePlugin)
 
 		and:
 		long time = 12348473
@@ -100,7 +100,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		when:
 		def wiki = "node1 STATE=${NodeReportState.IDLE}" +
 				";UPDATETIME=${(time).toLong()}"
-		NodeReport node = translator.createReport(plugin.parseWiki([wiki]))
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null
@@ -133,14 +133,13 @@ class NodeNativeTranslatorSpec extends Specification {
 		given:
 		GenericNativeTranslator genericNativeTranslator = Mock()
 		translator.genericNativeTranslator = genericNativeTranslator
-		def plugin = mockPlugin(NativePlugin)
 
 		and:
 		String time = "1363865607.000"
 
 		when:
 		def wiki = "node1 STATE=$NodeReportState.IDLE;UPDATETIME=$time"
-		NodeReport node = translator.createReport(plugin.parseWiki([wiki]))
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null
@@ -153,42 +152,42 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.timestamp.time == 1363865607000
 	}
 
-	def "Object for #clazz.simpleName has property #property"(Class clazz, String property, boolean result) {
-		expect:
-		translator.objectHasProperty(clazz.newInstance(), property)==result
+	def "Migration disabled flag for '#migrationWiki' and attributes '#attrWiki' is #result"() {
+		given:
+		translator.genericNativeTranslator = mockTranslator(GenericNativeTranslator)
+
+		when:
+		def wiki = "node1 "+
+				migrationWiki+
+				attrWiki
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
+
+		then:
+		node?.name=="node1"
+		node.migrationDisabled==result
+		node.attributes.size()==attributesSize
 
 		where:
-		clazz						| property		| result
-		MyNodeReport				| "id"			| true
-		MyNodeReport				| "attributes"	| false
-		MyNodeReportWithAttributes	| "id"			| true
-		MyNodeReportWithAttributes	| "attributes"	| true
-	}
-}
-
-class MyNodeReport {
-	private String id
-	public String getId() {
-		return id;
-	}
-	public void setId(String id) {
-		this.id = id
-	}
-}
-
-class MyNodeReportWithAttributes {
-	private String id
-	public String getId() {
-		return id;
-	}
-	public void setId(String id) {
-		this.id = id
-	}
-	private String attributes;
-	public String getAttributes() {
-		return attributes
-	}
-	public void setAttributes(String attributes) {
-		this.attributes = attributes
+		migrationWiki				| attrWiki							|| attributesSize	| result
+		""							| ""								|| 0				| null
+		"MIGRATIONDISABLED=true"	| ""								|| 0				| true
+		"MIGRATIONDISABLED=false"	| ""								|| 0				| false
+		"MIGRATIONDISABLED=1"		| ""								|| 0				| true
+		"MIGRATIONDISABLED=0"		| ""								|| 0				| false
+		"MIGRATIONDISABLED="		| ""								|| 0				| false
+		"MIGRATIONDISABLED=true"	| ";VARATTR=attr1"					|| 1				| true
+		"MIGRATIONDISABLED=false"	| ";VARATTR=attr1"					|| 1				| false
+		"MIGRATIONDISABLED=1"		| ";VARATTR=attr1"					|| 1				| true
+		"MIGRATIONDISABLED=0"		| ";VARATTR=attr1"					|| 1				| false
+		"MIGRATIONDISABLED="		| ";VARATTR=attr1"					|| 1				| false
+		""							| ";VARATTR=AllowVmmIgrations"		|| 0				| false
+		""							| ";VARATTR=nOVmmIgrations"			|| 0				| true
+		""							| ";VARATTR=AllowVmmIgrations+attr1"|| 1				| false
+		""							| ";VARATTR=nOVmmIgrations+attr1"	|| 1				| true
+		"MIGRATIONDISABLED=true"	| ";VARATTR=novmmigrations"			|| 0				| true
+		"MIGRATIONDISABLED=false"	| ";VARATTR=allowvmmigrations"		|| 0				| false
+		"MIGRATIONDISABLED=1"		| ";VARATTR=novmmigrations"			|| 0				| true
+		"MIGRATIONDISABLED=0"		| ";VARATTR=allowvmmigrations"		|| 0				| false
+		"MIGRATIONDISABLED="		| ";VARATTR=allowvmmigrations"		|| 0				| false
 	}
 }

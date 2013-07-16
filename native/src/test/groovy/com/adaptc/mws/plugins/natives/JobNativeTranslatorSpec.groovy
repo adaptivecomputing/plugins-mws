@@ -1,6 +1,8 @@
 package com.adaptc.mws.plugins.natives
 
 import com.adaptc.mws.plugins.*
+import com.adaptc.mws.plugins.natives.utils.NativeUtils
+
 import static com.adaptc.mws.plugins.PluginConstants.*
 
 import com.adaptc.mws.plugins.testing.*
@@ -18,7 +20,6 @@ class JobNativeTranslatorSpec extends Specification {
         given:
         GenericNativeTranslator genericNativeTranslator = Mock()
         translator.genericNativeTranslator = genericNativeTranslator
-        def plugin = mockPlugin(NativePlugin)
 
         when:
         def wiki = "moab.1 STATE=" + JobReportState.IDLE + ";ACCOUNT=account.1;" +
@@ -36,7 +37,7 @@ class JobNativeTranslatorSpec extends Specification {
                 "DGRES=dgres;ENV=env;" +
                 "SUSPENDTIME=100;TASKLIST=n03,n04;TASKS=2;TASKPERNODE=2;" +
                 "UNAME=sam;WCLIMIT=2000"
-        JobReport job = translator.createReport(plugin.parseWiki([wiki]))
+        JobReport job = translator.createReport(NativeUtils.parseWiki([wiki]))
 
         then:
         1 * genericNativeTranslator.getGenericMap("dgres") >> [RES1:1,RES2:2]

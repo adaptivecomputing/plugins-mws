@@ -1,6 +1,7 @@
 package com.adaptc.mws.plugins.natives
 
 import com.adaptc.mws.plugins.*
+import com.adaptc.mws.plugins.natives.utils.NativeUtils
 import com.adaptc.mws.plugins.testing.*
 import spock.lang.Specification
 
@@ -11,9 +12,6 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class VirtualMachineNativeTranslatorSpec extends Specification {
 	def "Wiki to domain"() {
 		given:
-		def plugin = mockPlugin(NativePlugin)
-		
-		and:
 		long time = 12348473
 		
 		when:
@@ -23,13 +21,16 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 				";CONTAINERNODE=node1"+
 				";CPROC=4"+
 				";APROC=2"+
+				";ASWAP=256"+
+				";CSWAP=512"+
 				";CMEMORY=1024"+
 				";AMEMORY=256"+
 				";CDISK=1000"+
 				";ADISK=512"+
 				";CPULOAD=1.2"+
-				";OS=linux"
-		VirtualMachineReport virtualMachine = translator.createReport(plugin.parseWiki([wiki]))
+				";OS=linux"+
+				";OSLIST=linux,windows"
+		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki]))
 		
 		then:
 		0 * _._
@@ -45,9 +46,33 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		virtualMachine.resources[RESOURCE_MEMORY].available==256
 		virtualMachine.resources[RESOURCE_DISK].total==1000
 		virtualMachine.resources[RESOURCE_DISK].available==512
+		virtualMachine.resources[RESOURCE_SWAP].total==512
+		virtualMachine.resources[RESOURCE_SWAP].available==256
 		virtualMachine.metrics[METRIC_CPULOAD]==1.2
 		virtualMachine.metrics.size()==1
 		virtualMachine.image=="linux"
 		virtualMachine.variables.size()==0
+		virtualMachine.imagesAvailable.size()==2
+		virtualMachine.imagesAvailable[0]=="linux"
+		virtualMachine.imagesAvailable[1]=="windows"
+	}
+
+	def "Migration disabled flag"() {
+		when:
+		def wiki = "vm1 "+migrationWiki
+		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki]))
+
+		then:
+		virtualMachine?.name=="vm1"
+		virtualMachine.migrationDisabled==result
+
+		where:
+		migrationWiki					|| result
+		""								|| null
+		"MIGRATIONDISABLED=true"		|| true
+		"MIGRATIONDISABLED=false"		|| false
+		"MIGRATIONDISABLED=1"			|| true
+		"MIGRATIONDISABLED=0"			|| false
+		"MIGRATIONDISABLED="			|| false
 	}
 }

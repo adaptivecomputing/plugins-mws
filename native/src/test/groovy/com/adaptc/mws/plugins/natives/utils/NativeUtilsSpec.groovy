@@ -1,33 +1,49 @@
-package com.adaptc.mws.plugins.natives
+package com.adaptc.mws.plugins.natives.utils
 
-import com.adaptc.mws.plugins.testing.TestFor
+import spock.lang.Specification
+import spock.lang.Unroll
 
-import spock.lang.*
+/**
+ * @author bsaville
+ */
+@Unroll
+class NativeUtilsSpec extends Specification {
+	def "Object #clazz.simpleName has property #property"() {
+		expect:
+		NativeUtils.objectHasProperty(clazz.newInstance(), property)==result
 
-@TestFor(NativePlugin)
-class NativeParseWikiSpec extends Specification {
-	void testParseTypicalWiki() {
+		where:
+		clazz			| property		|| result
+		TestClass1		| "prop1"		|| true
+		TestClass1		| "prop2"		|| true
+		TestClass2		| "prop1"		|| false
+		TestClass2		| "prop2"		|| true
+		TestClass3		| "prop1"		|| false
+		TestClass3		| "prop2"		|| false
+	}
+
+	def testParseTypicalWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle;UPDATETIME=1039483"
-		def wiki = plugin.parseWiki([wikiStr])
-		
+		def wiki = NativeUtils.parseWiki([wikiStr])
+
 		then:
 		1==wiki.size()
-		
+
 		when:
 		def map = wiki[0]
-		
+
 		then:
 		3==map.size()
 		"node001"==map.id
 		"Idle"==map.STATE
 		"1039483"==map.UPDATETIME
-    }
-	
-    void testParseDelimiterEndedWiki() {
+	}
+
+	def testParseDelimiterEndedWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle;UPDATETIME=1039483;"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -41,12 +57,12 @@ class NativeParseWikiSpec extends Specification {
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
 		map.size()==3 //"Wiki ending in semi-colons should not have empty attributes"
-    }
-	
-    void testParseSemiColonWiki() {
+	}
+
+	def testParseSemiColonWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -59,12 +75,12 @@ class NativeParseWikiSpec extends Specification {
 		map.id=="node001"
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
-    }
-	
-    void testParseSpaceWiki() {
+	}
+
+	def testParseSpaceWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle UPDATETIME=1039483"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		1==wiki.size()
@@ -77,12 +93,12 @@ class NativeParseWikiSpec extends Specification {
 		"node001"==map.id
 		"Idle"==map.STATE
 		"1039483"==map.UPDATETIME
-    }
-	
-    void testParseMultipleSpacesWiki() {
+	}
+
+	def testParseMultipleSpacesWiki() {
 		when:
 		def wikiStr = "node001   STATE=Idle  UPDATETIME=1039483"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		1==wiki.size()
@@ -95,12 +111,12 @@ class NativeParseWikiSpec extends Specification {
 		"node001"==map.id
 		"Idle"==map.STATE
 		"1039483"==map.UPDATETIME
-    }
-	
-    void testParseTabAndSpaceWiki() {
+	}
+
+	def testParseTabAndSpaceWiki() {
 		when:
 		def wikiStr = "node001	STATE=Idle	 	 UPDATETIME=1039483"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		1==wiki.size()
@@ -113,12 +129,12 @@ class NativeParseWikiSpec extends Specification {
 		"node001"==map.id
 		"Idle"==map.STATE
 		"1039483"==map.UPDATETIME
-    }
-	
-    void testParseDoubleQuotedSpaceWiki() {
+	}
+
+	def testParseDoubleQuotedSpaceWiki() {
 		when:
 		def wikiStr = 'node001 STATE=Idle UPDATETIME=1039483 COMMENTS="This is a comment"'
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -132,12 +148,12 @@ class NativeParseWikiSpec extends Specification {
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
 		map.COMMENTS=="This is a comment"
-    }
-	
-    void testParseSingleQuotedSpaceWiki() {
+	}
+
+	def testParseSingleQuotedSpaceWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle UPDATETIME=1039483 COMMENTS='This is a comment'"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -151,12 +167,12 @@ class NativeParseWikiSpec extends Specification {
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
 		map.COMMENTS=="'This is a comment'"
-    }
-	
-    void testParseNewLineWiki() {
+	}
+
+	def testParseNewLineWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483\nnode002;STATE=Running;UPDATETIME=1039483"
-		def wiki = plugin.parseWiki(wikiStr.split("\n"))
+		def wiki = NativeUtils.parseWiki(wikiStr.split("\n"))
 
 		then:
 		wiki.size()==2
@@ -178,12 +194,12 @@ class NativeParseWikiSpec extends Specification {
 		map.id=="node002"
 		map.STATE=="Running"
 		map.UPDATETIME=="1039483"
-    }
-	
-    void testParseHashLineWiki() {
+	}
+
+	def testParseHashLineWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483#node002;STATE=Running;UPDATETIME=1039483"
-		def wiki = plugin.parseWiki(wikiStr.split("\n"))
+		def wiki = NativeUtils.parseWiki(wikiStr.split("\n"))
 
 		then:
 		wiki.size()==2
@@ -205,12 +221,12 @@ class NativeParseWikiSpec extends Specification {
 		map.id=="node002"
 		map.STATE=="Running"
 		map.UPDATETIME=="1039483"
-    }
-	
-    void testParseNewAndHashLineWiki() {
+	}
+
+	def testParseNewAndHashLineWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483#node002;STATE=Suspended;UPDATETIME=1039483\nnode003;STATE=Running;UPDATETIME=1039483"
-		def wiki = plugin.parseWiki(wikiStr.split("\n"))
+		def wiki = NativeUtils.parseWiki(wikiStr.split("\n"))
 
 		then:
 		wiki.size()==3
@@ -241,12 +257,12 @@ class NativeParseWikiSpec extends Specification {
 		map.id=="node003"
 		map.STATE=="Running"
 		map.UPDATETIME=="1039483"
-    }
-	
-    void testParseEscapedHashWiki() {
+	}
+
+	def testParseEscapedHashWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483;COMMENTS='Hash\\#'"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -260,12 +276,12 @@ class NativeParseWikiSpec extends Specification {
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
 		map.COMMENTS=="'Hash#'"
-    }
-	
-    void testParseEscapedSemiColonWiki() {
+	}
+
+	def testParseEscapedSemiColonWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483;COMMENTS='SemiColon\\;'"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -279,31 +295,31 @@ class NativeParseWikiSpec extends Specification {
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
 		map.COMMENTS=="'SemiColon;'"
-    }
+	}
 
-    void testWithColon() {
+	def testWithColon() {
 		when:
-        def wikiStr = "job.1;STATE=Idle;PREF=FEAT1:FEAT2"
-        def wiki = plugin.parseWiki([wikiStr])
+		def wikiStr = "job.1;STATE=Idle;PREF=FEAT1:FEAT2"
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
-        wiki.size()==1
+		wiki.size()==1
 
 		when:
-        def map = wiki[0]
+		def map = wiki[0]
 
 		then:
-        map.size()==3
-        map.id=="job.1"
-        map.STATE=="Idle"
-        map.PREF=="FEAT1:FEAT2"
-        map.PREF.split(":").size()==2
-    }
-	
-    void testParseEscapedSemicolonWiki() {
+		map.size()==3
+		map.id=="job.1"
+		map.STATE=="Idle"
+		map.PREF=="FEAT1:FEAT2"
+		map.PREF.split(":").size()==2
+	}
+
+	def testParseEscapedSemicolonWiki() {
 		when:
 		def wikiStr = "node001;STATE=Idle;UPDATETIME=1039483;COMMENTS='SemiColon\\;'"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -317,13 +333,13 @@ class NativeParseWikiSpec extends Specification {
 		map.STATE=="Idle"
 		map.UPDATETIME=="1039483"
 		map.COMMENTS=="'SemiColon;'"
-    }
+	}
 
 	@Unroll
-	void testParseVariableWiki() {
+	def testParseVariableWiki() {
 		when:
 		String wikiStr = "vm1 CONTAINERNODE=node001;$line"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size() == 1
@@ -354,10 +370,10 @@ class NativeParseWikiSpec extends Specification {
 		'VARIABLE=e:http://example.com?a=1&b=2'  | [e: 'http://example.com?a=1&b=2']
 	}
 
-	void testFullClusterWiki() {
+	def testFullClusterWiki() {
 		when:
 		def wikiStr = this.class.classLoader.getResource("testfiles/msm-cluster-query.wiki").text
-		def wiki = plugin.parseWiki(wikiStr.readLines())
+		def wiki = NativeUtils.parseWiki(wikiStr.readLines())
 
 		then:
 		wiki.size()==17
@@ -401,11 +417,11 @@ class NativeParseWikiSpec extends Specification {
 		wiki[16].VARIABLE.containsKey("var2")
 		wiki[16].VARIABLE.var2==""
 	}
-	
-	void testFullClusterWikiWithSubState() {
+
+	def testFullClusterWikiWithSubState() {
 		when:
 		def wikiStr = this.class.classLoader.getResource("testfiles/msm-cluster-query-substate.wiki").text
-		def wiki = plugin.parseWiki(wikiStr.readLines())
+		def wiki = NativeUtils.parseWiki(wikiStr.readLines())
 
 		then:
 		wiki.size()==15
@@ -440,11 +456,11 @@ class NativeParseWikiSpec extends Specification {
 		wiki[13].id=="vm5"
 		wiki[14].id=="vm6"
 	}
-	
-	void testFullWorkloadQuery() {
+
+	def testFullWorkloadQuery() {
 		when:
 		def wikiStr = this.class.classLoader.getResource("testfiles/msm-workload-query.wiki").text
-		def wiki = plugin.parseWiki(wikiStr.readLines())
+		def wiki = NativeUtils.parseWiki(wikiStr.readLines())
 
 		then:
 		wiki.size()==11
@@ -467,7 +483,7 @@ class NativeParseWikiSpec extends Specification {
 	def "Messages are handled correctly"() {
 		when:
 		def wikiStr = 'job.1;STATE=Idle;MESSAGE=message1;MESSAGE="message 2";MESSAGE="message \'3\'"'
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -488,7 +504,7 @@ class NativeParseWikiSpec extends Specification {
 	def "Spaces in features and attributes"() {
 		when: "Entire value is quoted"
 		def wikiStr = 'node1 FEATURE="feature1:feature2:feature 3" VARATTR="attr1:val1+attr 2+attr3:val 3"'
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==1
@@ -506,14 +522,14 @@ class NativeParseWikiSpec extends Specification {
 	def "Ignore status (SC) lines"() {
 		when:
 		def wikiStr = "SC=0 This is some random status"
-		def wiki = plugin.parseWiki([wikiStr])
+		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
 		wiki.size()==0
 
 		when:
 		def wikiStrs = ["SC=1 error occurred", "node1 STATE=Idle"]
-		wiki = plugin.parseWiki(wikiStrs)
+		wiki = NativeUtils.parseWiki(wikiStrs)
 
 		then:
 		wiki.size()==1
@@ -521,4 +537,17 @@ class NativeParseWikiSpec extends Specification {
 		wiki[0].id=="node1"
 		wiki[0].STATE=="Idle"
 	}
+}
+
+class TestClass1 {
+	String prop1
+	String prop2
+}
+
+class TestClass2 {
+	String prop2
+}
+
+class TestClass3 {
+
 }

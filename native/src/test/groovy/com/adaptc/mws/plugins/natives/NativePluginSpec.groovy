@@ -1,5 +1,6 @@
 package com.adaptc.mws.plugins.natives
 
+import com.adaptc.mws.plugins.natives.utils.NativeUtils
 import com.adaptc.mws.plugins.testing.*
 import spock.lang.*
 import com.adaptc.mws.plugins.*
@@ -203,7 +204,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString()=="file:/c"
 			return readURLResult
 		}
-		plugin.metaClass.parseWiki = { String line ->
+		NativeUtils.metaClass.'static'.parseWiki = { String line ->
 			assert line=="Line"
 			return [parseWikiResult]
 		}
@@ -240,7 +241,7 @@ class NativePluginSpec extends Specification {
             assert url.toString()=="file:/n"
             return readURLResult
         }
-        plugin.metaClass.parseWiki = { lines ->
+        NativeUtils.metaClass.'static'.parseWiki = { lines ->
             assert lines==["Line"]
             return [[wiki:true]]
         }
@@ -276,7 +277,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString()=="file:/n"
 			return readURLResult
 		}
-		plugin.metaClass.parseWiki = { lines ->
+		NativeUtils.metaClass.'static'.parseWiki = { lines ->
 			assert lines==["Line"]
 			return [[wiki:true]]
 		}
@@ -312,7 +313,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString()=="file:/v"
 			return readURLResult
 		}
-		plugin.metaClass.parseWiki = { lines ->
+		NativeUtils.metaClass.'static'.parseWiki = { lines ->
 			assert lines==["Line"]
 			return [[wiki:true]]
 		}
