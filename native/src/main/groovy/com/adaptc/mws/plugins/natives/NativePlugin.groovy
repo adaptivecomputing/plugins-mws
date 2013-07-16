@@ -2,6 +2,7 @@ package com.adaptc.mws.plugins.natives
 
 import com.adaptc.mws.plugins.*
 import com.adaptc.mws.plugins.natives.utils.NativeUtils
+import groovy.transform.Synchronized
 
 /**
  * The Native Plugin is a replication of the Moab Native resource manager interface in MWS.
@@ -10,7 +11,16 @@ import com.adaptc.mws.plugins.natives.utils.NativeUtils
  * @author bsaville
  */
 class NativePlugin extends AbstractPlugin {
-	static description = "Basic implementation of a native plugin"
+	static description = "Basic implementation of a native (Wiki interface) plugin"
+
+	/**
+	 * Used by the Synchronized methods for triggering a full poll.
+	 */
+	private final Object pollLock = new Object()
+	/**
+	 * Internal property used to determine if the full poll is currently running or not.
+	 */
+	private boolean _pollRunning = false
 
 	static constraints = {
 		environment(required:false)
@@ -48,7 +58,32 @@ class NativePlugin extends AbstractPlugin {
 	 * Overrides the default implementation of poll so that a single
 	 * cluster query can be used for both nodes and VMs.
 	 */
+	@Synchronized("pollLock")
 	public void poll() {
+		if (_pollRunning) {
+			log.debug("Poll is already running, returning")
+			return
+		}
+		_pollRunning = true
+		log.debug("Starting a poll on another thread")
+		Thread.start {
+			try {
+				pollInternal()
+			} finally {
+				log.trace("Ending poll")
+				unlockPoll()
+			}
+			log.debug("Poll is complete")
+		}
+	}
+
+	@Synchronized("pollLock")
+	private void unlockPoll() {
+		log.trace "Allowing poll to run again"
+		_pollRunning = false
+	}
+
+	private void pollInternal() {
 		def nodes = []
 		def vms = []
 		if (getConfigKey("getCluster")) {
@@ -56,10 +91,10 @@ class NativePlugin extends AbstractPlugin {
 			getCluster()?.groupBy { it.class }?.each { Class clazz, List values ->
 				switch(clazz) {
 					case NodeReport.class:
-                        nodes = values
+						nodes = values
 						break;
 					case VirtualMachineReport.class:
-                        vms = values
+						vms = values
 						break;
 					default:
 						log.warn("Unknown object found from cluster query, ignoring values: ${clazz}")
@@ -68,16 +103,16 @@ class NativePlugin extends AbstractPlugin {
 			}
 		} else {
 			log.debug("Polling getNodes and getVirtualMachines URLs")
-            nodes = getNodes()
-            vms = getVirtualMachines()
+			nodes = getNodes()
+			vms = getVirtualMachines()
 		}
 
 		// Ensure that save is called EVERY time the poll is executed
 		nodeRMService.save(nodes)
 		virtualMachineRMService.save(vms)
 
-        log.debug("Polling getJobs URL")
-        jobRMService.save(getJobs());
+		log.debug("Polling getJobs URL")
+		jobRMService.save(getJobs());
 	}
 	
 	public void beforeStart() {

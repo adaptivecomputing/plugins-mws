@@ -4,6 +4,7 @@ import com.adaptc.mws.plugins.natives.utils.NativeUtils
 import com.adaptc.mws.plugins.testing.*
 import spock.lang.*
 import com.adaptc.mws.plugins.*
+import spock.util.concurrent.PollingConditions
 
 @Unroll
 @TestFor(NativePlugin)
@@ -24,13 +25,13 @@ class NativePluginSpec extends Specification {
 		def vms = [vm]
         def job = new JobReport("job.1")
         def jobs = [job]
-		
+
 		when: "getNodes and getVMs"
 		config = [:]
 		plugin.metaClass.getNodes = { -> nodes }
 		plugin.metaClass.getVirtualMachines = { -> vms }
 		plugin.metaClass.getJobs = { -> jobs }
-		plugin.poll()
+		plugin.pollInternal()
 		
 		then:
 		1 * nodeRMService.save(nodes)
@@ -41,7 +42,7 @@ class NativePluginSpec extends Specification {
 		when: "getCluster returns nodes and VMs"
 		config = [getCluster:"getCluster"]
 		plugin.metaClass.getCluster = { -> nodes + vms }
-		plugin.poll()
+		plugin.pollInternal()
 		
 		then:
 		1 * nodeRMService.save(nodes)
@@ -65,7 +66,7 @@ class NativePluginSpec extends Specification {
 		plugin.metaClass.getNodes = { -> [] }
 		plugin.metaClass.getVirtualMachines = { -> [] }
 		plugin.metaClass.getJobs = { -> [] }
-		plugin.poll()
+		plugin.pollInternal()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
@@ -76,7 +77,7 @@ class NativePluginSpec extends Specification {
 		when:
 		config = [getCluster:"getCluster"]
 		plugin.metaClass.getCluster = { -> [] }
-		plugin.poll()
+		plugin.pollInternal()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
@@ -578,5 +579,67 @@ class NativePluginSpec extends Specification {
 		then:
 		result==null
 		plugin.hasError(result)
+	}
+
+	def "Single poll runs at a time for each plugin"() {
+		given:
+		boolean runPoll = true
+		int pollsRunning = 0
+		def plugin2 = mockPlugin(NativePlugin)
+		plugin.metaClass.pollInternal = { ->
+			pollsRunning++
+			while(runPoll)
+				sleep(100)
+			pollsRunning--
+		}
+		plugin2.metaClass.pollInternal = { ->
+			pollsRunning++
+			while(runPoll)
+				sleep(100)
+			pollsRunning--
+		}
+
+		and:
+		def conditions = new PollingConditions(timeout:10)
+
+		when:
+		plugin.poll()
+		plugin.poll()
+		plugin.poll()
+		plugin2.poll()
+		plugin2.poll()
+		plugin2.poll()
+
+		then:
+		conditions.within(1) {
+			pollsRunning==2
+			plugin._pollRunning==true
+			plugin2._pollRunning==true
+		}
+
+		when:
+		runPoll = false
+
+		then:
+		conditions.within(1) {
+			pollsRunning==0
+			plugin._pollRunning==false
+			plugin2._pollRunning==false
+		}
+
+		when:
+		runPoll = true
+		plugin.poll()
+		plugin2.poll()
+
+		then:
+		conditions.within(1) {
+			pollsRunning==2
+			plugin._pollRunning==true
+			plugin2._pollRunning==true
+		}
+
+		cleanup:
+		runPoll = false
 	}
 }
