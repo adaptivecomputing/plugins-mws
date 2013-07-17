@@ -14,11 +14,11 @@ class NativePlugin extends AbstractPlugin {
 	static description = "Basic implementation of a native (Wiki interface) plugin"
 
 	/**
-	 * Used by the Synchronized methods for triggering a full poll.
+	 * Used by the Synchronized methods for triggering a poll.
 	 */
 	private final Object pollLock = new Object()
 	/**
-	 * Internal property used to determine if the full poll is currently running or not.
+	 * Internal property used to determine if the poll is currently running or not.
 	 */
 	private boolean _pollRunning = false
 
@@ -47,6 +47,7 @@ class NativePlugin extends AbstractPlugin {
     IJobRMService jobRMService
     INodeRMService nodeRMService
 	IVirtualMachineRMService virtualMachineRMService
+	NativeImageTranslator nativeImageTranslator
 
 	private def getConfigKey(String key) {
 		if (config.containsKey(key))
