@@ -101,7 +101,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			return
 		}
 
-		def reservationResponse = moabRestService.get(RESERVATIONS_URL, params: ["api-version" : 1, fields: "label,allocatedNodes,flags,startDate,endDate"])
+		def reservationResponse = moabRestService.get(RESERVATIONS_URL, params: ["api-version" : 1, fields: "allocatedNodes,startDate,endDate"])
 		if (!reservationResponse?.success) {
 			reservationResponse?.data?.messages?.collect { it?.toString() }?.join(", ")
 			pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
@@ -112,8 +112,6 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		Map nodeUnderReservation = [:]
 
 		reservationResponse?.convertedData?.results.each { def reservation ->
-			List flags = reservation.flags
-			log.error("Looking at reservation ${flags}")
 
 			long currentTime = new Date().time
 			long startTime = moabRestService.convertDateString(reservation.startDate).time
