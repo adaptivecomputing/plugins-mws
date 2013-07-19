@@ -31,7 +31,7 @@ class NativePluginSpec extends Specification {
 		plugin.metaClass.getNodes = { -> nodes }
 		plugin.metaClass.getVirtualMachines = { -> vms }
 		plugin.metaClass.getJobs = { -> jobs }
-		plugin.pollInternal()
+		plugin.poll()
 		
 		then:
 		1 * nodeRMService.save(nodes)
@@ -42,7 +42,7 @@ class NativePluginSpec extends Specification {
 		when: "getCluster returns nodes and VMs"
 		config = [getCluster:"getCluster"]
 		plugin.metaClass.getCluster = { -> nodes + vms }
-		plugin.pollInternal()
+		plugin.poll()
 		
 		then:
 		1 * nodeRMService.save(nodes)
@@ -66,7 +66,7 @@ class NativePluginSpec extends Specification {
 		plugin.metaClass.getNodes = { -> [] }
 		plugin.metaClass.getVirtualMachines = { -> [] }
 		plugin.metaClass.getJobs = { -> [] }
-		plugin.pollInternal()
+		plugin.poll()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
@@ -77,7 +77,7 @@ class NativePluginSpec extends Specification {
 		when:
 		config = [getCluster:"getCluster"]
 		plugin.metaClass.getCluster = { -> [] }
-		plugin.pollInternal()
+		plugin.poll()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
@@ -583,63 +583,108 @@ class NativePluginSpec extends Specification {
 
 	def "Single poll runs at a time for each plugin"() {
 		given:
+		def plugin2 = mockPlugin(NativePlugin)
+
+    and:
+    INodeRMService nodeRMService = Mock()
+    plugin.nodeRMService = nodeRMService
+    plugin2.nodeRMService = nodeRMService
+    IJobRMService jobRMService = Mock()
+    plugin.jobRMService = jobRMService
+    plugin2.jobRMService = jobRMService
+    IVirtualMachineRMService virtualMachineRMService = Mock()
+    plugin.virtualMachineRMService = virtualMachineRMService
+    plugin2.virtualMachineRMService = virtualMachineRMService
+
+    and:
 		boolean runPoll = true
 		int pollsRunning = 0
-		def plugin2 = mockPlugin(NativePlugin)
-		plugin.metaClass.pollInternal = { ->
+		plugin.metaClass.getNodes = { ->
 			pollsRunning++
 			while(runPoll)
 				sleep(100)
 			pollsRunning--
+      return []
 		}
-		plugin2.metaClass.pollInternal = { ->
+    plugin.metaClass.getVirtualMachines = {-> [] }
+    plugin.metaClass.getJobs = {-> [] }
+
+    and:
+		plugin2.metaClass.getNodes = { ->
 			pollsRunning++
 			while(runPoll)
 				sleep(100)
 			pollsRunning--
+      return []
 		}
+    plugin2.metaClass.getVirtualMachines = {-> [] }
+    plugin2.metaClass.getJobs = {-> [] }
 
 		and:
 		def conditions = new PollingConditions(timeout:10)
 
 		when:
-		plugin.poll()
-		plugin.poll()
-		plugin.poll()
-		plugin2.poll()
-		plugin2.poll()
-		plugin2.poll()
+    Thread.start {
+		  plugin.poll()
+    }
+    Thread.start {
+      plugin2.poll()
+    }
+
+    then:
+    conditions.within(1) {
+      pollsRunning==2
+      0 * _._
+    }
+
+    when: "Polling waits for previous poll to finish"
+    Thread.start {
+		  plugin.poll()
+    }
+		Thread.start {
+      plugin2.poll()
+    }
+
+    and: "Delay the initial evaluation to make sure they start another poll"
+    conditions.initialDelay = 1
 
 		then:
 		conditions.within(1) {
 			pollsRunning==2
-			plugin._pollRunning==true
-			plugin2._pollRunning==true
+      0 * _._
 		}
 
-		when:
+		when: "Stop polling"
 		runPoll = false
+
+    and: "Reset initial delay"
+    conditions.initialDelay = 0
 
 		then:
 		conditions.within(1) {
 			pollsRunning==0
-			plugin._pollRunning==false
-			plugin2._pollRunning==false
+      //1 * nodeRMService.save([])
+      //1 * jobRMService.save([])
+      //1 * virtualMachineRMService.save([])
+      0 * _._
 		}
 
-		when:
+		when: "Another poll runs without issues"
 		runPoll = true
-		plugin.poll()
-		plugin2.poll()
+    Thread.start {
+		  plugin.poll()
+    }
+    Thread.start {
+      plugin2.poll()
+    }
 
 		then:
 		conditions.within(1) {
 			pollsRunning==2
-			plugin._pollRunning==true
-			plugin2._pollRunning==true
+      0 * _._
 		}
 
-		cleanup:
+		cleanup: "stop all polling"
 		runPoll = false
 	}
 }

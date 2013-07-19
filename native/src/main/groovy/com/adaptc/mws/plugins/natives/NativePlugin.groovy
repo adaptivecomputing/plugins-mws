@@ -13,15 +13,6 @@ import groovy.transform.Synchronized
 class NativePlugin extends AbstractPlugin {
 	static description = "Basic implementation of a native (Wiki interface) plugin"
 
-	/**
-	 * Used by the Synchronized methods for triggering a poll.
-	 */
-	private final Object pollLock = new Object()
-	/**
-	 * Internal property used to determine if the poll is currently running or not.
-	 */
-	private boolean _pollRunning = false
-
 	static constraints = {
 		environment(required:false)
 		getCluster required:false, scriptableUrl:true
@@ -58,33 +49,10 @@ class NativePlugin extends AbstractPlugin {
 	/**
 	 * Overrides the default implementation of poll so that a single
 	 * cluster query can be used for both nodes and VMs.
+   * This is also synchronized so that only one poll can run at a time.
 	 */
-	@Synchronized("pollLock")
+	@Synchronized
 	public void poll() {
-		if (_pollRunning) {
-			log.debug("Poll is already running, returning")
-			return
-		}
-		_pollRunning = true
-		log.debug("Starting a poll on another thread")
-		Thread.start {
-			try {
-				pollInternal()
-			} finally {
-				log.trace("Ending poll")
-				unlockPoll()
-			}
-			log.debug("Poll is complete")
-		}
-	}
-
-	@Synchronized("pollLock")
-	private void unlockPoll() {
-		log.trace "Allowing poll to run again"
-		_pollRunning = false
-	}
-
-	private void pollInternal() {
 		def nodes = []
 		def vms = []
 		if (getConfigKey("getCluster")) {
