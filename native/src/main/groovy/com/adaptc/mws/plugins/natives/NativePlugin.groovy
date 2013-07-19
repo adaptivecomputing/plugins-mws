@@ -352,8 +352,13 @@ class NativePlugin extends AbstractPlugin {
 	private boolean hasError(result, boolean canBeEmpty = false) {
 		if (result==null)
 			return true
-		if (canBeEmpty)
-			return result.exitCode!=0 || result.content==null || (result.content.size()!=0 && result.content[0].contains("ERROR"))
-		return result.exitCode!=0 || !result.content || result.content[0].contains("ERROR")
+
+    // Account for workload queries which have an attribute called "ERROR"
+		if (canBeEmpty) {
+			return result.exitCode!=0 || result.content==null || 
+        (result.content.size()!=0 && result.content[0].contains("ERROR") && !result.content[0].contains("ERROR="))
+    }
+		return result.exitCode!=0 || !result.content || 
+      (result.content[0].contains("ERROR") && !result.content[0].contains("ERROR="))
 	}
 }
