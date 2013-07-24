@@ -152,7 +152,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			} else {
 				state = NodeReportState.parse(it?.states?.state)
 				realMemory = it?.resources?.memory?.real
-				availableMemory = it?.resources.memory?.available
+				availableMemory = it?.resources?.memory?.available
 
 				//Include all datacenters regardless if we skip the nodes in them or not
 				dataCenter = it?.attributes?.MOAB_DATACENTER?.displayValue
