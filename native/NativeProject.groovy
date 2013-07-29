@@ -8,8 +8,8 @@ class NativeProject {
 	String website = "http://www.adaptivecomputing.com"
 
 	// Versioning properties
-	String version = "1.6"
-	String mwsVersion = "7.1.4 > *"
+	String version = "1.7-SNAPSHOT"
+	String mwsVersion = "JARVIK > *"
 	String license = "APACHE"
 	
 	// Documentation properties
