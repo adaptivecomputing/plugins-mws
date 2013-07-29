@@ -34,6 +34,7 @@ class NativePluginSpec extends Specification {
 		plugin.id = "plugin1"
 
 		when: "getNodes and getVMs"
+		config = [reportImages:true]
 		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo -> nodes }
 		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> vms }
 		plugin.metaClass.getJobs = { -> jobs }
@@ -49,7 +50,7 @@ class NativePluginSpec extends Specification {
 		0 * _._
 
 		when: "getCluster returns nodes and VMs"
-		config = [getCluster: "getCluster"]
+		config = [getCluster: "getCluster", reportImages:false]
 		plugin.metaClass.getCluster = { AggregateImagesInfo imagesInfo -> nodes + vms }
 		plugin.poll()
 
@@ -57,8 +58,6 @@ class NativePluginSpec extends Specification {
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
 		1 * jobRMService.save(jobs)
-		1 * nativeImageTranslator.getPluginEventService() >> pluginEventService
-		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 	}
 
@@ -80,7 +79,7 @@ class NativePluginSpec extends Specification {
 		plugin.id = "plugin1"
 
 		when: "getNodes and getVirtualMachines"
-		config = [:]
+		config = [reportImages:true]
 		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.metaClass.getJobs = { AggregateImagesInfo imagesInfo -> [] }
@@ -104,8 +103,6 @@ class NativePluginSpec extends Specification {
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
 		1 * jobRMService.save([])
-		1 * nativeImageTranslator.getPluginEventService() >> pluginEventService
-		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 	}
 

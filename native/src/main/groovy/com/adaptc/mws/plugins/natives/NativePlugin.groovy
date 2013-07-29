@@ -28,6 +28,7 @@ class NativePlugin extends AbstractPlugin {
 		nodePower required:false, scriptableUrl:true
 		startUrl required:false, scriptableUrl:true
 		stopUrl required:false, scriptableUrl:true
+		reportImages defaultValue:true
 	}
 
 	JobNativeTranslator jobNativeTranslator
@@ -84,9 +85,11 @@ class NativePlugin extends AbstractPlugin {
 		jobRMService.save(getJobs());
 
 		// Save images
-		if (!nativeImageTranslator.pluginEventService)
-			nativeImageTranslator.pluginEventService = pluginEventService
-		nativeImageTranslator.updateImages(id, aggregateImagesInfo)
+		if (config.reportImages) {
+			if (!nativeImageTranslator.pluginEventService)
+				nativeImageTranslator.pluginEventService = pluginEventService
+			nativeImageTranslator.updateImages(id, aggregateImagesInfo)
+		}
 	}
 	
 	public void beforeStart() {
