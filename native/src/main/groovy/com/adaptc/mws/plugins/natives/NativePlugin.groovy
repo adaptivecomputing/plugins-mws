@@ -136,7 +136,7 @@ class NativePlugin extends AbstractPlugin {
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				if (attrs.CONTAINERNODE)	// Only VMs have this attribute
+				if (attrs.TYPE?.equalsIgnoreCase("VM") || attrs.CONTAINERNODE)	// Only VMs have CONTAINERNODE
 					return virtualMachineNativeTranslator.createReport(attrs)
 				else	// Default to a node
 					return nodeNativeTranslator.createReport(attrs)

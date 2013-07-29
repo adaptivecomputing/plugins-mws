@@ -174,7 +174,8 @@ None
 #### Response
 
 Native Wiki for nodes and virtual machines, one per line.  The key difference between them is that VMs have `CONTAINERNODE`
-reported, while nodes do not.
+reported, while nodes do not.  Optionally, you can report a `TYPE` attribute set to `VM` if the object is a virtual machine.
+If the `TYPE` is not `VM` and no `CONTAINERNODE` is present, the object will be assumed to be a node.
 
 ```
 SC=0 RESPONSE=Success

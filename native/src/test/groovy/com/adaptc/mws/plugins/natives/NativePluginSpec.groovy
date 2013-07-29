@@ -226,6 +226,7 @@ class NativePluginSpec extends Specification {
 		[getCluster:"file:///c"]| [exitCode:128]				 | true			| null			 		| null					| null		 | 0
 		[getCluster:"file:///c"]| [exitCode:0, content:["Line"]] | false		| [wiki:true]	 		| null					| [wiki:true]| 1
 		[getCluster:"file:///c"]| [exitCode:0, content:["Line"]] | false		| [CONTAINERNODE:"vm1"]	| [CONTAINERNODE:"vm1"]	| null		 | 1
+		[getCluster:"file:///c"]| [exitCode:0, content:["Line"]] | false		| [TYPE:"vM"]			| [TYPE:"vM"]			| null		 | 1
 	}
 
     def "Get jobs"() {
