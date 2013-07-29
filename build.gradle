@@ -28,7 +28,6 @@ configurations.all {
 
 subprojects { proj ->
 	group = "com.adaptc.mws.plugins"
-	ext.artifactIdPrefix = "plugins-"
 
 	apply plugin:'signing'
 	apply plugin:'eclipse'
@@ -83,7 +82,7 @@ subprojects { proj ->
 
 			pom {
 				project {
-					artifactId(proj.artifactIdPrefix + proj.name)
+					artifactId(proj.'projects.artifactId.prefix' + proj.name)
 					name moabSdk.pluginProject.title
 					description moabSdk.pluginProject.description
 					licenses {
