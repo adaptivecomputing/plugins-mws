@@ -39,6 +39,7 @@ class NativePlugin extends AbstractPlugin {
     INodeRMService nodeRMService
 	IVirtualMachineRMService virtualMachineRMService
 	NativeImageTranslator nativeImageTranslator
+	IPluginEventService pluginEventService
 
 	private def getConfigKey(String key) {
 		if (config.containsKey(key))
@@ -53,11 +54,12 @@ class NativePlugin extends AbstractPlugin {
 	 */
 	@Synchronized
 	public void poll() {
+		def aggregateImagesInfo = new AggregateImagesInfo()
 		def nodes = []
 		def vms = []
 		if (getConfigKey("getCluster")) {
 			log.debug("Polling getCluster URL")
-			getCluster()?.groupBy { it.class }?.each { Class clazz, List values ->
+			getCluster(aggregateImagesInfo)?.groupBy { it.class }?.each { Class clazz, List values ->
 				switch(clazz) {
 					case NodeReport.class:
 						nodes = values
@@ -72,8 +74,8 @@ class NativePlugin extends AbstractPlugin {
 			}
 		} else {
 			log.debug("Polling getNodes and getVirtualMachines URLs")
-			nodes = getNodes()
-			vms = getVirtualMachines()
+			nodes = getNodes(aggregateImagesInfo)
+			vms = getVirtualMachines(aggregateImagesInfo)
 		}
 
 		// Ensure that save is called EVERY time the poll is executed
@@ -82,6 +84,11 @@ class NativePlugin extends AbstractPlugin {
 
 		log.debug("Polling getJobs URL")
 		jobRMService.save(getJobs());
+
+		// Save images
+		if (!nativeImageTranslator.pluginEventService)
+			nativeImageTranslator.pluginEventService = pluginEventService
+		nativeImageTranslator.updateImages(id, aggregateImagesInfo)
 	}
 	
 	public void beforeStart() {
@@ -129,43 +136,52 @@ class NativePlugin extends AbstractPlugin {
         return []
     }
 
-	public List<?> getCluster() {
+	public List<?> getCluster(AggregateImagesInfo aggregateImagesInfo) {
 		def url = getConfigKey("getCluster")?.toURL()
 		if (!url)
 			return []
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				if (attrs.TYPE?.equalsIgnoreCase("VM") || attrs.CONTAINERNODE)	// Only VMs have CONTAINERNODE
-					return virtualMachineNativeTranslator.createReport(attrs)
-				else	// Default to a node
-					return nodeNativeTranslator.createReport(attrs)
+				if (attrs.TYPE?.equalsIgnoreCase("VM") || attrs.CONTAINERNODE) { // Only VMs have CONTAINERNODE
+					def imageInfo = new VMImageInfo()
+					aggregateImagesInfo.vmImages << imageInfo
+					return virtualMachineNativeTranslator.createReport(attrs, imageInfo)
+				} else {	// Default to a node
+					def imageInfo = new HVImageInfo()
+					aggregateImagesInfo.hypervisorImages << imageInfo
+					return nodeNativeTranslator.createReport(attrs, imageInfo)
+				}
 			}
 		}
 		return []
 	}
 	
-	public List<NodeReport> getNodes() {
+	public List<NodeReport> getNodes(AggregateImagesInfo aggregateImagesInfo) {
 		def url = getConfigKey("getNodes")?.toURL()
 		if (!url)
 			return []
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				nodeNativeTranslator.createReport(attrs)
+				def imageInfo = new HVImageInfo()
+				aggregateImagesInfo.hypervisorImages << imageInfo
+				nodeNativeTranslator.createReport(attrs, imageInfo)
 			}
 		}
 		return []
 	}
 
-	public List<VirtualMachineReport> getVirtualMachines() {
+	public List<VirtualMachineReport> getVirtualMachines(AggregateImagesInfo aggregateImagesInfo) {
 		def url = getConfigKey("getVirtualMachines")?.toURL()
 		if (!url)
 			return []
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				virtualMachineNativeTranslator.createReport(attrs)
+				def imageInfo = new VMImageInfo()
+				aggregateImagesInfo.vmImages << imageInfo
+				virtualMachineNativeTranslator.createReport(attrs, imageInfo)
 			}
 		}
 		return []

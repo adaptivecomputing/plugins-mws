@@ -8,7 +8,7 @@ import com.adaptc.mws.plugins.natives.utils.NativeUtils
 import static com.adaptc.mws.plugins.PluginConstants.*
 
 class VirtualMachineNativeTranslator {
-	public VirtualMachineReport createReport(Map attrs) {
+	public VirtualMachineReport createReport(Map attrs, VMImageInfo imageInfo) {
 		VirtualMachineReport vm = new VirtualMachineReport(attrs.id)
 		
 		vm.state = NodeReportState.parse(attrs.STATE)
@@ -36,6 +36,9 @@ class VirtualMachineNativeTranslator {
 		attrs.GMETRIC?.each { vm.metrics[it.key] = NativeNumberUtils.parseDouble(it.value) }
 		vm.image = attrs.OS
 		vm.variables = attrs.VARIABLE ?: [:]
+
+		// Set image info fields
+		imageInfo.name = vm.image
 		
 		return vm
 	}

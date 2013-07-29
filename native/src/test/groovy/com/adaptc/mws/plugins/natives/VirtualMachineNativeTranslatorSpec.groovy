@@ -30,7 +30,8 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 				";CPULOAD=1.2"+
 				";OS=linux"+
 				";OSLIST=linux,windows"
-		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki]))
+		def imageInfo = new VMImageInfo()
+		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
 		
 		then:
 		0 * _._
@@ -55,12 +56,15 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		virtualMachine.imagesAvailable.size()==2
 		virtualMachine.imagesAvailable[0]=="linux"
 		virtualMachine.imagesAvailable[1]=="windows"
+
+		and:
+		imageInfo.name=="linux"
 	}
 
 	def "Migration disabled flag"() {
 		when:
 		def wiki = "vm1 "+migrationWiki
-		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki]))
+		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki])[0], new VMImageInfo())
 
 		then:
 		virtualMachine?.name=="vm1"

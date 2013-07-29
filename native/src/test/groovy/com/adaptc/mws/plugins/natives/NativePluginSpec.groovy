@@ -15,39 +15,50 @@ class NativePluginSpec extends Specification {
 		plugin.nodeRMService = nodeRMService
 		IVirtualMachineRMService virtualMachineRMService = Mock()
 		plugin.virtualMachineRMService = virtualMachineRMService
-        IJobRMService jobRMService = Mock()
-        plugin.jobRMService = jobRMService
-		
+		IJobRMService jobRMService = Mock()
+		plugin.jobRMService = jobRMService
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
+		NativeImageTranslator nativeImageTranslator = Mock()
+		plugin.nativeImageTranslator = nativeImageTranslator
+
 		and: "Setup objects"
 		def node1 = new NodeReport("node1")
 		def nodes = [node1]
 		def vm = new VirtualMachineReport("vm1")
 		def vms = [vm]
-        def job = new JobReport("job.1")
-        def jobs = [job]
+		def job = new JobReport("job.1")
+		def jobs = [job]
+
+		and:
+		plugin.id = "plugin1"
 
 		when: "getNodes and getVMs"
-		config = [:]
-		plugin.metaClass.getNodes = { -> nodes }
-		plugin.metaClass.getVirtualMachines = { -> vms }
+		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo -> nodes }
+		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> vms }
 		plugin.metaClass.getJobs = { -> jobs }
 		plugin.poll()
-		
+
 		then:
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
-        1 * jobRMService.save(jobs)
+		1 * jobRMService.save(jobs)
+		1 * nativeImageTranslator.getPluginEventService() >> null
+		1 * nativeImageTranslator.setPluginEventService(pluginEventService)
+		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
 		when: "getCluster returns nodes and VMs"
-		config = [getCluster:"getCluster"]
-		plugin.metaClass.getCluster = { -> nodes + vms }
+		config = [getCluster: "getCluster"]
+		plugin.metaClass.getCluster = { AggregateImagesInfo imagesInfo -> nodes + vms }
 		plugin.poll()
-		
+
 		then:
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
-        1 * jobRMService.save(jobs)
+		1 * jobRMService.save(jobs)
+		1 * nativeImageTranslator.getPluginEventService() >> pluginEventService
+		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 	}
 
@@ -60,525 +71,547 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineRMService = virtualMachineRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
+		NativeImageTranslator nativeImageTranslator = Mock()
+		plugin.nativeImageTranslator = nativeImageTranslator
+
+		and:
+		plugin.id = "plugin1"
 
 		when: "getNodes and getVirtualMachines"
 		config = [:]
-		plugin.metaClass.getNodes = { -> [] }
-		plugin.metaClass.getVirtualMachines = { -> [] }
-		plugin.metaClass.getJobs = { -> [] }
+		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo -> [] }
+		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
+		plugin.metaClass.getJobs = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.poll()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
 		1 * jobRMService.save([])
+		1 * nativeImageTranslator.getPluginEventService() >> null
+		1 * nativeImageTranslator.setPluginEventService(pluginEventService)
+		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
 		when:
-		config = [getCluster:"getCluster"]
-		plugin.metaClass.getCluster = { -> [] }
+		config = [getCluster: "getCluster"]
+		plugin.metaClass.getCluster = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.poll()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
 		1 * jobRMService.save([])
+		1 * nativeImageTranslator.getPluginEventService() >> pluginEventService
+		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 	}
-	
+
 	def "Before start"() {
 		when: "No URL"
 		config = [:]
 		plugin.beforeStart()
-		
+
 		then:
 		true
-		
+
 		when: "Start failure"
-		config = [startUrl:"file:///start"]
+		config = [startUrl: "file:///start"]
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/start"
-			return [exitCode:128, content:["ERROR"]]
+			assert url.toString() == "file:/start"
+			return [exitCode: 128, content: ["ERROR"]]
 		}
 		plugin.beforeStart()
-		
+
 		then:
 		true
-		
+
 		when: "Start exception"
-		config = [startUrl:"file:///start"]
+		config = [startUrl: "file:///start"]
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/start"
+			assert url.toString() == "file:/start"
 			throw new Exception()
 		}
 		plugin.afterStop()
-		
+
 		then:
 		notThrown(Exception)
-		
+
 		when: "Start success"
-		config = [startUrl:"file:///start"]
+		config = [startUrl: "file:///start"]
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/start"
-			return [exitCode:0, content:["content line"]]
+			assert url.toString() == "file:/start"
+			return [exitCode: 0, content: ["content line"]]
 		}
 		plugin.beforeStart()
-		
+
 		then:
 		true
 	}
-	
+
 	def "After stop"() {
 		when: "No URL"
 		config = [:]
 		plugin.afterStop()
-		
+
 		then:
 		true
-		
+
 		when: "Stop failure"
-		config = [stopUrl:"file:///stop"]
+		config = [stopUrl: "file:///stop"]
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/stop"
-			return [exitCode:128, content:["ERROR"]]
+			assert url.toString() == "file:/stop"
+			return [exitCode: 128, content: ["ERROR"]]
 		}
 		plugin.afterStop()
-		
+
 		then:
 		true
-		
+
 		when: "Stop exception"
-		config = [stopUrl:"file:///stop"]
+		config = [stopUrl: "file:///stop"]
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/stop"
+			assert url.toString() == "file:/stop"
 			throw new Exception()
 		}
 		plugin.afterStop()
-		
+
 		then:
 		notThrown(Exception)
-		
+
 		when: "Stop success"
-		config = [stopUrl:"file:///stop"]
+		config = [stopUrl: "file:///stop"]
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/stop"
-			return [exitCode:0, content:["content line"]]
+			assert url.toString() == "file:/stop"
+			return [exitCode: 0, content: ["content line"]]
 		}
 		plugin.afterStop()
-		
+
 		then:
 		true
 	}
-	
+
 	def "Has error"() {
 		expect:
-		result==plugin.hasError(scriptResult, canBeEmpty)
-		
+		result == plugin.hasError(scriptResult, canBeEmpty)
+
 		where:
-		canBeEmpty	| scriptResult						| result
-		false		| [exitCode:128]					| true
-		false		| [exitCode:0]						| true
-		false		| [exitCode:0, content:[]]			| true
-		false		| [exitCode:0, content:["ERROR"]]	| true
-		false		| [exitCode:0, content:["Line"]]	| false
-		true		| [exitCode:128]					| true
-		true		| [exitCode:0]						| true
-		true		| [exitCode:0, content:[]]			| false
-		true		| [exitCode:0, content:["ERROR"]]	| true
-		true		| [exitCode:0, content:["Line"]]	| false
+		canBeEmpty | scriptResult                      | result
+		false      | [exitCode: 128]                   | true
+		false      | [exitCode: 0]                     | true
+		false      | [exitCode: 0, content: []]        | true
+		false      | [exitCode: 0, content: ["ERROR"]] | true
+		false      | [exitCode: 0, content: ["Line"]]  | false
+		true       | [exitCode: 128]                   | true
+		true       | [exitCode: 0]                     | true
+		true       | [exitCode: 0, content: []]        | false
+		true       | [exitCode: 0, content: ["ERROR"]] | true
+		true       | [exitCode: 0, content: ["Line"]]  | false
 	}
-	
+
 	def "Get cluster"() {
 		given:
 		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		plugin.nodeNativeTranslator = nodeNativeTranslator
-		
+
 		and:
 		def node = new NodeReport("node01")
 		def vm = new VirtualMachineReport("vm1")
-		
+
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/c"
+			assert url.toString() == "file:/c"
 			return readURLResult
 		}
-		NativeUtils.metaClass.'static'.parseWiki = { String line ->
-			assert line=="Line"
-			return [parseWikiResult]
+		NativeUtils.metaClass.'static'.parseWiki = { lines ->
+			assert lines == ["Line"]
+			return parseWikiResult
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert canBeEmpty
 			return hasError
 		}
-		def result = plugin.getCluster()
-		
+		def imagesInfo = new AggregateImagesInfo()
+		def result = plugin.getCluster(imagesInfo)
+
 		then:
-		(0..1) * virtualMachineNativeTranslator.createReport(vmAttrs) >> vm
-		(0..1) * nodeNativeTranslator.createReport(nodeAttrs) >> node
-		result.size()==resultSize
-		
+		vmReports * virtualMachineNativeTranslator.createReport(_ as Map, _ as VMImageInfo) >> vm
+		nodeReports * nodeNativeTranslator.createReport(_ as Map, _ as HVImageInfo) >> node
+		result.size() == resultSize
+		imagesInfo.hypervisorImages.size()==nodeReports
+		imagesInfo.vmImages.size()==vmReports
+
 		where:
-		pluginConfig			| readURLResult					 | hasError		| parseWikiResult		| vmAttrs				| nodeAttrs	 | resultSize
-		[:]						| null							 | true			| null			 		| null					| null		 | 0
-		[getCluster:"file:///c"]| [exitCode:128]				 | true			| null			 		| null					| null		 | 0
-		[getCluster:"file:///c"]| [exitCode:0, content:["Line"]] | false		| [wiki:true]	 		| null					| [wiki:true]| 1
-		[getCluster:"file:///c"]| [exitCode:0, content:["Line"]] | false		| [CONTAINERNODE:"vm1"]	| [CONTAINERNODE:"vm1"]	| null		 | 1
-		[getCluster:"file:///c"]| [exitCode:0, content:["Line"]] | false		| [TYPE:"vM"]			| [TYPE:"vM"]			| null		 | 1
+		pluginConfig              | readURLResult                    | hasError | parseWikiResult        	| vmReports	| nodeReports	| resultSize
+		[:]                       | null                             | true     | null                   	| 0	        | 0				| 0
+		[getCluster: "file:///c"] | [exitCode: 128]                  | true     | [null]                 	| 0			| 0				| 0
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[wiki: true]]         	| 0			| 1				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[CONTAINERNODE: "vm1"]] 	| 1			| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE: "vM"]]           	| 1			| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"vM"],[wiki:true]]	| 1			| 1				| 2
 	}
 
-    def "Get jobs"() {
-        given:
-        JobNativeTranslator jobNativeTranslator = Mock()
-        plugin.jobNativeTranslator = jobNativeTranslator
+	def "Get jobs"() {
+		given:
+		JobNativeTranslator jobNativeTranslator = Mock()
+		plugin.jobNativeTranslator = jobNativeTranslator
 
-        and:
-        def job = new JobReport("job.1")
+		and:
+		def job = new JobReport("job.1")
 
-        when:
-        config = pluginConfig
-        plugin.metaClass.readURL = { URL url ->
-            assert url.toString()=="file:/n"
-            return readURLResult
-        }
-        NativeUtils.metaClass.'static'.parseWiki = { lines ->
-            assert lines==["Line"]
-            return [[wiki:true]]
-        }
-        plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-            assert canBeEmpty
-            return hasError
-        }
-        def result = plugin.getJobs()
+		when:
+		config = pluginConfig
+		plugin.metaClass.readURL = { URL url ->
+			assert url.toString() == "file:/n"
+			return readURLResult
+		}
+		NativeUtils.metaClass.'static'.parseWiki = { lines ->
+			assert lines == ["Line"]
+			return [[wiki: true]]
+		}
+		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
+			assert canBeEmpty
+			return hasError
+		}
+		def result = plugin.getJobs()
 
-        then:
-        calls * jobNativeTranslator.createReport({ it.wiki }) >> job
-        0 * _._
-        result.size()==resultSize
+		then:
+		calls * jobNativeTranslator.createReport({ it.wiki }) >> job
+		0 * _._
+		result.size() == resultSize
 
-        where:
-        pluginConfig			| readURLResult					 | hasError		| resultSize	| calls
-        [:]						| null							 | true			| 0				| 0
-        [getJobs:"file:///n"]	| [exitCode:128]				 | true			| 0				| 0
-        [getJobs:"file:///n"]	| [exitCode:0, content:["Line"]] | false		| 1				| 1
-    }
-	
+		where:
+		pluginConfig           | readURLResult                    | hasError | resultSize | calls
+		[:]                    | null                             | true     | 0          | 0
+		[getJobs: "file:///n"] | [exitCode: 128]                  | true     | 0          | 0
+		[getJobs: "file:///n"] | [exitCode: 0, content: ["Line"]] | false    | 1          | 1
+	}
+
 	def "Get nodes with result #readURLResult"() {
 		given:
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		plugin.nodeNativeTranslator = nodeNativeTranslator
-		
+
 		and:
 		def node = new NodeReport("node01")
 
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/n"
+			assert url.toString() == "file:/n"
 			return readURLResult
 		}
 		NativeUtils.metaClass.'static'.parseWiki = { lines ->
-			assert lines==["Line"]
-			return [[wiki:true]]
+			assert lines == ["Line"]
+			return [[wiki: true]]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert canBeEmpty
 			return hasError
 		}
-		def result = plugin.getNodes()
-		
+		def imagesInfo = new AggregateImagesInfo()
+		def result = plugin.getNodes(imagesInfo)
+
 		then:
-		calls * nodeNativeTranslator.createReport({ it.wiki }) >> node
+		calls * nodeNativeTranslator.createReport({ it.wiki }, _ as HVImageInfo) >> node
 		0 * _._
-		result.size()==resultSize
-		
+		result.size() == resultSize
+		imagesInfo.hypervisorImages.size()==resultSize
+		imagesInfo.vmImages.size()==0
+
 		where:
-		pluginConfig			| readURLResult					 | hasError		| resultSize	| calls
-		[:]						| null							 | true			| 0				| 0
-		[getNodes:"file:///n"]	| [exitCode:128]				 | true			| 0				| 0
-		[getNodes:"file:///n"]	| [exitCode:0, content:["Line"]] | false		| 1				| 1
+		pluginConfig            | readURLResult                    | hasError | resultSize | calls
+		[:]                     | null                             | true     | 0          | 0
+		[getNodes: "file:///n"] | [exitCode: 128]                  | true     | 0          | 0
+		[getNodes: "file:///n"] | [exitCode: 0, content: ["Line"]] | false    | 1          | 1
 	}
-	
+
 	def "Get virtual machines"() {
 		given:
 		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
-		
+
 		and:
 		def vm = new VirtualMachineReport("vm1")
-		
+
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/v"
+			assert url.toString() == "file:/v"
 			return readURLResult
 		}
 		NativeUtils.metaClass.'static'.parseWiki = { lines ->
-			assert lines==["Line"]
-			return [[wiki:true]]
+			assert lines == ["Line"]
+			return [[wiki: true]]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert canBeEmpty
 			return hasError
 		}
-		def result = plugin.getVirtualMachines()
-		
+		def imagesInfo = new AggregateImagesInfo()
+		def result = plugin.getVirtualMachines(imagesInfo)
+
 		then:
-		calls * virtualMachineNativeTranslator.createReport({ it.wiki }) >> vm
+		calls * virtualMachineNativeTranslator.createReport({ it.wiki }, _ as VMImageInfo) >> vm
 		0 * _._
-		result.size()==resultSize
-		
+		result.size() == resultSize
+		imagesInfo.hypervisorImages.size()==0
+		imagesInfo.vmImages.size()==resultSize
+
 		where:
-		pluginConfig					| readURLResult					 | hasError		| resultSize	| calls
-		[:]								| null							 | true			| 0				| 0
-		[getVirtualMachines:"file:///v"]| [exitCode:128]				 | true			| 0				| 0
-		[getVirtualMachines:"file:///v"]| [exitCode:0, content:["Line"]] | false		| 1				| 1
+		pluginConfig                      | readURLResult                    | hasError | resultSize | calls
+		[:]                               | null                             | true     | 0          | 0
+		[getVirtualMachines: "file:///v"] | [exitCode: 128]                  | true     | 0          | 0
+		[getVirtualMachines: "file:///v"] | [exitCode: 0, content: ["Line"]] | false    | 1          | 1
 	}
-	
+
 	def "Job cancel"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?job.1"
-			return [result:true]
+			assert url.toString() == "file:/url?job.1"
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
 		def result = plugin.jobCancel(["job.1"])
-		
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobCancel:"file:///url"]	| true			| false
-		[jobCancel:"file:///url"]	| false			| true
+		pluginConfig               | hasError | success
+		[:]                        | true     | false
+		[jobCancel: "file:///url"] | true     | false
+		[jobCancel: "file:///url"] | false    | true
 	}
-	
+
 	def "Job modify"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?job.1&prop=val&prop2=\"val 2\""
-			return [result:true]
+			assert url.toString() == "file:/url?job.1&prop=val&prop2=\"val 2\""
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobModify(["job.1"], [prop:"val", prop2:"val 2"])
-		
+		def result = plugin.jobModify(["job.1"], [prop: "val", prop2: "val 2"])
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobModify:"file:///url"]	| true			| false
-		[jobModify:"file:///url"]	| false			| true
+		pluginConfig               | hasError | success
+		[:]                        | true     | false
+		[jobModify: "file:///url"] | true     | false
+		[jobModify: "file:///url"] | false    | true
 	}
-	
+
 	def "Job resume"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?job.1"
-			return [result:true]
+			assert url.toString() == "file:/url?job.1"
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
 		def result = plugin.jobResume(["job.1"])
-		
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobResume:"file:///url"]	| true			| false
-		[jobResume:"file:///url"]	| false			| true
+		pluginConfig               | hasError | success
+		[:]                        | true     | false
+		[jobResume: "file:///url"] | true     | false
+		[jobResume: "file:///url"] | false    | true
 	}
-	
+
 	def "Job requeue"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?job.1"
-			return [result:true]
+			assert url.toString() == "file:/url?job.1"
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
 		def result = plugin.jobRequeue(["job.1"])
-		
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobRequeue:"file:///url"]	| true			| false
-		[jobRequeue:"file:///url"]	| false			| true
+		pluginConfig                | hasError | success
+		[:]                         | true     | false
+		[jobRequeue: "file:///url"] | true     | false
+		[jobRequeue: "file:///url"] | false    | true
 	}
-	
+
 	def "Job start"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?job.1&node01,node01&bsaville"
-			return [result:true]
+			assert url.toString() == "file:/url?job.1&node01,node01&bsaville"
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
 		def result = plugin.jobStart("job.1", "node01,node01", "bsaville")
-		
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobStart:"file:///url"]	| true			| false
-		[jobStart:"file:///url"]	| false			| true
+		pluginConfig              | hasError | success
+		[:]                       | true     | false
+		[jobStart: "file:///url"] | true     | false
+		[jobStart: "file:///url"] | false    | true
 	}
-	
+
 	def "Job submit"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?NAME=job.1&MESSAGE=\"message here\""
-			return [result:true]
+			assert url.toString() == "file:/url?NAME=job.1&MESSAGE=\"message here\""
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobSubmit([NAME:"job.1", MESSAGE:"message here"])
-		
+		def result = plugin.jobSubmit([NAME: "job.1", MESSAGE: "message here"])
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobSubmit:"file:///url"]	| true			| false
-		[jobSubmit:"file:///url"]	| false			| true
+		pluginConfig               | hasError | success
+		[:]                        | true     | false
+		[jobSubmit: "file:///url"] | true     | false
+		[jobSubmit: "file:///url"] | false    | true
 	}
-	
+
 	def "Job suspend"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?job.1"
-			return [result:true]
+			assert url.toString() == "file:/url?job.1"
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
 		def result = plugin.jobSuspend(["job.1"])
-		
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[jobSuspend:"file:///url"]	| true			| false
-		[jobSuspend:"file:///url"]	| false			| true
+		pluginConfig                | hasError | success
+		[:]                         | true     | false
+		[jobSuspend: "file:///url"] | true     | false
+		[jobSuspend: "file:///url"] | false    | true
 	}
-	
+
 	def "Node modify"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?node1,node2&--set&prop=val&prop2=\"val 2\""
-			return [result:true]
+			assert url.toString() == "file:/url?node1,node2&--set&prop=val&prop2=\"val 2\""
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.nodeModify(["node1","node2"], [prop:"val", prop2:"val 2"])
-		
+		def result = plugin.nodeModify(["node1", "node2"], [prop: "val", prop2: "val 2"])
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[nodeModify:"file:///url"]	| true			| false
-		[nodeModify:"file:///url"]	| false			| true
+		pluginConfig                | hasError | success
+		[:]                         | true     | false
+		[nodeModify: "file:///url"] | true     | false
+		[nodeModify: "file:///url"] | false    | true
 	}
-	
+
 	def "Node power"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString()=="file:/url?node1,node2&ON"
-			return [result:true]
+			assert url.toString() == "file:/url?node1,node2&ON"
+			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
 			assert !canBeEmpty
-			assert resultParam==[result:true]
+			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.nodePower(["node1","node2"], NodeReportPower.ON)
-		
+		def result = plugin.nodePower(["node1", "node2"], NodeReportPower.ON)
+
 		then:
-		result==success
-		
+		result == success
+
 		where:
-		pluginConfig				| hasError		| success
-		[:]							| true			| false
-		[nodePower:"file:///url"]	| true			| false
-		[nodePower:"file:///url"]	| false			| true
+		pluginConfig               | hasError | success
+		[:]                        | true     | false
+		[nodePower: "file:///url"] | true     | false
+		[nodePower: "file:///url"] | false    | true
 	}
-	
+
 	def "IO exceptions are caught"() {
 		given:
 		NativePlugin.metaClass.setEnvironment = { urlConn -> }
 
 		when: "File not found exception"
-		URL.metaClass.openConnection = { ->
-			return [connect:{}, content:[readLines:{
+		URL.metaClass.openConnection = {->
+			return [connect: {}, content: [readLines: {
 				throw new FileNotFoundException("this is my message")
 			}]]
 		}
 		def result = plugin.readURL("file:///url".toURL())
 
 		then:
-		result==null
+		result == null
 		plugin.hasError(result)
 
 		when:
-		URL.metaClass.openConnection = { ->
-			return [connect:{}, content:[readLines:{
+		URL.metaClass.openConnection = {->
+			return [connect: {}, content: [readLines: {
 				throw new IOException("this is my message")
 			}]]
 		}
 		result = plugin.readURL("file:///url".toURL())
 
 		then:
-		result==null
+		result == null
 		plugin.hasError(result)
 	}
 
@@ -586,103 +619,106 @@ class NativePluginSpec extends Specification {
 		given:
 		def plugin2 = mockPlugin(NativePlugin)
 
-    and:
-    INodeRMService nodeRMService = Mock()
-    plugin.nodeRMService = nodeRMService
-    plugin2.nodeRMService = nodeRMService
-    IJobRMService jobRMService = Mock()
-    plugin.jobRMService = jobRMService
-    plugin2.jobRMService = jobRMService
-    IVirtualMachineRMService virtualMachineRMService = Mock()
-    plugin.virtualMachineRMService = virtualMachineRMService
-    plugin2.virtualMachineRMService = virtualMachineRMService
-
-    and:
-		boolean runPoll = true
-		int pollsRunning = 0
-		plugin.metaClass.getNodes = { ->
-			pollsRunning++
-			while(runPoll)
-				sleep(100)
-			pollsRunning--
-      return []
-		}
-    plugin.metaClass.getVirtualMachines = {-> [] }
-    plugin.metaClass.getJobs = {-> [] }
-
-    and:
-		plugin2.metaClass.getNodes = { ->
-			pollsRunning++
-			while(runPoll)
-				sleep(100)
-			pollsRunning--
-      return []
-		}
-    plugin2.metaClass.getVirtualMachines = {-> [] }
-    plugin2.metaClass.getJobs = {-> [] }
+		and:
+		INodeRMService nodeRMService = Mock()
+		plugin.nodeRMService = nodeRMService
+		plugin2.nodeRMService = nodeRMService
+		IJobRMService jobRMService = Mock()
+		plugin.jobRMService = jobRMService
+		plugin2.jobRMService = jobRMService
+		IVirtualMachineRMService virtualMachineRMService = Mock()
+		plugin.virtualMachineRMService = virtualMachineRMService
+		plugin2.virtualMachineRMService = virtualMachineRMService
+		NativeImageTranslator nativeImageTranslator = Mock()
+		plugin.nativeImageTranslator = nativeImageTranslator
+		plugin2.nativeImageTranslator = nativeImageTranslator
 
 		and:
-		def conditions = new PollingConditions(timeout:10)
+		boolean runPoll = true
+		int pollsRunning = 0
+		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo ->
+			pollsRunning++
+			while (runPoll)
+				sleep(100)
+			pollsRunning--
+			return []
+		}
+		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
+		plugin.metaClass.getJobs = {-> [] }
+
+		and:
+		plugin2.metaClass.getNodes = { AggregateImagesInfo imagesInfo ->
+			pollsRunning++
+			while (runPoll)
+				sleep(100)
+			pollsRunning--
+			return []
+		}
+		plugin2.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
+		plugin2.metaClass.getJobs = {-> [] }
+
+		and:
+		def conditions = new PollingConditions(timeout: 10)
 
 		when:
-    Thread.start {
-		  plugin.poll()
-    }
-    Thread.start {
-      plugin2.poll()
-    }
-
-    then:
-    conditions.within(1) {
-      pollsRunning==2
-      0 * _._
-    }
-
-    when: "Polling waits for previous poll to finish"
-    Thread.start {
-		  plugin.poll()
-    }
 		Thread.start {
-      plugin2.poll()
-    }
-
-    and: "Delay the initial evaluation to make sure they start another poll"
-    conditions.initialDelay = 1
+			plugin.poll()
+		}
+		Thread.start {
+			plugin2.poll()
+		}
 
 		then:
 		conditions.within(1) {
-			pollsRunning==2
-      0 * _._
+			pollsRunning == 2
+			0 * _._
+		}
+
+		when: "Polling waits for previous poll to finish"
+		Thread.start {
+			plugin.poll()
+		}
+		Thread.start {
+			plugin2.poll()
+		}
+
+		and: "Delay the initial evaluation to make sure they start another poll"
+		conditions.initialDelay = 1
+
+		then:
+		conditions.within(1) {
+			pollsRunning == 2
+			0 * _._
 		}
 
 		when: "Stop polling"
 		runPoll = false
 
-    and: "Reset initial delay"
-    conditions.initialDelay = 0
+		and: "Reset initial delay"
+		conditions.initialDelay = 0
 
 		then:
 		conditions.within(1) {
-			pollsRunning==0
-      //1 * nodeRMService.save([])
-      //1 * jobRMService.save([])
-      //1 * virtualMachineRMService.save([])
-      0 * _._
+			pollsRunning == 0
+			//1 * nodeRMService.save([])
+			//1 * jobRMService.save([])
+			//1 * virtualMachineRMService.save([])
+			0 * _._
 		}
 
 		when: "Another poll runs without issues"
 		runPoll = true
-    Thread.start {
-		  plugin.poll()
-    }
-    Thread.start {
-      plugin2.poll()
-    }
+		Thread.start {
+			plugin.poll()
+		}
+		Thread.start {
+			plugin2.poll()
+		}
 
 		then:
 		conditions.within(1) {
-			pollsRunning==2
-      0 * _._
+			pollsRunning == 2
+			0 * _._
 		}
 
 		cleanup: "stop all polling"

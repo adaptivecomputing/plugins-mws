@@ -5,32 +5,26 @@ import com.adaptc.mws.plugins.*
 /**
  * @author bsaville
  */
-class NativeImageTranslator {
+public class NativeImageTranslator {
 	private static final String IMAGES_RESOURCE = "/rest/images"
 	private static final String IMAGE_TYPE = "FULL_CLONE"
 	private static final String IMAGE_OS_TYPE = "unknown"
-	private static final String HYPERVISOR_TYPE = "Native"
+	private static final String DEFAULT_HYPERVISOR_TYPE = "Native"
 
 	IMoabRestService moabRestService
 	IPluginEventService pluginEventService
 
-	public void updateImages(String pluginId, List<NodeReport> nodeReports,
-							 List<VirtualMachineReport> vmReports,
-							 Map<String, List<String>> hypervisorToVMTable) {
-		updateHypervisorImages(pluginId, nodeReports, hypervisorToVMTable)
-		updateVMImages(pluginId, vmReports)
+	public void updateImages(String pluginId, AggregateImagesInfo aggregateImagesInfo) {
+		updateVMImages(pluginId, aggregateImagesInfo.vmImages)
+		updateHypervisorImages(pluginId, aggregateImagesInfo.hypervisorImages)
 	}
 
-	private void updateVMImages(String pluginId, List<VirtualMachineReport> vmReports) {
+	private void updateVMImages(String pluginId, List<VMImageInfo> vmImages) {
 		final String getAllMyVMImages =
-			'{extensions.native: {$ne: null}, type: "' + IMAGE_TYPE + '"}'
+			'{extensions.native: {$ne: null}, hypervisor:false}'
 
-		// Get all image names from the current poll.
-		Set vmImageNames = vmReports.inject([] as Set) { Set set, VirtualMachineReport vmReport ->
-			if (vmReport.image)
-				set << vmReport.image
-			return set
-		}
+		// Get all VM image names
+		Set vmImageNames = vmImages.collect([] as Set) {it.name} - [null]
 
 		// Get all our images from the database.
 		MoabRestResponse response = moabRestService.get(IMAGES_RESOURCE,
@@ -40,7 +34,7 @@ class NativeImageTranslator {
 		if (response.hasError()) {
 			updateNotificationError(message(
 					code: "nativeImageTranslator.get.vm.images",
-					args: [response.convertedData.messages.join(", ")]), VirtualMachineReport)
+					args: [response.convertedData.messages.join(", ")]))
 			return
 		}
 		List dataResults = response.convertedData.results
@@ -86,7 +80,7 @@ class NativeImageTranslator {
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "nativeImageTranslator.post.vm.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), VirtualMachineReport, imageName)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
 		// Delete as needed.
@@ -98,7 +92,7 @@ class NativeImageTranslator {
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "nativeImageTranslator.get.vm.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), VirtualMachineReport, imageName)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 				return
 			}
 			String id = response.convertedData.id
@@ -109,7 +103,7 @@ class NativeImageTranslator {
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "nativeImageTranslator.get.hv.images",
-						args: [response.convertedData.messages.join(", ")]), VirtualMachineReport)
+						args: [response.convertedData.messages.join(", ")]))
 				return
 			}
 			List hypervisorImages = response.convertedData.results
@@ -122,7 +116,7 @@ class NativeImageTranslator {
 					updateNotificationWarn(message(
 							code: "nativeImageTranslator.put.hv.image",
 							args: [hypervisorImage.name, response.convertedData.messages.join(", ")]),
-							VirtualMachineReport, hypervisorImage.name)
+							hypervisorImage.name)
 			}
 
 			// Delete the VM image.
@@ -130,7 +124,7 @@ class NativeImageTranslator {
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "nativeImageTranslator.delete.vm.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), VirtualMachineReport, imageName)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
 		// Modify the image's owners list to include or remove this plugin
@@ -139,7 +133,7 @@ class NativeImageTranslator {
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "nativeImageTranslator.get.vm.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), VirtualMachineReport, key)
+						args: [imageName, response.convertedData.messages.join(", ")]), key)
 				return
 			}
 			Map vmImage = response.convertedData
@@ -156,18 +150,17 @@ class NativeImageTranslator {
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "nativeImageTranslator.put.vm.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), VirtualMachineReport, imageName)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 	}
 
-	private void updateHypervisorImages(String pluginId, List<NodeReport> nodeReports,
-										Map<String, List<String>> hypervisorToVMTable) {
+	private void updateHypervisorImages(String pluginId, List<HVImageInfo> hypervisorImages) {
 		// Get all including those created by other native plugin instances
 		final String getAllMyHypervisorImages =
-			'{extensions.native.owners: ["' + pluginId + '"], hypervisorType: "' + HYPERVISOR_TYPE + '"}'
+			'{extensions.native.owners: ["' + pluginId + '"], hypervisor:true}'
 
 		// Get all hypervisor image names from the current poll.
-		Set polledHypervisorNames = nodeReports.collect([] as Set) {it.image}
+		Set polledHypervisorNames = hypervisorImages.collect([] as Set) {it.name} - [null]
 
 		// Get all our hypervisor images from the database.
 		MoabRestResponse response = moabRestService.get(IMAGES_RESOURCE,
@@ -175,27 +168,37 @@ class NativeImageTranslator {
 		if (response.hasError()) {
 			updateNotificationError(message(
 					code: "nativeImageTranslator.get.hv.images",
-					args: [response.convertedData.messages.join(", ")]), NodeReport)
+					args: [response.convertedData.messages.join(", ")]))
 			return
 		}
 		List storedHypervisorImages = response.convertedData.results
 		Set storedHypervisorNames = storedHypervisorImages.collect([] as Set) {it.name}
 
-		// Get the hypervisors to add to the database.
+		// Get the hypervisors to add to the database
 		Set addSet = polledHypervisorNames - storedHypervisorNames
 
 		// Get the hypervisors to delete from the database.
 		// (Hypervisor images are unique per plugin instance.)
 		Set deleteSet = storedHypervisorNames - polledHypervisorNames
 
-		// Add as needed.
+		// Add as needed
+		def hypervisorTypeCache = [:]
 		addSet.each { String imageName ->
+			// Set hypervisorType from the cache, then from the image info,
+			// 	and finally a default hardcoded value if nothing else
+			def hypervisorType = hypervisorTypeCache[imageName] ?:
+				hypervisorImages.find { it.name==imageName }?.hypervisorType ?:
+					DEFAULT_HYPERVISOR_TYPE
+			if (!hypervisorTypeCache.containsKey(hypervisorType)) {
+				hypervisorTypeCache[imageName] = hypervisorType
+				log.debug("Using hypervisor type ${hypervisorType} for image ${imageName}")
+			}
 			response = moabRestService.post(IMAGES_RESOURCE) {
 				[
 						active: true,
 						extensions: [native: [owners: [pluginId]]],
 						hypervisor: true,
-						hypervisorType: HYPERVISOR_TYPE,
+						hypervisorType: hypervisorType,
 						name: imageName,
 						osType: IMAGE_OS_TYPE,
 						supportsPhysicalMachine: true,
@@ -207,7 +210,7 @@ class NativeImageTranslator {
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "nativeImageTranslator.post.hv.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), NodeReport, imageName)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
 		// Delete as needed
@@ -216,7 +219,7 @@ class NativeImageTranslator {
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "nativeImageTranslator.delete.hv.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), NodeReport, imageName)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
 		// Get all our hypervisor image from the database again if necessary.
@@ -226,63 +229,84 @@ class NativeImageTranslator {
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "nativeImageTranslator.get.hv.images",
-						args: [response.convertedData.messages.join(", ")]), NodeReport)
+						args: [response.convertedData.messages.join(", ")]))
 				return
 			}
 			storedHypervisorImages = response.convertedData.results
 		}
 
 		// Update the virtualizedImages set in each hypervisor image.
-		updateVirtualizedImages(storedHypervisorImages, hypervisorToVMTable)
+		updateVirtualizedImages(storedHypervisorImages, hypervisorImages)
 	}
 
-	private void updateVirtualizedImages(List storedHypervisorImages, Map<String, List<String>> hypervisorToVMTable) {
+	private void updateVirtualizedImages(List storedHypervisorImages, List<HVImageInfo> hypervisorImages) {
 		storedHypervisorImages.each { storedHypervisorImage ->
 			String storedHypervisorImageName = storedHypervisorImage.name
-			Set compatibleImages = hypervisorToVMTable[storedHypervisorImages] as Set
-			MoabRestResponse response
 
-			// Check whether we need to update the virtualizedImages set of this hypervisor.
-			if (storedHypervisorImage.virtualizedImages?.toSet() == compatibleImages)
+			// Get VM images
+			Set compatibleImages	// This is set first to a list of strings and then to a list of virtualized images
+			hypervisorImages.each { HVImageInfo imageInfo ->
+				if (imageInfo.name!=storedHypervisorImageName)
+					return
+				if (compatibleImages==null)
+					compatibleImages = imageInfo.vmImageNames as Set
+				else if (compatibleImages!=(imageInfo.vmImageNames as Set)) {
+					updateNotificationWarn(message(code:"nativeImageTranslator.mismatched.vm.image.sets", args:[imageInfo.name]),
+						imageInfo.name)
+				}
+			}
+			if (!compatibleImages)
+				compatibleImages = [] as Set
+
+			MoabRestResponse response
+			if (compatibleImages) {
+				// Build the query to find all our VM image IDs that are compatible with this image
+				String query = '{extensions.native: {$ne: null}, ' +
+						'name:{$in: ["' + compatibleImages.join('", "') + '"]}}'
+
+				// Run the query.
+				response = moabRestService.get(IMAGES_RESOURCE,
+						params: [query: query, fields: "id"])
+				if (response.hasError()) {
+					updateNotificationError(message(
+							code: "nativeImageTranslator.get.vm.images",
+							args: [response.convertedData.messages.join(", ")]))
+					return
+				}
+				compatibleImages = response.convertedData.results
+			}
+
+			// Check whether we need to update the virtualizedImages set of this hypervisor
+			log.debug("Comparing stored image VIs (${storedHypervisorImage.virtualizedImages}) to compatible images (${compatibleImages?.toSet()})")
+			if (storedHypervisorImage.virtualizedImages?.toSet() == compatibleImages?.toSet())
 				return
 
-			// Do the update.
+			// Do the update
 			storedHypervisorImage.virtualizedImages = compatibleImages
 			response = moabRestService.put("$IMAGES_RESOURCE/$storedHypervisorImageName") {storedHypervisorImage}
 			if (response.hasError()) {
 				updateNotificationWarn(message(
 						code: "nativeImageTranslator.put.hv.image",
 						args: [storedHypervisorImageName, response.convertedData.messages.join(", ")]),
-						NodeReport, storedHypervisorImageName)
+					storedHypervisorImageName)
 			}
 		}
 	}
 
-	private void updateNotificationWarn(String message, Class reportClass, String objectName=null) {
+	private void updateNotificationWarn(String message, String objectName=null) {
 		log.warn(message)
-		updateNotification(message, reportClass, objectName)
+		updateNotification(message, objectName)
 	}
 
-	private void updateNotificationError(String message, Class reportClass, String objectName=null) {
+	private void updateNotificationError(String message, String objectName=null) {
 		log.error(message)
-		updateNotification(message, reportClass, objectName)
+		updateNotification(message, objectName)
 	}
 
-	private void updateNotification(String message, Class reportClass, String objectName=null) {
-		def objectType = null
-		switch(reportClass) {
-			case VirtualMachineReport:
-				objectType = "VM"
-				break
-			case NodeReport:
-				objectType = "Node"
-				break
-			default:
-				break
-		}
+	private void updateNotification(String message, String objectName=null) {
 		pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				message,
-				objectType ? new IPluginEventService.AssociatedObject(type:objectType, id:objectName) : null,
+				objectName==null ? null : new IPluginEventService.AssociatedObject(type:"Image", id:objectName),
 				null)
 	}
 }

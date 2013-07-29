@@ -56,7 +56,7 @@ class JobNativeTranslator {
 		job.user = attrs.UNAME
 		job.duration = NativeNumberUtils.parseLong(attrs.WCLIMIT)
 		
-		job
+		return job
 	}
 
 	private ReportResource getResource(Integer value) {

@@ -10,7 +10,7 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class NodeNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 
-	public NodeReport createReport(Map attrs) {
+	public NodeReport createReport(Map attrs, HVImageInfo imageInfo) {
 		NodeReport node = new NodeReport(attrs.id)
 		
 		if (attrs.STATE?.contains(":")) {
@@ -48,9 +48,11 @@ class NodeNativeTranslator {
 
 		// Backwards support for 0.9.x commons
 		if (NativeUtils.objectHasProperty(node, "attributes")) {
-			genericNativeTranslator.getGenericMapWithDisplayValue(attrs.VARATTR, "\\+", ":|=")?.each {key, value->
-				if (key?.equalsIgnoreCase("HVTYPE"))
+			genericNativeTranslator.getGenericMapWithDisplayValue(attrs.VARATTR, "\\+", ":|=")?.each { key, value->
+				if (key?.equalsIgnoreCase("HVTYPE")) {
+					imageInfo.hypervisorType = value.value
 					return
+				}
 				if (hasMigrationDisabledProp) {
 					if (key?.equalsIgnoreCase("allowvmmigrations")) {
 						node.migrationDisabled = false
@@ -69,6 +71,11 @@ class NodeNativeTranslator {
 		if (attrs.containsKey("MIGRATIONDISABLED") && hasMigrationDisabledProp) {
 			node.migrationDisabled = attrs.MIGRATIONDISABLED?.toBoolean() ?: false
 		}
+
+		// Set image information fields
+		imageInfo.name = node.image
+		attrs.VMOSLIST?.split(",")?.each { imageInfo.vmImageNames << it }
+		// hypervisorType set above in attributes
 
 		return node
 	}

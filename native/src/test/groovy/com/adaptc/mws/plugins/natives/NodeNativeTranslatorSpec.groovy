@@ -40,18 +40,20 @@ class NodeNativeTranslatorSpec extends Specification {
 				";MESSAGE=message1"+
 				';MESSAGE="message 2"'+
 				";OS=linux"+
+				";VMOSLIST=cent5,cent6"+
                 ";OSLIST=linux,windows"+
 				";RACK=4"+
 				";SLOT=2"+
 				";VARATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
+		def imageInfo = new HVImageInfo()
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
 		
 		then:
 		node
 		1 * genericNativeTranslator.getGenericMap("ares") >> [res1:"1"]
 		1 * genericNativeTranslator.getGenericMap("cres") >> [res2:"2"]
 		1 * genericNativeTranslator.getGenericMapWithDisplayValue("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
-				[HVTYPE:"esx",attr1:[value:"val1", displayValue: "value one"]]
+				[HVTYPE:[value:"esx"],attr1:[value:"val1", displayValue: "value one"]]
 		0 * _._
 		
 		and:	
@@ -87,6 +89,13 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.attributes.size()==1
 		node.attributes.attr1.value=="val1"
 		node.attributes.attr1.displayValue=="value one"
+
+		and:
+		imageInfo.name=="linux"
+		imageInfo.hypervisorType=="esx"
+		imageInfo.vmImageNames.size()==2
+		imageInfo.vmImageNames.contains("cent5")
+		imageInfo.vmImageNames.contains("cent6")
 	}
 
 	def "Wiki to domain null values handled correctly"() {
@@ -100,7 +109,8 @@ class NodeNativeTranslatorSpec extends Specification {
 		when:
 		def wiki = "node1 STATE=${NodeReportState.IDLE}" +
 				";UPDATETIME=${(time).toLong()}"
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
+		def imageInfo = new HVImageInfo()
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null
@@ -127,6 +137,11 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.messages.size()==0
 		node.variables.size()==0
 		node.attributes.size()==0
+
+		and:
+		imageInfo.name==null
+		imageInfo.vmImageNames.size()==0
+		imageInfo.hypervisorType==null
 	}
 
 	def "Floating point update time is handled correctly"() {
@@ -139,7 +154,7 @@ class NodeNativeTranslatorSpec extends Specification {
 
 		when:
 		def wiki = "node1 STATE=$NodeReportState.IDLE;UPDATETIME=$time"
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
 
 		then:
 		2 * genericNativeTranslator.getGenericMap(null) >> null
@@ -160,7 +175,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		def wiki = "node1 "+
 				migrationWiki+
 				attrWiki
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki]))
+		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
 
 		then:
 		node?.name=="node1"
