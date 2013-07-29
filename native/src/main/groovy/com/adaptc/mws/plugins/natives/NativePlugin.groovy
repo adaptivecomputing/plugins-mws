@@ -6,8 +6,6 @@ import groovy.transform.Synchronized
 
 /**
  * The Native Plugin is a replication of the Moab Native resource manager interface in MWS.
- * Documentation may be found by going to the reference guide -&gt; Bundled Plugins -&gt;
- * Native.
  * @author bsaville
  */
 class NativePlugin extends AbstractPlugin {
