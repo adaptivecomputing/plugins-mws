@@ -59,7 +59,7 @@ class JobNativeTranslatorSpec extends Specification {
 				";TaSKPERNODE=2" +
                 ";UnAME=sam"+
 				";WcLIMIT=2000"
-        JobReport job = translator.createReport(NativeUtils.parseWiki([wiki]))
+        JobReport job = translator.createReport(null, NativeUtils.parseWiki([wiki])[0])
 
         then:
         1 * genericNativeTranslator.getGenericMap("dgres") >> [RES1:1,RES2:2]
@@ -129,12 +129,28 @@ class JobNativeTranslatorSpec extends Specification {
         job.requirements.features[1]=="FEAT4"
     }
 
+	def "Notifications for invalid attributes"() {
+		given:
+		IPluginEventService pluginEventService = Mock()
+
+		when:
+		def object = translator.createReport(pluginEventService, [id:"id1", bogus1:"value", bogus2:"value2"])
+
+		then:
+		object.name=="id1"
+
+		and:
+		2 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+				"jobNativeTranslator.invalid.attribute", {it.type=="Job" && it.id=="id1" }, null)
+		0 * _._
+	}
+
 	def "Lower-case names is #lowerCase (#id converted to #name)"() {
 		given:
 		translator.lowerCaseNames = lowerCase
 
 		expect:
-		translator.createReport([id:id]).name==name
+		translator.createReport(null, [id:id]).name==name
 
 		cleanup:
 		translator.lowerCaseNames = true

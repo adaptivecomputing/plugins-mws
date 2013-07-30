@@ -209,6 +209,8 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		plugin.nodeNativeTranslator = nodeNativeTranslator
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 
 		and:
 		def node = new NodeReport("node01")
@@ -232,8 +234,8 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getCluster(imagesInfo)
 
 		then:
-		vmReports * virtualMachineNativeTranslator.createReport(_ as Map, _ as VMImageInfo) >> vm
-		nodeReports * nodeNativeTranslator.createReport(_ as Map, _ as HVImageInfo) >> node
+		vmReports * virtualMachineNativeTranslator.createReport(pluginEventService, _ as Map, _ as VMImageInfo) >> vm
+		nodeReports * nodeNativeTranslator.createReport(pluginEventService, _ as Map, _ as HVImageInfo) >> node
 		result.size() == resultSize
 		imagesInfo.hypervisorImages.size()==nodeReports
 		imagesInfo.vmImages.size()==vmReports
@@ -252,6 +254,8 @@ class NativePluginSpec extends Specification {
 		given:
 		JobNativeTranslator jobNativeTranslator = Mock()
 		plugin.jobNativeTranslator = jobNativeTranslator
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 
 		and:
 		def job = new JobReport("job.1")
@@ -273,7 +277,7 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getJobs()
 
 		then:
-		calls * jobNativeTranslator.createReport({ it.wiki }) >> job
+		calls * jobNativeTranslator.createReport(pluginEventService, { it.wiki }) >> job
 		0 * _._
 		result.size() == resultSize
 
@@ -288,6 +292,8 @@ class NativePluginSpec extends Specification {
 		given:
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		plugin.nodeNativeTranslator = nodeNativeTranslator
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 
 		and:
 		def node = new NodeReport("node01")
@@ -310,7 +316,7 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getNodes(imagesInfo)
 
 		then:
-		calls * nodeNativeTranslator.createReport({ it.wiki }, _ as HVImageInfo) >> node
+		calls * nodeNativeTranslator.createReport(pluginEventService, { it.wiki }, _ as HVImageInfo) >> node
 		0 * _._
 		result.size() == resultSize
 		imagesInfo.hypervisorImages.size()==resultSize
@@ -327,6 +333,8 @@ class NativePluginSpec extends Specification {
 		given:
 		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
 
 		and:
 		def vm = new VirtualMachineReport("vm1")
@@ -349,7 +357,7 @@ class NativePluginSpec extends Specification {
 		def result = plugin.getVirtualMachines(imagesInfo)
 
 		then:
-		calls * virtualMachineNativeTranslator.createReport({ it.wiki }, _ as VMImageInfo) >> vm
+		calls * virtualMachineNativeTranslator.createReport(pluginEventService, { it.wiki }, _ as VMImageInfo) >> vm
 		0 * _._
 		result.size() == resultSize
 		imagesInfo.hypervisorImages.size()==0

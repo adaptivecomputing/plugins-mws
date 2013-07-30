@@ -8,11 +8,10 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 
 class NodeNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
-	IPluginEventService pluginEventService
 
 	boolean lowerCaseNames = true
 
-	public NodeReport createReport(Map attrs, HVImageInfo imageInfo) {
+	public NodeReport createReport(IPluginEventService pluginEventService, Map attrs, HVImageInfo imageInfo) {
 		def id = attrs.remove("id")
 		NodeReport node = new NodeReport(id)
 		// Manually set name field to make sure it is not lower-cased

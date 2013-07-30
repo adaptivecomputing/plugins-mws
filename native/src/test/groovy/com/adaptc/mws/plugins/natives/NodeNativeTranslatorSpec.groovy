@@ -47,7 +47,7 @@ class NodeNativeTranslatorSpec extends Specification {
                 ";OsLIST=linux,windows"+
 				";VaRATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
 		def imageInfo = new HVImageInfo()
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], imageInfo)
 		
 		then:
 		node
@@ -110,7 +110,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		def wiki = "node1 STATE=${NodeReportState.IDLE}" +
 				";UPDATETIME=${(time).toLong()}"
 		def imageInfo = new HVImageInfo()
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], imageInfo)
 
 		then:
 		node.name=="node1"
@@ -139,7 +139,7 @@ class NodeNativeTranslatorSpec extends Specification {
 
 		when:
 		def wiki = "node1 STATE=$NodeReportState.IDLE;UPDATETIME=$time"
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
 
 		then:
 		node.name == "node1"
@@ -155,7 +155,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		def wiki = "node1 "+
 				migrationWiki+
 				attrWiki
-		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
 
 		then:
 		node?.name=="node1"
@@ -186,12 +186,28 @@ class NodeNativeTranslatorSpec extends Specification {
 		"MIGRATIONDISABLED="		| ";VARATTR=allowvmmigrations"		|| 0				| false
 	}
 
+	def "Notifications for invalid attributes"() {
+		given:
+		IPluginEventService pluginEventService = Mock()
+
+		when:
+		def object = translator.createReport(pluginEventService, [id:"id1", bogus1:"value", bogus2:"value2"], new HVImageInfo())
+
+		then:
+		object.name=="id1"
+
+		and:
+		2 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+				"nodeNativeTranslator.invalid.attribute", {it.type=="Node" && it.id=="id1" }, null)
+		0 * _._
+	}
+
 	def "Lower-case names is #lowerCase (#id converted to #name)"() {
 		given:
 		translator.lowerCaseNames = lowerCase
 
 		expect:
-		translator.createReport([id:id], new HVImageInfo()).name==name
+		translator.createReport(null, [id:id], new HVImageInfo()).name==name
 
 		cleanup:
 		translator.lowerCaseNames = true

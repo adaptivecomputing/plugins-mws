@@ -32,7 +32,7 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 				";Os=linux"+
 				";OsLIST=linux,windows"
 		def imageInfo = new VMImageInfo()
-		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
+		VirtualMachineReport virtualMachine = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], imageInfo)
 		
 		then:
 		0 * _._
@@ -65,7 +65,7 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 	def "Migration disabled flag"() {
 		when:
 		def wiki = "vm1 "+migrationWiki
-		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki])[0], new VMImageInfo())
+		VirtualMachineReport virtualMachine = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new VMImageInfo())
 
 		then:
 		virtualMachine?.name=="vm1"
@@ -81,12 +81,28 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		"MIGRATIONDISABLED="			|| false
 	}
 
+	def "Notifications for invalid attributes"() {
+		given:
+		IPluginEventService pluginEventService = Mock()
+
+		when:
+		def object = translator.createReport(pluginEventService, [id:"id1", bogus1:"value", bogus2:"value2"], new VMImageInfo())
+
+		then:
+		object.name=="id1"
+
+		and:
+		2 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+				"virtualMachineNativeTranslator.invalid.attribute", {it.type=="VM" && it.id=="id1" }, null)
+		0 * _._
+	}
+
 	def "Lower-case names is #lowerCase (#id converted to #name)"() {
 		given:
 		translator.lowerCaseNames = lowerCase
 
 		expect:
-		translator.createReport([id:id], new VMImageInfo()).name==name
+		translator.createReport(null, [id:id], new VMImageInfo()).name==name
 
 		cleanup:
 		translator.lowerCaseNames = true

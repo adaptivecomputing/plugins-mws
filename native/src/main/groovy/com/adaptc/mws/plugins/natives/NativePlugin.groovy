@@ -49,11 +49,8 @@ class NativePlugin extends AbstractPlugin {
 
 	public void configure() throws InvalidPluginConfigurationException {
 		def lowerCaseNames = config.lowerCaseNames
-		nodeNativeTranslator.pluginEventService = pluginEventService
 		nodeNativeTranslator.lowerCaseNames = lowerCaseNames
-		virtualMachineNativeTranslator.pluginEventService = pluginEventService
 		virtualMachineNativeTranslator.lowerCaseNames = lowerCaseNames
-		jobNativeTranslator.pluginEventService = pluginEventService
 		jobNativeTranslator.lowerCaseNames = lowerCaseNames
 		nativeImageTranslator.pluginEventService = pluginEventService
 	}
@@ -140,7 +137,7 @@ class NativePlugin extends AbstractPlugin {
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				jobNativeTranslator.createReport(attrs)
+				jobNativeTranslator.createReport(pluginEventService, attrs)
 			}
 		}
 		return []
@@ -156,11 +153,11 @@ class NativePlugin extends AbstractPlugin {
 				if (attrs.TYPE?.equalsIgnoreCase("VM") || attrs.CONTAINERNODE) { // Only VMs have CONTAINERNODE
 					def imageInfo = new VMImageInfo()
 					aggregateImagesInfo.vmImages << imageInfo
-					return virtualMachineNativeTranslator.createReport(attrs, imageInfo)
+					return virtualMachineNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
 				} else {    // Default to a node
 					def imageInfo = new HVImageInfo()
 					aggregateImagesInfo.hypervisorImages << imageInfo
-					return nodeNativeTranslator.createReport(attrs, imageInfo)
+					return nodeNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
 				}
 			}
 		}
@@ -176,7 +173,7 @@ class NativePlugin extends AbstractPlugin {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				def imageInfo = new HVImageInfo()
 				aggregateImagesInfo.hypervisorImages << imageInfo
-				nodeNativeTranslator.createReport(attrs, imageInfo)
+				nodeNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
 			}
 		}
 		return []
@@ -191,7 +188,7 @@ class NativePlugin extends AbstractPlugin {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				def imageInfo = new VMImageInfo()
 				aggregateImagesInfo.vmImages << imageInfo
-				virtualMachineNativeTranslator.createReport(attrs, imageInfo)
+				virtualMachineNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
 			}
 		}
 		return []

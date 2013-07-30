@@ -8,11 +8,10 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 
 class JobNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
-	IPluginEventService pluginEventService
 
 	boolean lowerCaseNames = true
 
-	JobReport createReport(Map attrs, boolean submit = false) {
+	JobReport createReport(IPluginEventService pluginEventService, Map attrs) {
 		def id = attrs.remove("id")
 		JobReport job = new JobReport(id)
 		// Manually set name field to make sure it is not lower-cased
@@ -148,11 +147,7 @@ class JobNativeTranslator {
 			}
 		}
 
-		if (!job.submitDate && submit)
-			job.submitDate = new Date()
-		else
-
-			return job
+		return job
 	}
 
 	private ReportResource getResource(Integer value) {
@@ -161,13 +156,6 @@ class JobNativeTranslator {
 		resource.total = value
 		resource.available = value
 		return resource
-	}
-
-	//TODO Check the name/id interaction when creating a job - is the id set the actual ID that moab uses?
-	JobReport create(Map attrs) {
-		//TASKS:1, WCLIMIT:8639999, IWD:/opt/moab/tools, UNAME:adaptive, NAME:moab.5, EXEC:/opt/moab/spool/moab.job.YWnZTy, GNAME:adaptive,
-		attrs.id = attrs.remove("NAME")
-		return createReport(attrs, true)
 	}
 }
 
