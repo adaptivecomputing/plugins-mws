@@ -91,6 +91,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.attributes.attr1.displayValue=="value one"
 
 		and:
+		imageInfo.nodeName=="node1"
 		imageInfo.name=="linux"
 		imageInfo.hypervisorType=="esx"
 		imageInfo.vmImageNames.size()==2
@@ -139,6 +140,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.attributes.size()==0
 
 		and:
+		imageInfo.nodeName=="node1"
 		imageInfo.name==null
 		imageInfo.vmImageNames.size()==0
 		imageInfo.hypervisorType==null

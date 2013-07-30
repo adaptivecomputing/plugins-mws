@@ -12,6 +12,8 @@ the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 
 * While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any resources.
 * Do not use `getNodes` and `getVirtualMachines` in combination with `getCluster`.  If `getCluster` is used, the `getNodes` and `getVirtualMachines` URLs will never be called.
+* If `reportImages` is enabled, images will be created in the MWS image catalog based on the `OS`, `VMOSLIST`, and `VARATTR=HVTYPE` attributes for nodes and VMs
+** If running more than one native plugin, make sure that each plugin instance uses different `OS` values for nodes as these cannot be matched between plugin instances
 * If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes. For example:
 
 ```

@@ -11,6 +11,7 @@ public class AggregateImagesInfo {
 
 class HVImageInfo {
 	String name
+	String nodeName
 	String hypervisorType
 	List<String> vmImageNames = new ArrayList<String>()
 }

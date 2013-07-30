@@ -73,6 +73,7 @@ class NodeNativeTranslator {
 		}
 
 		// Set image information fields
+		imageInfo.nodeName = node.name
 		imageInfo.name = node.image
 		attrs.VMOSLIST?.split(",")?.each { imageInfo.vmImageNames << it }
 		// hypervisorType set above in attributes

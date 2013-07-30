@@ -21,7 +21,7 @@ public class NativeImageTranslator {
 
 	private void updateVMImages(String pluginId, List<VMImageInfo> vmImages) {
 		final String getAllMyVMImages =
-			'{extensions.native: {$ne: null}, hypervisor:false}'
+			'{extensions.native: {$ne: null}, hypervisor: false}'
 
 		// Get all VM image names
 		Set vmImageNames = vmImages.collect([] as Set) {it.name} - [null]
@@ -34,7 +34,7 @@ public class NativeImageTranslator {
 		if (response.hasError()) {
 			updateNotificationError(message(
 					code: "nativeImageTranslator.get.vm.images",
-					args: [response.convertedData.messages.join(", ")]))
+					args: [response.convertedData?.messages?.join(", ")]))
 			return
 		}
 		List dataResults = response.convertedData.results
@@ -133,7 +133,7 @@ public class NativeImageTranslator {
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "nativeImageTranslator.get.vm.image",
-						args: [imageName, response.convertedData.messages.join(", ")]), key)
+						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 				return
 			}
 			Map vmImage = response.convertedData
@@ -155,7 +155,6 @@ public class NativeImageTranslator {
 	}
 
 	private void updateHypervisorImages(String pluginId, List<HVImageInfo> hypervisorImages) {
-		// Get all including those created by other native plugin instances
 		final String getAllMyHypervisorImages =
 			'{extensions.native.owners: ["' + pluginId + '"], hypervisor:true}'
 
@@ -252,7 +251,7 @@ public class NativeImageTranslator {
 					compatibleImages = imageInfo.vmImageNames as Set
 				else if (compatibleImages!=(imageInfo.vmImageNames as Set)) {
 					updateNotificationWarn(message(code:"nativeImageTranslator.mismatched.vm.image.sets", args:[imageInfo.name]),
-						imageInfo.name)
+						imageInfo.nodeName, "Node")
 				}
 			}
 			if (!compatibleImages)
@@ -293,20 +292,20 @@ public class NativeImageTranslator {
 		}
 	}
 
-	private void updateNotificationWarn(String message, String objectName=null) {
+	private void updateNotificationWarn(String message, String objectName=null, String objectType="Image") {
 		log.warn(message)
-		updateNotification(message, objectName)
+		updateNotification(message, objectName, objectType)
 	}
 
-	private void updateNotificationError(String message, String objectName=null) {
+	private void updateNotificationError(String message, String objectName=null, String objectType="Image") {
 		log.error(message)
-		updateNotification(message, objectName)
+		updateNotification(message, objectName, objectType)
 	}
 
-	private void updateNotification(String message, String objectName=null) {
+	private void updateNotification(String message, String objectName, String objectType) {
 		pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				message,
-				objectName==null ? null : new IPluginEventService.AssociatedObject(type:"Image", id:objectName),
+				objectName==null ? null : new IPluginEventService.AssociatedObject(type:objectType, id:objectName),
 				null)
 	}
 }

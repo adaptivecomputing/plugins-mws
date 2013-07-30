@@ -195,17 +195,20 @@ class NativePluginSpec extends Specification {
 		result == plugin.hasError(scriptResult, canBeEmpty)
 
 		where:
-		canBeEmpty | scriptResult                      | result
-		false      | [exitCode: 128]                   | true
-		false      | [exitCode: 0]                     | true
-		false      | [exitCode: 0, content: []]        | true
-		false      | [exitCode: 0, content: ["ERROR"]] | true
-		false      | [exitCode: 0, content: ["Line"]]  | false
-		true       | [exitCode: 128]                   | true
-		true       | [exitCode: 0]                     | true
-		true       | [exitCode: 0, content: []]        | false
-		true       | [exitCode: 0, content: ["ERROR"]] | true
-		true       | [exitCode: 0, content: ["Line"]]  | false
+		canBeEmpty 	| scriptResult                      | result
+		false		| null								| true
+		false      	| [exitCode: 128]                   | true
+		false      	| [exitCode: 0]                     | true
+		false      	| [exitCode: 0, content: []]        | true
+		false      	| [exitCode: 0, content: ["ERROR"]] | true
+		false      	| [exitCode: 0, content: ["ERROR="]]| false
+		false      	| [exitCode: 0, content: ["Line"]]  | false
+		true       	| [exitCode: 128]                   | true
+		true       	| [exitCode: 0]                     | true
+		true       	| [exitCode: 0, content: []]        | false
+		true       	| [exitCode: 0, content: ["ERROR"]] | true
+		true       	| [exitCode: 0, content: ["ERROR="]]| false
+		true       	| [exitCode: 0, content: ["Line"]]  | false
 	}
 
 	def "Get cluster"() {
@@ -720,5 +723,26 @@ class NativePluginSpec extends Specification {
 
 		cleanup: "stop all polling"
 		runPoll = false
+	}
+
+	def "Set environment for #env"() {
+		given:
+		URLConnection urlConnection = GroovyMock()
+
+		when:
+		config = [environment:env]
+		plugin.setEnvironment(urlConnection)
+
+		then:
+		calls * urlConnection.setEnvironment(resultEnv)
+		0 * _._
+
+		where:
+		env						|| calls			| resultEnv
+		null					|| 0				| null
+		""						|| 0				| null
+		"one"					|| 1				| [one:null]
+		"one=val"				|| 1				| [one:"val"]
+		"one=val&two&three=3"	|| 1				| [one:"val",two:null,three:"3"]
 	}
 }
