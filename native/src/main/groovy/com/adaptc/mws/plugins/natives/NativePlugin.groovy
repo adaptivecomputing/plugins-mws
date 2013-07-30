@@ -38,7 +38,7 @@ class NativePlugin extends AbstractPlugin {
 	IJobRMService jobRMService
 	INodeRMService nodeRMService
 	IVirtualMachineRMService virtualMachineRMService
-	NativeImageTranslator nativeImageTranslator
+	ImageNativeTranslator imageNativeTranslator
 	IPluginEventService pluginEventService
 
 	private def getConfigKey(String key) {
@@ -52,7 +52,7 @@ class NativePlugin extends AbstractPlugin {
 		nodeNativeTranslator.lowerCaseNames = lowerCaseNames
 		virtualMachineNativeTranslator.lowerCaseNames = lowerCaseNames
 		jobNativeTranslator.lowerCaseNames = lowerCaseNames
-		nativeImageTranslator.pluginEventService = pluginEventService
+		imageNativeTranslator.pluginEventService = pluginEventService
 	}
 
 	/**
@@ -95,7 +95,7 @@ class NativePlugin extends AbstractPlugin {
 
 		// Save images
 		if (config.reportImages)
-			nativeImageTranslator.updateImages(id, aggregateImagesInfo)
+			imageNativeTranslator.updateImages(id, aggregateImagesInfo)
 	}
 
 	public void beforeStart() {

@@ -17,8 +17,8 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineRMService = virtualMachineRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
-		NativeImageTranslator nativeImageTranslator = Mock()
-		plugin.nativeImageTranslator = nativeImageTranslator
+		ImageNativeTranslator imageNativeTranslator = Mock()
+		plugin.imageNativeTranslator = imageNativeTranslator
 
 		and: "Setup objects"
 		def node1 = new NodeReport("node1")
@@ -42,7 +42,7 @@ class NativePluginSpec extends Specification {
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
 		1 * jobRMService.save(jobs)
-		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
+		1 * imageNativeTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
 		when: "getCluster returns nodes and VMs"
@@ -66,8 +66,8 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineRMService = virtualMachineRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
-		NativeImageTranslator nativeImageTranslator = Mock()
-		plugin.nativeImageTranslator = nativeImageTranslator
+		ImageNativeTranslator imageNativeTranslator = Mock()
+		plugin.imageNativeTranslator = imageNativeTranslator
 
 		and:
 		plugin.id = "plugin1"
@@ -83,7 +83,7 @@ class NativePluginSpec extends Specification {
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
 		1 * jobRMService.save([])
-		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
+		1 * imageNativeTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
 		when:
@@ -629,9 +629,9 @@ class NativePluginSpec extends Specification {
 		IVirtualMachineRMService virtualMachineRMService = Mock()
 		plugin.virtualMachineRMService = virtualMachineRMService
 		plugin2.virtualMachineRMService = virtualMachineRMService
-		NativeImageTranslator nativeImageTranslator = Mock()
-		plugin.nativeImageTranslator = nativeImageTranslator
-		plugin2.nativeImageTranslator = nativeImageTranslator
+		ImageNativeTranslator imageNativeTranslator = Mock()
+		plugin.imageNativeTranslator = imageNativeTranslator
+		plugin2.imageNativeTranslator = imageNativeTranslator
 
 		and:
 		boolean runPoll = true

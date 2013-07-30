@@ -5,7 +5,7 @@ import com.adaptc.mws.plugins.*
 /**
  * @author bsaville
  */
-public class NativeImageTranslator {
+public class ImageNativeTranslator {
 	private static final String IMAGES_RESOURCE = "/rest/images"
 	private static final String IMAGE_TYPE = "FULL_CLONE"
 	private static final String IMAGE_OS_TYPE = "unknown"
@@ -33,7 +33,7 @@ public class NativeImageTranslator {
 						fields: "name,extensions.native"])
 		if (response.hasError()) {
 			updateNotificationError(message(
-					code: "nativeImageTranslator.get.vm.images",
+					code: "imageNativeTranslator.get.vm.images",
 					args: [response.convertedData?.messages?.join(", ")]))
 			return
 		}
@@ -79,7 +79,7 @@ public class NativeImageTranslator {
 			}
 			if (response.hasError())
 				updateNotificationWarn(message(
-						code: "nativeImageTranslator.post.vm.image",
+						code: "imageNativeTranslator.post.vm.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
@@ -91,7 +91,7 @@ public class NativeImageTranslator {
 					params: [fields: "id"])
 			if (response.hasError()) {
 				updateNotificationError(message(
-						code: "nativeImageTranslator.get.vm.image",
+						code: "imageNativeTranslator.get.vm.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 				return
 			}
@@ -102,7 +102,7 @@ public class NativeImageTranslator {
 					params: [query: '{virtualizedImages.id: "' + id + '"}'])
 			if (response.hasError()) {
 				updateNotificationError(message(
-						code: "nativeImageTranslator.get.hv.images",
+						code: "imageNativeTranslator.get.hv.images",
 						args: [response.convertedData.messages.join(", ")]))
 				return
 			}
@@ -114,7 +114,7 @@ public class NativeImageTranslator {
 				response = moabRestService.put("$IMAGES_RESOURCE/${hypervisorImage.name}") {hypervisorImage}
 				if (response.hasError())
 					updateNotificationWarn(message(
-							code: "nativeImageTranslator.put.hv.image",
+							code: "imageNativeTranslator.put.hv.image",
 							args: [hypervisorImage.name, response.convertedData.messages.join(", ")]),
 							hypervisorImage.name)
 			}
@@ -123,7 +123,7 @@ public class NativeImageTranslator {
 			response = moabRestService.delete("$IMAGES_RESOURCE/$imageName")
 			if (response.hasError())
 				updateNotificationWarn(message(
-						code: "nativeImageTranslator.delete.vm.image",
+						code: "imageNativeTranslator.delete.vm.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
@@ -132,7 +132,7 @@ public class NativeImageTranslator {
 			response = moabRestService.get("$IMAGES_RESOURCE/$imageName")
 			if (response.hasError()) {
 				updateNotificationError(message(
-						code: "nativeImageTranslator.get.vm.image",
+						code: "imageNativeTranslator.get.vm.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 				return
 			}
@@ -149,7 +149,7 @@ public class NativeImageTranslator {
 			response = moabRestService.put("$IMAGES_RESOURCE/$imageName") { vmImage }
 			if (response.hasError())
 				updateNotificationWarn(message(
-						code: "nativeImageTranslator.put.vm.image",
+						code: "imageNativeTranslator.put.vm.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 	}
@@ -166,7 +166,7 @@ public class NativeImageTranslator {
 				params: [query: getAllMyHypervisorImages])
 		if (response.hasError()) {
 			updateNotificationError(message(
-					code: "nativeImageTranslator.get.hv.images",
+					code: "imageNativeTranslator.get.hv.images",
 					args: [response.convertedData.messages.join(", ")]))
 			return
 		}
@@ -208,7 +208,7 @@ public class NativeImageTranslator {
 			}
 			if (response.hasError())
 				updateNotificationWarn(message(
-						code: "nativeImageTranslator.post.hv.image",
+						code: "imageNativeTranslator.post.hv.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
@@ -217,7 +217,7 @@ public class NativeImageTranslator {
 			response = moabRestService.delete("$IMAGES_RESOURCE/$imageName")
 			if (response.hasError())
 				updateNotificationWarn(message(
-						code: "nativeImageTranslator.delete.hv.image",
+						code: "imageNativeTranslator.delete.hv.image",
 						args: [imageName, response.convertedData.messages.join(", ")]), imageName)
 		}
 
@@ -227,7 +227,7 @@ public class NativeImageTranslator {
 					params: [query: getAllMyHypervisorImages])
 			if (response.hasError()) {
 				updateNotificationError(message(
-						code: "nativeImageTranslator.get.hv.images",
+						code: "imageNativeTranslator.get.hv.images",
 						args: [response.convertedData.messages.join(", ")]))
 				return
 			}
@@ -250,7 +250,7 @@ public class NativeImageTranslator {
 				if (compatibleImages==null)
 					compatibleImages = imageInfo.vmImageNames as Set
 				else if (compatibleImages!=(imageInfo.vmImageNames as Set)) {
-					updateNotificationWarn(message(code:"nativeImageTranslator.mismatched.vm.image.sets", args:[imageInfo.name]),
+					updateNotificationWarn(message(code:"imageNativeTranslator.mismatched.vm.image.sets", args:[imageInfo.name]),
 						imageInfo.nodeName, "Node")
 				}
 			}
@@ -268,7 +268,7 @@ public class NativeImageTranslator {
 						params: [query: query, fields: "id"])
 				if (response.hasError()) {
 					updateNotificationError(message(
-							code: "nativeImageTranslator.get.vm.images",
+							code: "imageNativeTranslator.get.vm.images",
 							args: [response.convertedData.messages.join(", ")]))
 					return
 				}
@@ -285,7 +285,7 @@ public class NativeImageTranslator {
 			response = moabRestService.put("$IMAGES_RESOURCE/$storedHypervisorImageName") {storedHypervisorImage}
 			if (response.hasError()) {
 				updateNotificationWarn(message(
-						code: "nativeImageTranslator.put.hv.image",
+						code: "imageNativeTranslator.put.hv.image",
 						args: [storedHypervisorImageName, response.convertedData.messages.join(", ")]),
 					storedHypervisorImageName)
 			}
