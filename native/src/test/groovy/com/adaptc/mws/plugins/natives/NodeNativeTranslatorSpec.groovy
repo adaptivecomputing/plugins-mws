@@ -165,25 +165,25 @@ class NodeNativeTranslatorSpec extends Specification {
 		where:
 		migrationWiki				| attrWiki							|| attributesSize	| result
 		""							| ""								|| 0				| null
-		"MIGRATIONDISABLED=true"	| ""								|| 0				| true
-		"MIGRATIONDISABLED=false"	| ""								|| 0				| false
-		"MIGRATIONDISABLED=1"		| ""								|| 0				| true
-		"MIGRATIONDISABLED=0"		| ""								|| 0				| false
-		"MIGRATIONDISABLED="		| ""								|| 0				| false
-		"MIGRATIONDISABLED=true"	| ";VARATTR=attr1"					|| 1				| true
-		"MIGRATIONDISABLED=false"	| ";VARATTR=attr1"					|| 1				| false
-		"MIGRATIONDISABLED=1"		| ";VARATTR=attr1"					|| 1				| true
-		"MIGRATIONDISABLED=0"		| ";VARATTR=attr1"					|| 1				| false
-		"MIGRATIONDISABLED="		| ";VARATTR=attr1"					|| 1				| false
+		"mIGRATIONDISABLED=true"	| ""								|| 0				| true
+		"mIGRATIONDISABLED=false"	| ""								|| 0				| false
+		"mIGRATIONDISABLED=1"		| ""								|| 0				| true
+		"mIGRATIONDISABLED=0"		| ""								|| 0				| false
+		"mIGRATIONDISABLED="		| ""								|| 0				| false
+		"mIGRATIONDISABLED=true"	| ";VARATTR=attr1"					|| 1				| true
+		"mIGRATIONDISABLED=false"	| ";VARATTR=attr1"					|| 1				| false
+		"mIGRATIONDISABLED=1"		| ";VARATTR=attr1"					|| 1				| true
+		"mIGRATIONDISABLED=0"		| ";VARATTR=attr1"					|| 1				| false
+		"mIGRATIONDISABLED="		| ";VARATTR=attr1"					|| 1				| false
 		""							| ";VARATTR=AllowVmmIgrations"		|| 0				| false
 		""							| ";VARATTR=nOVmmIgrations"			|| 0				| true
 		""							| ";VARATTR=AllowVmmIgrations+attr1"|| 1				| false
 		""							| ";VARATTR=nOVmmIgrations+attr1"	|| 1				| true
-		"MIGRATIONDISABLED=true"	| ";VARATTR=novmmigrations"			|| 0				| true
-		"MIGRATIONDISABLED=false"	| ";VARATTR=allowvmmigrations"		|| 0				| false
-		"MIGRATIONDISABLED=1"		| ";VARATTR=novmmigrations"			|| 0				| true
-		"MIGRATIONDISABLED=0"		| ";VARATTR=allowvmmigrations"		|| 0				| false
-		"MIGRATIONDISABLED="		| ";VARATTR=allowvmmigrations"		|| 0				| false
+		"mIGRATIONDISABLED=true"	| ";VARATTR=novmmigrations"			|| 0				| true
+		"mIGRATIONDISABLED=false"	| ";VARATTR=allowvmmigrations"		|| 0				| false
+		"mIGRATIONDISABLED=1"		| ";VARATTR=novmmigrations"			|| 0				| true
+		"mIGRATIONDISABLED=0"		| ";VARATTR=allowvmmigrations"		|| 0				| false
+		"mIGRATIONDISABLED="		| ";VARATTR=allowvmmigrations"		|| 0				| false
 	}
 
 	def "Notifications for invalid attributes"() {
@@ -220,5 +220,29 @@ class NodeNativeTranslatorSpec extends Specification {
 		false		| "ID"		|| "ID"
 		false		| "id"		|| "id"
 		false		| "iD"		|| "iD"
+	}
+
+	def "Hypervisor type without other image fields specified"() {
+		given:
+		IPluginEventService pluginEventService = Mock()
+		translator.genericNativeTranslator = mockTranslator(GenericNativeTranslator)
+
+		when:
+		translator.createReport(pluginEventService, [id:"node1",VARATTR:"HVTYPE=esx"], new HVImageInfo())
+
+		then:
+		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+				"nodeNativeTranslator.hypervisorType.without.image", {it.type=="Node" && it.id=="node1"}, null)
+		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+				"nodeNativeTranslator.hypervisorType.without.vmImageNames", {it.type=="Node" && it.id=="node1"}, null)
+		0 * _._
+
+		when:
+		translator.createReport(pluginEventService, [id:"node1",VMOSLIST:"vmOs1,vmOs2"], new HVImageInfo())
+
+		then:
+		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+				"nodeNativeTranslator.vmImageNames.without.image", {it.type=="Node" && it.id=="node1"}, null)
+		0 * _._
 	}
 }

@@ -134,8 +134,7 @@ class NodeNativeTranslator {
 					def message = message(code:"nodeNativeTranslator.invalid.attribute", args:[node.name, key, value])
 					log.warn(message)
 					pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-							message,
-							new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
+							message, new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
 					break
 			}
 		}
@@ -145,6 +144,39 @@ class NodeNativeTranslator {
 		imageInfo.name = node.image
 		// hypervisorType set in attributes
 		// vmImageNames set in VM_OS_LIST
+
+		// Verify that all image information will come out as expected
+		if (imageInfo.hypervisorType) {
+			if (!imageInfo.name) {
+				pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+						message(code:"nodeNativeTranslator.hypervisorType.without.image", args:[
+								node.name,
+								NodeNativeField.ATTRIBUTES.wikiKeyDisplay,
+								NodeNativeAttributeField.HYPERVISOR_TYPE.wikiKeyDisplay,
+								NodeNativeField.OS.wikiKeyDisplay
+						]),
+						new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
+			}
+			if (!imageInfo.vmImageNames) {
+				pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+						message(code:"nodeNativeTranslator.hypervisorType.without.vmImageNames", args:[
+								node.name,
+								NodeNativeField.ATTRIBUTES.wikiKeyDisplay,
+								NodeNativeAttributeField.HYPERVISOR_TYPE.wikiKeyDisplay,
+								NodeNativeField.VM_OS_LIST.wikiKeyDisplay
+						]),
+						new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
+			}
+		}
+		if (imageInfo.vmImageNames && !imageInfo.name) {
+			pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
+					message(code:"nodeNativeTranslator.vmImageNames.without.image", args:[
+							node.name,
+							NodeNativeField.VM_OS_LIST.wikiKeyDisplay,
+							NodeNativeField.OS.wikiKeyDisplay
+					]),
+					new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
+		}
 
 		return node
 	}
@@ -181,6 +213,10 @@ enum NodeNativeField {
 
 	String wikiKey
 
+	public String getWikiKeyDisplay() {
+		return wikiKey.toUpperCase()
+	}
+
 	private NodeNativeField(String wikiKey) {
 		this.wikiKey = wikiKey
 	}
@@ -198,6 +234,10 @@ enum NodeNativeAttributeField {
 	NO_VM_MIGRATIONS("novmmigrations")
 
 	String wikiKey
+
+	public String getWikiKeyDisplay() {
+		return wikiKey.toUpperCase()
+	}
 
 	private NodeNativeAttributeField(String wikiKey) {
 		this.wikiKey = wikiKey
