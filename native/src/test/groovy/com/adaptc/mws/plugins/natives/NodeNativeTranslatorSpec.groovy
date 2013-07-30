@@ -1,5 +1,6 @@
 package com.adaptc.mws.plugins.natives
 
+import com.adaptc.mws.plugins.IPluginEventService
 import com.adaptc.mws.plugins.NodeReport
 import com.adaptc.mws.plugins.NodeReportState
 import com.adaptc.mws.plugins.natives.utils.NativeUtils
@@ -24,27 +25,27 @@ class NodeNativeTranslatorSpec extends Specification {
 		long time = 12348473
 		
 		when:
-		def wiki = "node1 STATE=${NodeReportState.IDLE}:subs" +
-				";UPDATETIME=${(time).toLong()}"+
-				";ARES=ares"+
-				";CRES=cres"+
-				";CPROC=4"+
-				";APROC=2"+
-				";NETADDR=10.0.0.1"+
-				";CMEMORY=1024"+
-				";AMEMORY=256"+
-				";CDISK=1000"+
-				";ADISK=512"+
-				";SPEED=1.2"+
-				";CPULOAD=1.2"+
-				";MESSAGE=message1"+
-				';MESSAGE="message 2"'+
-				";OS=linux"+
-				";VMOSLIST=cent5,cent6"+
-                ";OSLIST=linux,windows"+
-				";RACK=4"+
-				";SLOT=2"+
-				";VARATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
+		def wiki = "node1 StaTE=${NodeReportState.IDLE}:subs" +
+				";UPdaTETIME=${(time).toLong()}"+
+				";ArES=ares"+
+				";CrES=cres"+
+				";CpROC=4"+
+				";ApROC=2"+
+				";CsWAP=512"+
+				";AsWAP=128"+
+				";NeTADDR=10.0.0.1"+
+				";CmEMORY=1024"+
+				";AmEMORY=256"+
+				";CdISK=1000"+
+				";AdISK=512"+
+				";SpEED=1.2"+
+				";CpULOAD=1.2"+
+				";MeSSAGE=message1"+
+				';MeSSAGE="message 2"'+
+				";Os=linux"+
+				";VmOSLIST=cent5,cent6"+
+                ";OsLIST=linux,windows"+
+				";VaRATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
 		def imageInfo = new HVImageInfo()
 		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
 		
@@ -68,6 +69,8 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.resources[RESOURCE_MEMORY].available==256
 		node.resources[RESOURCE_DISK].total==1000
 		node.resources[RESOURCE_DISK].available==512
+		node.resources[RESOURCE_SWAP].total==512
+		node.resources[RESOURCE_SWAP].available==128
 		node.metrics[METRIC_CPULOAD]==1.2
 		node.metrics[METRIC_SPEED]==1.2d
 		node.metrics.size()==2
@@ -101,10 +104,6 @@ class NodeNativeTranslatorSpec extends Specification {
 
 	def "Wiki to domain null values handled correctly"() {
 		given:
-		GenericNativeTranslator genericNativeTranslator = Mock()
-		translator.genericNativeTranslator = genericNativeTranslator
-
-		and:
 		long time = 12348473
 
 		when:
@@ -114,25 +113,13 @@ class NodeNativeTranslatorSpec extends Specification {
 		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
 
 		then:
-		2 * genericNativeTranslator.getGenericMap(null) >> null
-		1 * genericNativeTranslator.getGenericMapWithDisplayValue(null, "\\+", ":|=")
-		0 * _._
-
-		and:
 		node.name=="node1"
 		node.state==NodeReportState.IDLE
 		node.subState==null
 		node.ipAddress==null
 		node.timestamp==new Date(time*1000)
-		node.resources[RESOURCE_PROCESSORS].total==null
-		node.resources[RESOURCE_PROCESSORS].available==null
-		node.resources[RESOURCE_MEMORY].total==null
-		node.resources[RESOURCE_MEMORY].available==null
-		node.resources[RESOURCE_DISK].total==null
-		node.resources[RESOURCE_DISK].available==null
-		node.metrics[METRIC_CPULOAD]==null
-		node.metrics[METRIC_SPEED]==null
-		node.metrics.size()==2
+		node.resources.size()==0
+		node.metrics.size()==0
 		node.image==null
 		node.imagesAvailable.size()==0
 		node.messages.size()==0
@@ -148,10 +135,6 @@ class NodeNativeTranslatorSpec extends Specification {
 
 	def "Floating point update time is handled correctly"() {
 		given:
-		GenericNativeTranslator genericNativeTranslator = Mock()
-		translator.genericNativeTranslator = genericNativeTranslator
-
-		and:
 		String time = "1363865607.000"
 
 		when:
@@ -159,11 +142,6 @@ class NodeNativeTranslatorSpec extends Specification {
 		NodeReport node = translator.createReport(NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
 
 		then:
-		2 * genericNativeTranslator.getGenericMap(null) >> null
-		1 * genericNativeTranslator.getGenericMapWithDisplayValue(null, "\\+", ":|=")
-		0 * _._
-
-		and:
 		node.name == "node1"
 		node.state == NodeReportState.IDLE
 		node.timestamp.time == 1363865607000

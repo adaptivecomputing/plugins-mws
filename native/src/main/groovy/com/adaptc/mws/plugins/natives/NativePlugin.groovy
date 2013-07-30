@@ -46,6 +46,13 @@ class NativePlugin extends AbstractPlugin {
 		return null
 	}
 
+	public void configure() throws InvalidPluginConfigurationException {
+		nodeNativeTranslator.pluginEventService = pluginEventService
+		virtualMachineNativeTranslator.pluginEventService = pluginEventService
+		jobNativeTranslator.pluginEventService = pluginEventService
+		nativeImageTranslator.pluginEventService = pluginEventService
+	}
+
 	/**
 	 * Overrides the default implementation of poll so that a single
 	 * cluster query can be used for both nodes and VMs.
@@ -85,11 +92,8 @@ class NativePlugin extends AbstractPlugin {
 		jobRMService.save(getJobs());
 
 		// Save images
-		if (config.reportImages) {
-			if (!nativeImageTranslator.pluginEventService)
-				nativeImageTranslator.pluginEventService = pluginEventService
+		if (config.reportImages)
 			nativeImageTranslator.updateImages(id, aggregateImagesInfo)
-		}
 	}
 
 	public void beforeStart() {

@@ -6,10 +6,6 @@ package com.adaptc.mws.plugins.natives.utils;
 public class NativeUtils {
 	private static final QUOTE_TRIM_PATTERN = /^"(.*)"$/
 
-	public static boolean objectHasProperty(object, String property) {
-		return object.getClass().metaClass.getMetaProperty(property).asBoolean()
-	}
-
 	/**
 	 * Returns a list of maps containing the wiki parameters, with the id stored as id
 	 * and all other parameters as key/value pairs.<br><br>
@@ -21,7 +17,7 @@ public class NativeUtils {
 		def wikiLines = []
 		lines.each { String line ->
 			// Check for # for separation of wiki objects and check for escaped
-			if (!line || line.trim().isEmpty() || line =~ /^#/ || line =~ /^SC=/) {
+			if (!line || line.trim().isEmpty() || line =~ /^#/ || line =~ /(?i)^SC=/) {
 				// do nothing with empty commented (starting with #) or status (SC=0) lines
 			} else if (line.contains("#"))	// Catch hashed lines
 				wikiLines.addAll(line.replaceAll(/\\#/, '{HASH}').split("#").collect { it.replaceAll(/\{HASH\}/, "#") })
@@ -37,12 +33,12 @@ public class NativeUtils {
 			List attrs = (line =~ /(?:^|[ \t]+|\;)([^ \t;"']+(?:".*?"|'.*?'|))+/).collect { it[1] }
 			map.id = attrs.remove(0)
 			def lastKey = ""
-			attrs.each {
-				def pair = it.replaceAll(/\{SEMICOLON\}/, ';')
+			attrs.each { String attr ->
+				def pair = attr.replaceAll(/\{SEMICOLON\}/, ';')
 
 				// Check for generic metrics
-				if (it.startsWith("GMETRIC")) {
-					def match = pair =~ /GMETRIC\[(.*?)\]=(.*)/
+				if (attr.size() >= 7 && attr.substring(0, 7).equalsIgnoreCase("gmetric")) {
+					def match = pair =~ /(?i)gmetric\[(.*?)\]=(.*)/
 					def key = match[0][1]
 					def val = match[0][2]
 					if (!map.GMETRIC)
@@ -51,20 +47,9 @@ public class NativeUtils {
 					return
 				}
 
-				// Check for generic events
-				if (it.startsWith("GEVENT")) {
-					def match = pair =~ /GEVENT\[(.*?)\]=(.*)/
-					def key = match[0][1]
-					def val = match[0][2]
-					if (!map.GEVENT)
-						map.GEVENT = [:]
-					map.GEVENT[key] = val
-					return
-				}
-
 				// Check for variables
-				if (it.startsWith("VARIABLE")) {
-					def match = pair =~ /VARIABLE\=(.*?)(?:[=:](.*)|)$/
+				if (attr.size() >= 8 && attr.substring(0, 8).equalsIgnoreCase("variable")) {
+					def match = pair =~ /(?i)variable\=(.*?)(?:[=:](.*)|)$/
 					def key = match[0][1]
 					def val = match[0][2]
 					if (!map.VARIABLE)
@@ -79,7 +64,7 @@ public class NativeUtils {
 				def entry = pair.split('=', 2)	// Not sure why the limit is 2 here, really should be 1, but only succeeds with 2! (see unit tests)
 				//println entry
 				// Parse substate correctly (uses a semi-colon)
-				if (lastKey=="STATE" && entry.size()==1) {	// STATE=state:substate, append to last one
+				if (lastKey?.equalsIgnoreCase("state") && entry.size()==1) {	// STATE=state:substate, append to last one
 					map[lastKey] += ":${pair}"
 					return
 				}
@@ -89,7 +74,7 @@ public class NativeUtils {
 				}
 
 				// Handle messages correctly, adding to a list and removing quotes around them
-				if (entry[0]=="MESSAGE") {
+				if (entry[0]?.equalsIgnoreCase("message")) {
 					if (!map.MESSAGE)
 						map.MESSAGE = []
 					map.MESSAGE << trimQuotes(entry[1])

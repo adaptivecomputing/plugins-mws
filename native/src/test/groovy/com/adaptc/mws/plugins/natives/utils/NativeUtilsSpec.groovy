@@ -8,20 +8,6 @@ import spock.lang.Unroll
  */
 @Unroll
 class NativeUtilsSpec extends Specification {
-	def "Object #clazz.simpleName has property #property"() {
-		expect:
-		NativeUtils.objectHasProperty(clazz.newInstance(), property)==result
-
-		where:
-		clazz			| property		|| result
-		TestClass1		| "prop1"		|| true
-		TestClass1		| "prop2"		|| true
-		TestClass2		| "prop1"		|| false
-		TestClass2		| "prop2"		|| true
-		TestClass3		| "prop1"		|| false
-		TestClass3		| "prop2"		|| false
-	}
-
 	def testParseTypicalWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle;UPDATETIME=1039483"
@@ -537,17 +523,4 @@ class NativeUtilsSpec extends Specification {
 		wiki[0].id=="node1"
 		wiki[0].STATE=="Idle"
 	}
-}
-
-class TestClass1 {
-	String prop1
-	String prop2
-}
-
-class TestClass2 {
-	String prop2
-}
-
-class TestClass3 {
-
 }

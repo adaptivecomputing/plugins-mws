@@ -14,7 +14,6 @@ import spock.lang.Specification
  * @author bsaville
  */
 @TestFor(JobNativeTranslator)
-@TestMixin(PluginUnitTestMixin)
 class JobNativeTranslatorSpec extends Specification {
     def "Wiki translated to Job domain"() {
         given:
@@ -22,21 +21,43 @@ class JobNativeTranslatorSpec extends Specification {
         translator.genericNativeTranslator = genericNativeTranslator
 
         when:
-        def wiki = "moab.1 STATE=" + JobReportState.IDLE + ";ACCOUNT=account.1;" +
-                "ARGS=--version;COMMENT=comments;COMPLETETIME=5;ENDDATE=6;" +
-                "ERROR=/var/spool/moab.1.err;EXEC=" +
-                "/var/spool/moab.1.err;EXITCODE=1" +
-                ";FLAGS=" + JobReportFlag.SHAREDMEM +	"," + JobReportFlag.COALLOC +
-                ";GNAME=group.1;HOSTLIST=n01,n02;INPUT=/var/spool/moab.1.in;" +
-                "IWD=/home/bob/;NAME=\"bob's job\";NODES=2;OUTPUT=" +
-                "/var/spool/moab.1.out;" +
-                "PRIORITY=1000;QOS=qos.1;QUEUETIME=1;RARCH=arch1;RDISK=100;" +
-                "REQRSV=rsv.1;RMEM=2048;RNETWORK=eth0;ROPSYS=win2k8;RSWAP=100;" +
-                "STARTDATE=2;STARTTIME=3;" +
-                "PREF=FEAT1:FEAT2;RFEATURES=FEAT3:FEAT4;" +
-                "DGRES=dgres;ENV=env;" +
-                "SUSPENDTIME=100;TASKLIST=n03,n04;TASKS=2;TASKPERNODE=2;" +
-                "UNAME=sam;WCLIMIT=2000"
+        def wiki = "moab.1 StaTE=" + JobReportState.IDLE +
+				";ACcOUNT=account.1" +
+                ";ARgS=--version"+
+				";COmMENT=comments"+
+				";COmPLETETIME=5"+
+				";ENdDATE=6" +
+                ";ERrOR=/var/spool/moab.1.err"+
+				";EXeC=/var/spool/moab.1.err"+
+				";EXiTCODE=1" +
+                ";FLaGS=" + JobReportFlag.SHAREDMEM +	"," + JobReportFlag.COALLOC +
+                ";GNaME=group.1"+
+				";HOsTLIST=n01,n02"+
+				";InPUT=/var/spool/moab.1.in" +
+                ";IwD=/home/bob/"+
+				";NaME=\"bob's job\""+
+				";NOdES=2"+
+				";OUtPUT=/var/spool/moab.1.out" +
+                ";PRiORITY=1000"+
+				";QoS=qos.1"+
+				";QuEUETIME=1"+
+				";RaRCH=arch1"+
+				";RdISK=100" +
+                ";ReQRSV=rsv.1"+
+				";RmEM=2048"+
+				";RoPSYS=win2k8"+
+				";RsWAP=100" +
+                ";StARTDATE=2"+
+				";StARTTIME=3" +
+				";RfEATURES=FEAT3:FEAT4" +
+                ";DgRES=dgres"+
+				";EnV=env" +
+                ";SuSPENDTIME=100"+
+				";TaSKLIST=n03,n04"+
+				";TaSKS=2"+
+				";TaSKPERNODE=2" +
+                ";UnAME=sam"+
+				";WcLIMIT=2000"
         JobReport job = translator.createReport(NativeUtils.parseWiki([wiki]))
 
         then:

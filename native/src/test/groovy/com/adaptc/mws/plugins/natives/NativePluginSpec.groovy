@@ -17,8 +17,6 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineRMService = virtualMachineRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
-		IPluginEventService pluginEventService = Mock()
-		plugin.pluginEventService = pluginEventService
 		NativeImageTranslator nativeImageTranslator = Mock()
 		plugin.nativeImageTranslator = nativeImageTranslator
 
@@ -44,8 +42,6 @@ class NativePluginSpec extends Specification {
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
 		1 * jobRMService.save(jobs)
-		1 * nativeImageTranslator.getPluginEventService() >> null
-		1 * nativeImageTranslator.setPluginEventService(pluginEventService)
 		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
@@ -70,8 +66,6 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineRMService = virtualMachineRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
-		IPluginEventService pluginEventService = Mock()
-		plugin.pluginEventService = pluginEventService
 		NativeImageTranslator nativeImageTranslator = Mock()
 		plugin.nativeImageTranslator = nativeImageTranslator
 
@@ -89,8 +83,6 @@ class NativePluginSpec extends Specification {
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
 		1 * jobRMService.save([])
-		1 * nativeImageTranslator.getPluginEventService() >> null
-		1 * nativeImageTranslator.setPluginEventService(pluginEventService)
 		1 * nativeImageTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 

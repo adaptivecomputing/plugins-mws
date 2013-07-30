@@ -15,21 +15,21 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		long time = 12348473
 		
 		when:
-		def wiki = "vm1 STATE=${NodeReportState.IDLE}" +
-				";UPDATETIME=${(time).toLong()}"+
-				";POWER=${NodeReportPower.STANDBY}"+
-				";CONTAINERNODE=node1"+
-				";CPROC=4"+
-				";APROC=2"+
-				";ASWAP=256"+
-				";CSWAP=512"+
-				";CMEMORY=1024"+
-				";AMEMORY=256"+
-				";CDISK=1000"+
-				";ADISK=512"+
-				";CPULOAD=1.2"+
-				";OS=linux"+
-				";OSLIST=linux,windows"
+		def wiki = "vm1 StaTE=${NodeReportState.IDLE}" +
+				";UPdaTETIME=${(time).toLong()}"+
+				";PowER=${NodeReportPower.STANDBY}"+
+				";CONtaINERNODE=node1"+
+				";CPrOC=4"+
+				";APrOC=2"+
+				";ASwAP=256"+
+				";CSwAP=512"+
+				";CMeMORY=1024"+
+				";AMeMORY=256"+
+				";CDiSK=1000"+
+				";ADiSK=512"+
+				";CPuLOAD=1.2"+
+				";Os=linux"+
+				";OsLIST=linux,windows"
 		def imageInfo = new VMImageInfo()
 		VirtualMachineReport virtualMachine = translator.createReport(NativeUtils.parseWiki([wiki])[0], imageInfo)
 		
