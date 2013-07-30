@@ -7,13 +7,14 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 
 import com.adaptc.mws.plugins.testing.*
 
-import spock.lang.Specification
+import spock.lang.*
 
 /**
  * 
  * @author bsaville
  */
 @TestFor(JobNativeTranslator)
+@Unroll
 class JobNativeTranslatorSpec extends Specification {
     def "Wiki translated to Job domain"() {
         given:
@@ -127,4 +128,24 @@ class JobNativeTranslatorSpec extends Specification {
         job.requirements.features[0]=="FEAT3"
         job.requirements.features[1]=="FEAT4"
     }
+
+	def "Lower-case names is #lowerCase (#id converted to #name)"() {
+		given:
+		translator.lowerCaseNames = lowerCase
+
+		expect:
+		translator.createReport([id:id]).name==name
+
+		cleanup:
+		translator.lowerCaseNames = true
+
+		where:
+		lowerCase	| id		|| name
+		true		| "ID"		|| "id"
+		true		| "id"		|| "id"
+		true		| "iD"		|| "id"
+		false		| "ID"		|| "ID"
+		false		| "id"		|| "id"
+		false		| "iD"		|| "iD"
+	}
 }

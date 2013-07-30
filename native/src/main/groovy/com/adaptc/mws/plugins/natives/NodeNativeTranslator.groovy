@@ -10,8 +10,14 @@ class NodeNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 	IPluginEventService pluginEventService
 
+	boolean lowerCaseNames = true
+
 	public NodeReport createReport(Map attrs, HVImageInfo imageInfo) {
-		NodeReport node = new NodeReport(attrs.remove("id"))
+		def id = attrs.remove("id")
+		NodeReport node = new NodeReport(id)
+		// Manually set name field to make sure it is not lower-cased
+		if (!lowerCaseNames)
+			node.@name = id
 
 		attrs.each { String key, value ->
 			def field = NodeNativeField.parseWikiAttribute(key)

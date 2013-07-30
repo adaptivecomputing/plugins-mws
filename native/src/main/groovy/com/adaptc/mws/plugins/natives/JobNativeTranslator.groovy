@@ -10,8 +10,14 @@ class JobNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 	IPluginEventService pluginEventService
 
+	boolean lowerCaseNames = true
+
 	JobReport createReport(Map attrs, boolean submit = false) {
-		JobReport job = new JobReport(attrs.remove("id"))
+		def id = attrs.remove("id")
+		JobReport job = new JobReport(id)
+		// Manually set name field to make sure it is not lower-cased
+		if (!lowerCaseNames)
+			job.@name = id
 
 		attrs.each { String key, value ->
 			def field = JobNativeField.parseWikiAttribute(key)

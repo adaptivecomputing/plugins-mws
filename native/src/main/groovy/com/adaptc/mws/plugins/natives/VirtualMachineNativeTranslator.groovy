@@ -10,8 +10,14 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class VirtualMachineNativeTranslator {
 	IPluginEventService pluginEventService
 
+	boolean lowerCaseNames = true
+
 	public VirtualMachineReport createReport(Map attrs, VMImageInfo imageInfo) {
-		VirtualMachineReport vm = new VirtualMachineReport(attrs.remove("id"))
+		def id = attrs.remove("id")
+		VirtualMachineReport vm = new VirtualMachineReport(id)
+		// Manually set name field to make sure it is not lower-cased
+		if (!lowerCaseNames)
+			vm.@name = id
 
 		attrs.each { String key, value ->
 			def field = VMNativeField.parseWikiAttribute(key)

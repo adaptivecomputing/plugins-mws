@@ -185,4 +185,24 @@ class NodeNativeTranslatorSpec extends Specification {
 		"MIGRATIONDISABLED=0"		| ";VARATTR=allowvmmigrations"		|| 0				| false
 		"MIGRATIONDISABLED="		| ";VARATTR=allowvmmigrations"		|| 0				| false
 	}
+
+	def "Lower-case names is #lowerCase (#id converted to #name)"() {
+		given:
+		translator.lowerCaseNames = lowerCase
+
+		expect:
+		translator.createReport([id:id], new HVImageInfo()).name==name
+
+		cleanup:
+		translator.lowerCaseNames = true
+
+		where:
+		lowerCase	| id		|| name
+		true		| "ID"		|| "id"
+		true		| "id"		|| "id"
+		true		| "iD"		|| "id"
+		false		| "ID"		|| "ID"
+		false		| "id"		|| "id"
+		false		| "iD"		|| "iD"
+	}
 }

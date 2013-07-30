@@ -3,12 +3,13 @@ package com.adaptc.mws.plugins.natives
 import com.adaptc.mws.plugins.*
 import com.adaptc.mws.plugins.natives.utils.NativeUtils
 import com.adaptc.mws.plugins.testing.*
-import spock.lang.Specification
+import spock.lang.*
 
 import static com.adaptc.mws.plugins.PluginConstants.*
 
 @TestFor(VirtualMachineNativeTranslator)
 @TestMixin(PluginUnitTestMixin)
+@Unroll
 class VirtualMachineNativeTranslatorSpec extends Specification {
 	def "Wiki to domain"() {
 		given:
@@ -78,5 +79,25 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		"MIGRATIONDISABLED=1"			|| true
 		"MIGRATIONDISABLED=0"			|| false
 		"MIGRATIONDISABLED="			|| false
+	}
+
+	def "Lower-case names is #lowerCase (#id converted to #name)"() {
+		given:
+		translator.lowerCaseNames = lowerCase
+
+		expect:
+		translator.createReport([id:id], new VMImageInfo()).name==name
+
+		cleanup:
+		translator.lowerCaseNames = true
+
+		where:
+		lowerCase	| id		|| name
+		true		| "ID"		|| "id"
+		true		| "id"		|| "id"
+		true		| "iD"		|| "id"
+		false		| "ID"		|| "ID"
+		false		| "id"		|| "id"
+		false		| "iD"		|| "iD"
 	}
 }

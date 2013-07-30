@@ -29,6 +29,7 @@ class NativePlugin extends AbstractPlugin {
 		startUrl required: false, scriptableUrl: true
 		stopUrl required: false, scriptableUrl: true
 		reportImages defaultValue: true
+		lowerCaseNames defaultValue: true
 	}
 
 	JobNativeTranslator jobNativeTranslator
@@ -47,9 +48,13 @@ class NativePlugin extends AbstractPlugin {
 	}
 
 	public void configure() throws InvalidPluginConfigurationException {
+		def lowerCaseNames = config.lowerCaseNames
 		nodeNativeTranslator.pluginEventService = pluginEventService
+		nodeNativeTranslator.lowerCaseNames = lowerCaseNames
 		virtualMachineNativeTranslator.pluginEventService = pluginEventService
+		virtualMachineNativeTranslator.lowerCaseNames = lowerCaseNames
 		jobNativeTranslator.pluginEventService = pluginEventService
+		jobNativeTranslator.lowerCaseNames = lowerCaseNames
 		nativeImageTranslator.pluginEventService = pluginEventService
 	}
 
