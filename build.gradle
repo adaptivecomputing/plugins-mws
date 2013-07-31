@@ -38,6 +38,23 @@ subprojects { proj ->
 		resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
 	}
 
+	// Replace version snapshot with order number
+	if (proj.version.contains("-SNAPSHOT"))
+		proj.version = proj.version.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
+	jar.doFirst {
+		if (proj.version.contains("-SNAPSHOT")) {
+			File projectFile = moabSdk.pluginProject.projectFile
+			projectFile.write(projectFile.text.readLines().collect {
+				if (it.contains("version") && it.contains("-SNAPSHOT"))
+					return it.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
+				return it
+			}.join("\n"))
+
+			// Do this again just to make sure
+			proj.version = proj.version.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
+		}
+	}
+
 	/*
 	 * Deployment and JAR files
 	 */
