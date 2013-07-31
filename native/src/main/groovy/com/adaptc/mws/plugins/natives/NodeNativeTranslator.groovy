@@ -30,6 +30,9 @@ class NodeNativeTranslator {
 						node.state = NodeReportState.parse(value)
 					}
 					break
+				case NodeNativeField.SLAVE:
+					node.slaveReport = value?.toBoolean() ?: false
+					break
 				case NodeNativeField.UPDATE_TIME:
 					node.timestamp = NativeDateUtils.secondsToDate(value)
 					break
@@ -184,6 +187,7 @@ class NodeNativeTranslator {
 
 enum NodeNativeField {
 	STATE("state"),
+	SLAVE("slave"),
 	UPDATE_TIME("updatetime"),
 	PROCESSORS_CONFIGURED("cproc"),
 	PROCESSORS_AVAILABLE("aproc"),

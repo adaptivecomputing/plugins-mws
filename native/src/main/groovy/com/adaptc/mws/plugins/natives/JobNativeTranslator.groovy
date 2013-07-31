@@ -21,6 +21,9 @@ class JobNativeTranslator {
 		attrs.each { String key, value ->
 			def field = JobNativeField.parseWikiAttribute(key)
 			switch (field) {
+				case JobNativeField.SLAVE:
+					job.slaveReport = value?.toBoolean() ?: false
+					break
 				case JobNativeField.ACCOUNT:
 					job.account = value
 					break
@@ -105,7 +108,7 @@ class JobNativeTranslator {
 					job.requirements.resourcesPerTask[RESOURCE_MEMORY] = getResource(NativeNumberUtils.parseInteger(value))
 					break
 				case JobNativeField.REQUIRED_OS:
-					job.image = value
+					job.requirements.image = value
 					break
 				case JobNativeField.REQUIRED_SWAP:
 					job.requirements.resourcesPerTask[RESOURCE_SWAP] = getResource(NativeNumberUtils.parseInteger(value))
@@ -161,6 +164,7 @@ class JobNativeTranslator {
 
 enum JobNativeField {
 	STATE("state"),
+	SLAVE("slave"),
 	ACCOUNT("account"),
 	ARGUMENTS("args"),
 	COMMENT("comment"),

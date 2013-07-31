@@ -92,7 +92,6 @@ class JobNativeTranslatorSpec extends Specification {
         job.submitDate == new Date(1000);
         job.standardOutputFilePath == "/var/spool/moab.1.out"
         job.reservationRequested == "rsv.1"
-        job.image == "win2k8"
         job.earliestStartDate == new Date(2000)
         job.startDate == new Date(3000)
         job.durationSuspended == 100
@@ -106,6 +105,7 @@ class JobNativeTranslatorSpec extends Specification {
         job.requirements?.size()==1
 
         then:
+		job.requirements.image == "win2k8"
 		job.requirements.nodes?.size()==2
 		job.requirements.nodes[0]=="n03"
 		job.requirements.nodes[1]=="n04"
@@ -163,5 +163,24 @@ class JobNativeTranslatorSpec extends Specification {
 		false		| "ID"		|| "ID"
 		false		| "id"		|| "id"
 		false		| "iD"		|| "iD"
+	}
+
+	def "Slave flag"() {
+		when:
+		def wiki = "job1 "+slaveWiki
+		JobReport job = translator.createReport(null, NativeUtils.parseWiki([wiki])[0])
+
+		then:
+		job?.name=="job1"
+		job.slaveReport==result
+
+		where:
+		slaveWiki			|| result
+		""					|| false
+		"SLAVE=true"		|| true
+		"SLAVE=false"		|| false
+		"SLAVE=1"			|| true
+		"SLAVE=0"			|| false
+		"SLAVE="			|| false
 	}
 }

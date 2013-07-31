@@ -245,4 +245,23 @@ class NodeNativeTranslatorSpec extends Specification {
 				"nodeNativeTranslator.vmImageNames.without.image", {it.type=="Node" && it.id=="node1"}, null)
 		0 * _._
 	}
+
+	def "Slave flag"() {
+		when:
+		def wiki = "node1 "+slaveWiki
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
+
+		then:
+		node?.name=="node1"
+		node.slaveReport==result
+
+		where:
+		slaveWiki			|| result
+		""					|| false
+		"SLAVE=true"		|| true
+		"SLAVE=false"		|| false
+		"SLAVE=1"			|| true
+		"SLAVE=0"			|| false
+		"SLAVE="			|| false
+	}
 }

@@ -116,4 +116,23 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		false		| "id"		|| "id"
 		false		| "iD"		|| "iD"
 	}
+
+	def "Slave flag"() {
+		when:
+		def wiki = "vm1 "+slaveWiki
+		VirtualMachineReport virtualMachine = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new VMImageInfo())
+
+		then:
+		virtualMachine?.name=="vm1"
+		virtualMachine.slaveReport==result
+
+		where:
+		slaveWiki			|| result
+		""					|| false
+		"SLAVE=true"		|| true
+		"SLAVE=false"		|| false
+		"SLAVE=1"			|| true
+		"SLAVE=0"			|| false
+		"SLAVE="			|| false
+	}
 }

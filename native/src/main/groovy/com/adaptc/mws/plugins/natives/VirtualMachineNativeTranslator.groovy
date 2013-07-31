@@ -23,6 +23,9 @@ class VirtualMachineNativeTranslator {
 				case VMNativeField.STATE:
 					vm.state = NodeReportState.parse(value)
 					break
+				case VMNativeField.SLAVE:
+					vm.slaveReport = value?.toBoolean() ?: false
+					break
 				case VMNativeField.POWER:
 					vm.power = NodeReportPower.parse(value)
 					break
@@ -96,6 +99,7 @@ class VirtualMachineNativeTranslator {
 
 enum VMNativeField {
 	STATE("state"),
+	SLAVE("slave"),
 	POWER("power"),
 	UPDATE_TIME("updatetime"),
 	CONTAINER_NODE("containernode"),
