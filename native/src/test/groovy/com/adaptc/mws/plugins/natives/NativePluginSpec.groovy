@@ -745,4 +745,36 @@ class NativePluginSpec extends Specification {
 		"one=val"				|| 1				| [one:"val"]
 		"one=val&two&three=3"	|| 1				| [one:"val",two:null,three:"3"]
 	}
+
+	def "Configure for #configuration"() {
+		given:
+		IPluginEventService pluginEventService = Mock()
+		plugin.pluginEventService = pluginEventService
+		ImageNativeTranslator imageNativeTranslator = Mock()
+		plugin.imageNativeTranslator = imageNativeTranslator
+		NodeNativeTranslator nodeNativeTranslator = Mock()
+		plugin.nodeNativeTranslator = nodeNativeTranslator
+		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
+		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
+		JobNativeTranslator jobNativeTranslator = Mock()
+		plugin.jobNativeTranslator = jobNativeTranslator
+
+		when:
+		config = configuration
+		plugin.configure()
+
+		then:
+		1 * imageNativeTranslator.setPluginEventService(pluginEventService)
+		1 * nodeNativeTranslator.setLowerCaseNames(lowerCase)
+		1 * virtualMachineNativeTranslator.setLowerCaseNames(lowerCase)
+		1 * jobNativeTranslator.setLowerCaseNames(lowerCase)
+		0 * _._
+
+		where:
+		configuration				|| lowerCase
+		[:]							|| true
+		[lowerCaseNames:null]		|| true
+		[lowerCaseNames:false]		|| false
+		[lowerCaseNames:true]		|| true
+	}
 }

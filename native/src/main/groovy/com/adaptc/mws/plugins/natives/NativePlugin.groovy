@@ -49,6 +49,8 @@ class NativePlugin extends AbstractPlugin {
 
 	public void configure() throws InvalidPluginConfigurationException {
 		def lowerCaseNames = config.lowerCaseNames
+		if (lowerCaseNames==null)
+			lowerCaseNames = true
 		nodeNativeTranslator.lowerCaseNames = lowerCaseNames
 		virtualMachineNativeTranslator.lowerCaseNames = lowerCaseNames
 		jobNativeTranslator.lowerCaseNames = lowerCaseNames
