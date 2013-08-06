@@ -44,11 +44,11 @@ subprojects { proj ->
 	jar.doFirst {
 		if (proj.version.contains("-SNAPSHOT")) {
 			File projectFile = moabSdk.pluginProject.projectFile
-			projectFile.write(projectFile.text.readLines().collect {
+			projectFile.write(projectFile.getText("UTF-8").readLines().collect {
 				if (it.contains("version") && it.contains("-SNAPSHOT"))
-					return it.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
-				return it
-			}.join("\n"))
+					return it.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size())) + "\n"
+				return it + "\n"
+			}.join())
 
 			// Do this again just to make sure
 			proj.version = proj.version.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
