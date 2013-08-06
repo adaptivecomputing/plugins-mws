@@ -7,8 +7,7 @@ class ReportsProject {
 
 	// Versioning properties
 	String version = "1.5-SNAPSHOT"
-	String mwsVersion = "7.3 > *"
-	String commonsVersion = "0.9.4 > *"
+	String commonsVersion = "1.1.0 > *"
 	String license = "APACHE"
 	
 	// Documentation properties

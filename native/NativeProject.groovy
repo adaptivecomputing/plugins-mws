@@ -9,7 +9,7 @@ class NativeProject {
 
 	// Versioning properties
 	String version = "1.7-SNAPSHOT"
-	String mwsVersion = "JARVIK > *"
+	String commonsVersion = "1.1.0 > *"
 	String license = "APACHE"
 	
 	// Documentation properties
