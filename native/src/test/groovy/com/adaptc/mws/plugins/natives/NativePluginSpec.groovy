@@ -236,18 +236,20 @@ class NativePluginSpec extends Specification {
 		then:
 		vmReports * virtualMachineNativeTranslator.createReport(pluginEventService, _ as Map, _ as VMImageInfo) >> vm
 		nodeReports * nodeNativeTranslator.createReport(pluginEventService, _ as Map, _ as HVImageInfo) >> node
+		_ * virtualMachineNativeTranslator.isVirtualMachineWiki(_ as Map) >>> isVMList
+		0 * _._
 		result.size() == resultSize
 		imagesInfo.hypervisorImages.size()==nodeReports
 		imagesInfo.vmImages.size()==vmReports
 
 		where:
-		pluginConfig              | readURLResult                    | hasError | parseWikiResult        	| vmReports	| nodeReports	| resultSize
-		[:]                       | null                             | true     | null                   	| 0	        | 0				| 0
-		[getCluster: "file:///c"] | [exitCode: 128]                  | true     | [null]                 	| 0			| 0				| 0
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[wiki: true]]         	| 0			| 1				| 1
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[CONTAINERNODE: "vm1"]] 	| 1			| 0				| 1
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE: "vM"]]           	| 1			| 0				| 1
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"vM"],[wiki:true]]	| 1			| 1				| 2
+		pluginConfig              | readURLResult                    | hasError | parseWikiResult        	| isVMList		| vmReports	| nodeReports	| resultSize
+		[:]                       | null                             | true     | null                   	| [false]		| 0	        | 0				| 0
+		[getCluster: "file:///c"] | [exitCode: 128]                  | true     | [null]                 	| [false]		| 0			| 0				| 0
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[wiki: true]]         	| [false]		| 0			| 1				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[CONTAINERNODE: "vm1"]] 	| [true]		| 1			| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE: "vM"]]           	| [true]		| 1			| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"vM"],[wiki:true]]	| [true,false]	| 1			| 1				| 2
 	}
 
 	def "Get jobs"() {
@@ -776,5 +778,59 @@ class NativePluginSpec extends Specification {
 		[lowerCaseNames:null]		|| true
 		[lowerCaseNames:false]		|| false
 		[lowerCaseNames:true]		|| true
+	}
+
+	def "Verify queries failures for #params"() {
+		when:
+		plugin.verifyClusterQuery(params)
+
+		then:
+		WebServiceException e = thrown()
+		e.responseCode==400
+		e.messages.size()==1
+		e.messages[0]=="nativePlugin.verify.wiki.empty.message"
+
+		when:
+		plugin.verifyWorkloadQuery(params)
+
+		then:
+		e = thrown()
+		e.responseCode==400
+		e.messages.size()==1
+		e.messages[0]=="nativePlugin.verify.wiki.empty.message"
+
+		where:
+		params << [
+				[:],
+				[body:null],
+				[body:[:]],
+				[body:[content:null]],
+				[body:[content:""]],
+				[wiki:null],
+				[wiki:""],
+		]
+	}
+
+	def "Verify queries success"() {
+		given:
+		DebugNativeTranslator debugNativeTranslator = Mock()
+		plugin.debugNativeTranslator = debugNativeTranslator
+		plugin.id = "plugin1"
+
+		when:
+		def result = plugin.verifyClusterQuery([wiki:"wikiLines"])
+
+		then:
+		1 * debugNativeTranslator.verifyClusterWiki("wikiLines", "plugin1") >> [test:true]
+		0 * _._
+		result==[test:true]
+
+		when:
+		result = plugin.verifyWorkloadQuery([wiki:"wikiLines"])
+
+		then:
+		1 * debugNativeTranslator.verifyWorkloadWiki("wikiLines", "plugin1") >> [test:true]
+		0 * _._
+		result==[test:true]
 	}
 }

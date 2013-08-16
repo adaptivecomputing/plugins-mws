@@ -14,17 +14,7 @@ public class NativeUtils {
 	 * @return
 	 */
 	public static List<Map> parseWiki(lines) {
-		def wikiLines = []
-		lines.each { String line ->
-			// Check for # for separation of wiki objects and check for escaped
-			if (!line || line.trim().isEmpty() || line =~ /^#/ || line =~ /(?i)^SC=/) {
-				// do nothing with empty commented (starting with #) or status (SC=0) lines
-			} else if (line.contains("#"))	// Catch hashed lines
-				wikiLines.addAll(line.replaceAll(/\\#/, '{HASH}').split("#").collect { it.replaceAll(/\{HASH\}/, "#") })
-			else
-				wikiLines.add(line)
-		}
-		return wikiLines.collect { String line ->
+		return filterLines(lines).collect { String line ->
 			// Replace escaped characters
 			line = line.replaceAll(/\\;/, '{SEMICOLON}')
 
@@ -85,6 +75,19 @@ public class NativeUtils {
 				map.put(entry[0], trimQuotes(entry[1]))
 			}
 			map
+		}
+	}
+
+	public static List<String> filterLines(lines) {
+		return lines.inject([]) { List list, String line ->
+			// Check for # for separation of wiki objects and check for escaped
+			if (!line || line.trim().isEmpty() || line =~ /^#/ || line =~ /(?i)^SC=/) {
+				// do nothing with empty commented (starting with #) or status (SC=0) lines
+			} else if (line.contains("#"))	// Catch hashed lines
+				list.addAll(line.replaceAll(/\\#/, '{HASH}').split("#").collect { it.replaceAll(/\{HASH\}/, "#") })
+			else
+				list << line
+			return list
 		}
 	}
 

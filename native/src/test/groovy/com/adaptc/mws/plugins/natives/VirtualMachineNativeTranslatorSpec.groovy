@@ -29,6 +29,7 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 				";CDiSK=1000"+
 				";ADiSK=512"+
 				";CPuLOAD=1.2"+
+				";Type=vm"+	// Ignored
 				";Os=linux"+
 				";OsLIST=linux,windows"
 		def imageInfo = new VMImageInfo()
@@ -134,5 +135,20 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		"SLAVE=1"			|| true
 		"SLAVE=0"			|| false
 		"SLAVE="			|| false
+	}
+
+	def "Is virtual machine wiki: #attrs is #result"() {
+		expect:
+		translator.isVirtualMachineWiki(attrs)==result
+
+		where:
+		attrs								|| result
+		null								|| false
+		[:]									|| false
+		[type:"node"]						|| false
+		[type:"vm"]							|| true
+		[tYpE:"vM"]							|| true
+		[containerNoDe:"node1"]				|| true
+		[type:"node",containernode:"node1"]	|| false
 	}
 }

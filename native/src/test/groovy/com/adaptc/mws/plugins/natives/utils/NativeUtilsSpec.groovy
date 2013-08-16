@@ -8,6 +8,25 @@ import spock.lang.Unroll
  */
 @Unroll
 class NativeUtilsSpec extends Specification {
+	def "Filter lines"() {
+		when:
+		def wikiStr = "SC=0 Ignore this\n# Ignore this too\nnode1 donotignore=true"
+		def wiki = NativeUtils.filterLines(wikiStr.readLines())
+
+		then:
+		wiki.size()==1
+		wiki[0]=="node1 donotignore=true"
+
+		when:
+		wiki = NativeUtils.parseWiki(wikiStr.readLines())
+
+		then:
+		wiki.size()==1
+		wiki[0].size()==2
+		wiki[0].id=="node1"
+		wiki[0].donotignore=="true"
+	}
+
 	def testParseTypicalWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle;UPDATETIME=1039483"

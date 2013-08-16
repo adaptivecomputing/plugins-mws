@@ -80,6 +80,9 @@ class VirtualMachineNativeTranslator {
 				case VMNativeField.VARIABLES:
 					vm.variables = value ?: [:]
 					break
+				case VMNativeField.TYPE:
+					// Do nothing, this is purely to differentiate between types of objects
+					break
 				default:
 					def message = message(code:"virtualMachineNativeTranslator.invalid.attribute", args:[vm.name, key, value])
 					log.warn(message)
@@ -94,6 +97,13 @@ class VirtualMachineNativeTranslator {
 		imageInfo.name = vm.image
 
 		return vm
+	}
+
+	boolean isVirtualMachineWiki(Map attrs) {
+		def typeAttr = attrs.find { it.key.equalsIgnoreCase(VMNativeField.TYPE.wikiKey) }
+		if (typeAttr?.value)
+			return typeAttr.value.equalsIgnoreCase("VM")
+		return attrs.find { it.key.equalsIgnoreCase(VMNativeField.CONTAINER_NODE.wikiKey) } // Only VMs have CONTAINERNODE
 	}
 }
 
@@ -116,6 +126,7 @@ enum VMNativeField {
 	OS("os"),
 	OS_LIST("oslist"),
 	CPU_LOAD("cpuload"),
+	TYPE("type"),
 	VARIABLES("variable"),
 	MIGRATION_DISABLED("migrationdisabled")
 

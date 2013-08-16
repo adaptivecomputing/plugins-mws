@@ -33,9 +33,7 @@ URL | http://domain.com/nodes | \- | Executes a web call using the defined URL
 
 # Exposed Web Services
 
-Method | Parameters | Parameter Type | Description
------- | ---------- | -------------- | -----------
-None | | | |
+<div class="webservice-sections">This section will be replaced by MWS with the exposed web service sections</div>
 
 # Initially Created Plugins
 

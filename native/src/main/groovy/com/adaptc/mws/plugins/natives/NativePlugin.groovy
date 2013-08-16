@@ -40,6 +40,7 @@ class NativePlugin extends AbstractPlugin {
 	IVirtualMachineRMService virtualMachineRMService
 	ImageNativeTranslator imageNativeTranslator
 	IPluginEventService pluginEventService
+	DebugNativeTranslator debugNativeTranslator
 
 	private def getConfigKey(String key) {
 		if (config.containsKey(key))
@@ -55,6 +56,20 @@ class NativePlugin extends AbstractPlugin {
 		virtualMachineNativeTranslator.lowerCaseNames = lowerCaseNames
 		jobNativeTranslator.lowerCaseNames = lowerCaseNames
 		imageNativeTranslator.pluginEventService = pluginEventService
+	}
+
+	public def verifyClusterQuery(Map params) {
+		def wiki = params.body?.content ?: params.wiki
+		if (!wiki)
+			throw new WebServiceException(message(code:"nativePlugin.verify.wiki.empty.message"), 400)
+		return debugNativeTranslator.verifyClusterWiki(wiki, id)
+	}
+
+	public def verifyWorkloadQuery(Map params) {
+		def wiki = params.body?.content ?: params.wiki
+		if (!wiki)
+			throw new WebServiceException(message(code:"nativePlugin.verify.wiki.empty.message"), 400)
+		return debugNativeTranslator.verifyWorkloadWiki(wiki, id)
 	}
 
 	/**
@@ -152,7 +167,7 @@ class NativePlugin extends AbstractPlugin {
 		def result = readURL(url)
 		if (!hasError(result, true)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				if (attrs.TYPE?.equalsIgnoreCase("VM") || attrs.CONTAINERNODE) { // Only VMs have CONTAINERNODE
+				if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs)) {
 					def imageInfo = new VMImageInfo()
 					aggregateImagesInfo.vmImages << imageInfo
 					return virtualMachineNativeTranslator.createReport(pluginEventService, attrs, imageInfo)

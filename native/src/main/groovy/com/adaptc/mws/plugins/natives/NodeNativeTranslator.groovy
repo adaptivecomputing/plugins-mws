@@ -133,6 +133,9 @@ class NodeNativeTranslator {
 				case NodeNativeField.VM_OS_LIST:
 					value?.split(",")?.each { imageInfo.vmImageNames << it }
 					break
+				case NodeNativeField.TYPE:
+					// Do nothing, this is purely to differentiate between types of objects
+					break
 				default:
 					def message = message(code:"nodeNativeTranslator.invalid.attribute", args:[node.name, key, value])
 					log.warn(message)
@@ -210,6 +213,7 @@ enum NodeNativeField {
 	PARTITION("partition"),
 	POWER("power"),
 	SPEED("speed"),
+	TYPE("type"),
 	VARIABLES("variable"),
 	ATTRIBUTES("varattr"),
 	MIGRATION_DISABLED("migrationdisabled"),

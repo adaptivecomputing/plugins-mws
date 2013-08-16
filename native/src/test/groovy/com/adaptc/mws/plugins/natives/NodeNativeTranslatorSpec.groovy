@@ -42,6 +42,7 @@ class NodeNativeTranslatorSpec extends Specification {
 				";CpULOAD=1.2"+
 				";MeSSAGE=message1"+
 				';MeSSAGE="message 2"'+
+				";Type=node"+	// Ignored
 				";Os=linux"+
 				";VmOSLIST=cent5,cent6"+
                 ";OsLIST=linux,windows"+
