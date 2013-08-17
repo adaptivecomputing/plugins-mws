@@ -76,6 +76,9 @@ class NodeNativeTranslator {
 				case NodeNativeField.CPU_LOAD:
 					node.metrics.cpuLoad = NativeNumberUtils.parseDouble(value)
 					break
+				case NodeNativeField.HYPERVISOR_TYPE:
+					imageInfo.hypervisorType = value
+					break
 				case NodeNativeField.FEATURES:
 					value?.split(":")?.each { node.features << it }
 					break
@@ -204,6 +207,7 @@ enum NodeNativeField {
 	GENERIC_RESOURCES_CONFIGURED("cres"),
 	GENERIC_RESOURCES_AVAILABLE("ares"),
 	CPU_LOAD("cpuload"),
+	HYPERVISOR_TYPE("hvtype"),
 	FEATURES("feature"),
 	GENERIC_METRICS("gmetric"),
 	MESSAGES("message"),

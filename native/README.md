@@ -48,8 +48,13 @@ Manager through its Resource Manager interface as explained in the Plugin Introd
 
 # Native Wiki Interface Comparison
 
-Most of the Native Plugin's functionality is copied from the Native Wiki interface in Moab.  The following is a table comparing the two interfaces,
-the Moab Native URL vs the plugin equivalent configuration entry, and can be used to port Native Wiki scripts to the Native Plugin.
+Most of the Native Plugin's functionality is copied from the Native Wiki interface in Moab.  However, there are differences
+in both the URL configuration and the Wiki attributes themselves.
+
+## URL Configuration
+
+The following is a table comparing the Moab Native URL and the plugin equivalent configuration entry.  This may be
+used to port Native Wiki scripts to the Native Plugin.
 
 Plugin URL | Plugin Config | Notes
 ---------- | ------------- | -----
@@ -81,6 +86,22 @@ RSVCTLURL | \- | Deprecated
 SYSTEMMODIFYURL | \- | Deprecated
 SYSTEMQUERYURL | \- | Deprecated
 WORKLOADQUERYURL | getJobs | |
+
+## Additional Wiki Attributes
+
+While most of the Wiki attributes have remained the same, there are additional Wiki attributes that have been added
+in the Native plugin.  The table below lists these attributes, for which objects they are available, and possible values.
+
+Object | Wiki Attribute | Format | Default | Description
+------ | -------------- | ------ | ------- | -----------
+Nodes | SLAVE | true\|false | false | Support for the MWS plugin slave reports, see the MWS documentation for more details.
+Nodes | MIGRATION_DISABLED | true\|false | false | If true, the node will be added to the migration exclusion automatically by Moab.
+Nodes | TYPE | Node\|VM | \- | Used in a cluster query to determine if the object is a node, VM, etc instead of relying just on the CONTAINERNODE attribute.
+Nodes | HVTYPE | String | \- | Equivalent to using VARATTR=HVTYPE, this adds support for specifying the hypervisor type in the main list of attributes.
+Virtual Machines | SLAVE | true\|false | false | Support for the MWS plugin slave reports, see the MWS documentation for more details.
+Virtual Machines | MIGRATION_DISABLED | true\|false | false | If true, the VM will be added to the migration exclusion automatically by Moab.
+Virtual Machines | TYPE | Node\|VM | \- | Used in a cluster query to determine if the object is a node, VM, etc instead of relying just on the CONTAINERNODE attribute.
+Jobs | SLAVE | true\|false | false | Support for the MWS plugin slave reports, see the MWS documentation for more details.
 
 # Calling URLs
 
