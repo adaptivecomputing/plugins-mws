@@ -2,6 +2,7 @@ package com.adaptc.mws.plugins.natives
 
 import com.adaptc.mws.plugins.JobReport
 import com.adaptc.mws.plugins.NodeReport
+import com.adaptc.mws.plugins.StorageReport
 import com.adaptc.mws.plugins.VirtualMachineReport
 import com.adaptc.mws.plugins.testing.TestFor
 import spock.lang.Specification
@@ -14,11 +15,14 @@ class DebugNativeTranslatorSpec extends Specification {
 		given:
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		translator.nodeNativeTranslator = nodeNativeTranslator
+		StorageNativeTranslator storageNativeTranslator = Mock()
+		translator.storageNativeTranslator = storageNativeTranslator
 		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
 		translator.virtualMachineNativeTranslator = virtualMachineNativeTranslator
 		DebugNativeTranslator.DebugEventService debugEventService = Mock()
 		NodeReport nodeReport = Mock()
 		VirtualMachineReport virtualMachineReport = Mock()
+		StorageReport storageReport = Mock()
 
 		and:
 		translator.metaClass.verifyWiki = { wiki, String id, Closure callTranslator ->
@@ -27,6 +31,7 @@ class DebugNativeTranslatorSpec extends Specification {
 			assert callTranslator
 			assert callTranslator.call(debugEventService, [testNode:true], [:])==nodeReport
 			assert callTranslator.call(debugEventService, [testVM:true], [:])==virtualMachineReport
+			assert callTranslator.call(debugEventService, [testStorage:true], [:])==storageReport
 			return [result:true]
 		}
 
@@ -36,8 +41,12 @@ class DebugNativeTranslatorSpec extends Specification {
 		then:
 		1 * virtualMachineNativeTranslator.isVirtualMachineWiki([testNode:true]) >> false
 		1 * virtualMachineNativeTranslator.isVirtualMachineWiki([testVM:true]) >> true
+		1 * virtualMachineNativeTranslator.isVirtualMachineWiki([testStorage:true]) >> false
+		1 * storageNativeTranslator.isStorageWiki([testNode:true]) >> false
+		1 * storageNativeTranslator.isStorageWiki([testStorage:true]) >> true
 		1 * virtualMachineNativeTranslator.createReport(debugEventService, [testVM:true], _ as VMImageInfo) >> virtualMachineReport
 		1 * nodeNativeTranslator.createReport(debugEventService, [testNode:true], _ as HVImageInfo) >> nodeReport
+		1 * storageNativeTranslator.createReport(debugEventService, [testStorage:true]) >> storageReport
 		0 * _._
 		result==[result:true]
 	}

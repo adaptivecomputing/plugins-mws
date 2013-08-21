@@ -11,12 +11,15 @@ class DebugNativeTranslator {
 	NodeNativeTranslator nodeNativeTranslator
 	VirtualMachineNativeTranslator virtualMachineNativeTranslator
 	JobNativeTranslator jobNativeTranslator
+	StorageNativeTranslator storageNativeTranslator
 
 	public Map verifyClusterWiki(wiki, String id) {
 		return verifyWiki(wiki, id, { DebugEventService debugEventService, Map attrs, Map lineInfo ->
 			if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs))
 				return virtualMachineNativeTranslator.createReport(debugEventService, attrs, new VMImageInfo())
-			else
+			else if (storageNativeTranslator.isStorageWiki(attrs))
+				return storageNativeTranslator.createReport(debugEventService, attrs)
+			else // Default to node
 				return nodeNativeTranslator.createReport(debugEventService, attrs, new HVImageInfo())
 		})
 	}

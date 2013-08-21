@@ -16,6 +16,7 @@ class NativePlugin extends AbstractPlugin {
 		getCluster required: false, scriptableUrl: true
 		getNodes required: false, scriptableUrl: true
 		getVirtualMachines required: false, scriptableUrl: true
+		getStorage required: false, scriptableUrl: true
 		getJobs required: false, scriptableUrl: true
 		jobCancel required: false, scriptableUrl: true
 		jobModify required: false, scriptableUrl: true
@@ -35,9 +36,11 @@ class NativePlugin extends AbstractPlugin {
 	JobNativeTranslator jobNativeTranslator
 	NodeNativeTranslator nodeNativeTranslator
 	VirtualMachineNativeTranslator virtualMachineNativeTranslator
+	StorageNativeTranslator storageNativeTranslator
 	IJobRMService jobRMService
 	INodeRMService nodeRMService
 	IVirtualMachineRMService virtualMachineRMService
+	IStorageRMService storageRMService
 	ImageNativeTranslator imageNativeTranslator
 	IPluginEventService pluginEventService
 	DebugNativeTranslator debugNativeTranslator
@@ -55,6 +58,7 @@ class NativePlugin extends AbstractPlugin {
 		nodeNativeTranslator.lowerCaseNames = lowerCaseNames
 		virtualMachineNativeTranslator.lowerCaseNames = lowerCaseNames
 		jobNativeTranslator.lowerCaseNames = lowerCaseNames
+		storageNativeTranslator.lowerCaseNames = lowerCaseNames
 		imageNativeTranslator.pluginEventService = pluginEventService
 	}
 
@@ -82,6 +86,7 @@ class NativePlugin extends AbstractPlugin {
 		def aggregateImagesInfo = new AggregateImagesInfo()
 		def nodes = []
 		def vms = []
+		def storage = []
 		if (getConfigKey("getCluster")) {
 			log.debug("Polling getCluster URL")
 			getCluster(aggregateImagesInfo)?.groupBy { it.class }?.each { Class clazz, List values ->
@@ -92,20 +97,25 @@ class NativePlugin extends AbstractPlugin {
 					case VirtualMachineReport.class:
 						vms = values
 						break;
+					case StorageReport.class:
+						storage = values
+						break
 					default:
 						log.warn("Unknown object found from cluster query, ignoring values: ${clazz}")
 						break;
 				}
 			}
 		} else {
-			log.debug("Polling getNodes and getVirtualMachines URLs")
+			log.debug("Polling getNodes, getVirtualMachines, and getStorage URLs")
 			nodes = getNodes(aggregateImagesInfo)
 			vms = getVirtualMachines(aggregateImagesInfo)
+			storage = getStorage()
 		}
 
 		// Ensure that save is called EVERY time the poll is executed
 		nodeRMService.save(nodes)
 		virtualMachineRMService.save(vms)
+		storageRMService.save(storage)
 
 		log.debug("Polling getJobs URL")
 		jobRMService.save(getJobs());
@@ -171,7 +181,9 @@ class NativePlugin extends AbstractPlugin {
 					def imageInfo = new VMImageInfo()
 					aggregateImagesInfo.vmImages << imageInfo
 					return virtualMachineNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
-				} else {    // Default to a node
+				} else if (storageNativeTranslator.isStorageWiki(attrs)) {
+					return storageNativeTranslator.createReport(pluginEventService, attrs)
+				} else { // Default to a node
 					def imageInfo = new HVImageInfo()
 					aggregateImagesInfo.hypervisorImages << imageInfo
 					return nodeNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
@@ -191,6 +203,19 @@ class NativePlugin extends AbstractPlugin {
 				def imageInfo = new HVImageInfo()
 				aggregateImagesInfo.hypervisorImages << imageInfo
 				nodeNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
+			}
+		}
+		return []
+	}
+
+	public List<StorageReport> getStorage() {
+		def url = getConfigKey("getStorage")?.toURL()
+		if (!url)
+			return []
+		def result = readURL(url)
+		if (!hasError(result, true)) {
+			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
+				storageNativeTranslator.createReport(pluginEventService, attrs)
 			}
 		}
 		return []

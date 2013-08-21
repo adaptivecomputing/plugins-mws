@@ -15,6 +15,8 @@ class NativePluginSpec extends Specification {
 		plugin.nodeRMService = nodeRMService
 		IVirtualMachineRMService virtualMachineRMService = Mock()
 		plugin.virtualMachineRMService = virtualMachineRMService
+		IStorageRMService storageRMService = Mock()
+		plugin.storageRMService = storageRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
 		ImageNativeTranslator imageNativeTranslator = Mock()
@@ -27,32 +29,37 @@ class NativePluginSpec extends Specification {
 		def vms = [vm]
 		def job = new JobReport("job.1")
 		def jobs = [job]
+		def storage = new StorageReport("storage1")
+		def storageList = [storage]
 
 		and:
 		plugin.id = "plugin1"
 
-		when: "getNodes and getVMs"
+		when: "getNodes, getVMs, and getStorage"
 		config = [reportImages:true]
 		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo -> nodes }
 		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> vms }
 		plugin.metaClass.getJobs = { -> jobs }
+		plugin.metaClass.getStorage = { -> storageList }
 		plugin.poll()
 
 		then:
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
+		1 * storageRMService.save(storageList)
 		1 * jobRMService.save(jobs)
 		1 * imageNativeTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
-		when: "getCluster returns nodes and VMs"
+		when: "getCluster returns nodes, VMs, and storage"
 		config = [getCluster: "getCluster", reportImages:false]
-		plugin.metaClass.getCluster = { AggregateImagesInfo imagesInfo -> nodes + vms }
+		plugin.metaClass.getCluster = { AggregateImagesInfo imagesInfo -> nodes + vms + storageList }
 		plugin.poll()
 
 		then:
 		1 * nodeRMService.save(nodes)
 		1 * virtualMachineRMService.save(vms)
+		1 * storageRMService.save(storageList)
 		1 * jobRMService.save(jobs)
 		0 * _._
 	}
@@ -64,6 +71,8 @@ class NativePluginSpec extends Specification {
 		plugin.nodeRMService = nodeRMService
 		IVirtualMachineRMService virtualMachineRMService = Mock()
 		plugin.virtualMachineRMService = virtualMachineRMService
+		IStorageRMService storageRMService = Mock()
+		plugin.storageRMService = storageRMService
 		IJobRMService jobRMService = Mock()
 		plugin.jobRMService = jobRMService
 		ImageNativeTranslator imageNativeTranslator = Mock()
@@ -72,21 +81,23 @@ class NativePluginSpec extends Specification {
 		and:
 		plugin.id = "plugin1"
 
-		when: "getNodes and getVirtualMachines"
+		when: "getNodes, getVirtualMachines, and getStorage"
 		config = [reportImages:true]
 		plugin.metaClass.getNodes = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.metaClass.getJobs = { AggregateImagesInfo imagesInfo -> [] }
+		plugin.metaClass.getStorage = { -> [] }
 		plugin.poll()
 
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
+		1 * storageRMService.save([])
 		1 * jobRMService.save([])
 		1 * imageNativeTranslator.updateImages("plugin1", _ as AggregateImagesInfo)
 		0 * _._
 
-		when:
+		when: "getCluster only"
 		config = [getCluster: "getCluster"]
 		plugin.metaClass.getCluster = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.poll()
@@ -94,6 +105,7 @@ class NativePluginSpec extends Specification {
 		then: "Save calls are still executed"
 		1 * nodeRMService.save([])
 		1 * virtualMachineRMService.save([])
+		1 * storageRMService.save([])
 		1 * jobRMService.save([])
 		0 * _._
 	}
@@ -207,6 +219,8 @@ class NativePluginSpec extends Specification {
 		given:
 		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
+		StorageNativeTranslator storageNativeTranslator = Mock()
+		plugin.storageNativeTranslator = storageNativeTranslator
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		plugin.nodeNativeTranslator = nodeNativeTranslator
 		IPluginEventService pluginEventService = Mock()
@@ -215,6 +229,7 @@ class NativePluginSpec extends Specification {
 		and:
 		def node = new NodeReport("node01")
 		def vm = new VirtualMachineReport("vm1")
+		def storage = new StorageReport("storage1")
 
 		when:
 		config = pluginConfig
@@ -236,20 +251,24 @@ class NativePluginSpec extends Specification {
 		then:
 		vmReports * virtualMachineNativeTranslator.createReport(pluginEventService, _ as Map, _ as VMImageInfo) >> vm
 		nodeReports * nodeNativeTranslator.createReport(pluginEventService, _ as Map, _ as HVImageInfo) >> node
+		storageReports * storageNativeTranslator.createReport(pluginEventService, _ as Map) >> storage
 		_ * virtualMachineNativeTranslator.isVirtualMachineWiki(_ as Map) >>> isVMList
+		_ * storageNativeTranslator.isStorageWiki(_ as Map) >>> isStorageList
 		0 * _._
 		result.size() == resultSize
 		imagesInfo.hypervisorImages.size()==nodeReports
 		imagesInfo.vmImages.size()==vmReports
 
 		where:
-		pluginConfig              | readURLResult                    | hasError | parseWikiResult        	| isVMList		| vmReports	| nodeReports	| resultSize
-		[:]                       | null                             | true     | null                   	| [false]		| 0	        | 0				| 0
-		[getCluster: "file:///c"] | [exitCode: 128]                  | true     | [null]                 	| [false]		| 0			| 0				| 0
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[wiki: true]]         	| [false]		| 0			| 1				| 1
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[CONTAINERNODE: "vm1"]] 	| [true]		| 1			| 0				| 1
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE: "vM"]]           	| [true]		| 1			| 0				| 1
-		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"vM"],[wiki:true]]	| [true,false]	| 1			| 1				| 2
+		pluginConfig              | readURLResult                    | hasError | parseWikiResult        	| isVMList		| isStorageList	| vmReports	| storageReports	| nodeReports	| resultSize
+		[:]                       | null                             | true     | null                   	| []			| []			| 0	        | 0					| 0				| 0
+		[getCluster: "file:///c"] | [exitCode: 128]                  | true     | [null]                 	| []			| []			| 0			| 0					| 0				| 0
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[wiki: true]]         	| [false]		| [false]		| 0			| 0					| 1				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[CONTAINERNODE: "vm1"]] 	| [true]		| []			| 1			| 0					| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE: "vM"]]           	| [true]		| []			| 1			| 0					| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"vM"],[wiki:true]]	| [true,false]	| [false]		| 1			| 0					| 1				| 2
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE: "st"]]           	| [false]		| [true]		| 0			| 1					| 0				| 1
+		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"st"],[wiki:true]]	| [false,false]	| [true,false]	| 0			| 1					| 1				| 2
 	}
 
 	def "Get jobs"() {
@@ -647,6 +666,7 @@ class NativePluginSpec extends Specification {
 		}
 		plugin.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
 		plugin.metaClass.getJobs = {-> [] }
+		plugin.metaClass.getStorage = {-> [] }
 
 		and:
 		plugin2.metaClass.getNodes = { AggregateImagesInfo imagesInfo ->
@@ -658,6 +678,7 @@ class NativePluginSpec extends Specification {
 		}
 		plugin2.metaClass.getVirtualMachines = { AggregateImagesInfo imagesInfo -> [] }
 		plugin2.metaClass.getJobs = {-> [] }
+		plugin2.metaClass.getStorage = {-> [] }
 
 		and:
 		def conditions = new PollingConditions(timeout: 10)
@@ -760,6 +781,8 @@ class NativePluginSpec extends Specification {
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
 		JobNativeTranslator jobNativeTranslator = Mock()
 		plugin.jobNativeTranslator = jobNativeTranslator
+		StorageNativeTranslator storageNativeTranslator = Mock()
+		plugin.storageNativeTranslator = storageNativeTranslator
 
 		when:
 		config = configuration
@@ -770,6 +793,7 @@ class NativePluginSpec extends Specification {
 		1 * nodeNativeTranslator.setLowerCaseNames(lowerCase)
 		1 * virtualMachineNativeTranslator.setLowerCaseNames(lowerCase)
 		1 * jobNativeTranslator.setLowerCaseNames(lowerCase)
+		1 * storageNativeTranslator.setLowerCaseNames(lowerCase)
 		0 * _._
 
 		where:
