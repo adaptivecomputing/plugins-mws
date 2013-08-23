@@ -91,6 +91,9 @@ class StorageNativeTranslator {
 				case StorageNativeField.PARTITION:
 					storage.partition = value
 					break
+				case StorageNativeField.POWER:
+					storage.power = NodeReportPower.parse(value)
+					break
 				case StorageNativeField.SPEED:
 					storage.metrics[METRIC_SPEED] = NativeNumberUtils.parseDouble(value)
 					break
@@ -101,6 +104,10 @@ class StorageNativeTranslator {
 					genericNativeTranslator.getGenericMapWithDisplayValue(value, "\\+", ":|=")?.each { String attrKey, attrValue ->
 						storage.attributes[attrKey] = new ReportAttribute(value:attrValue.value, displayValue:attrValue.displayValue)
 					}
+					break
+				case StorageNativeField.MIGRATION_DISABLED:
+					// If the correct wiki key is present, set migration disabled based on this (alternative to VARATTRs)
+					storage.migrationDisabled = value?.toBoolean() ?: false
 					break
 				case StorageNativeField.TYPE:
 					// Do nothing, this is purely to differentiate between types of objects
@@ -144,9 +151,11 @@ enum StorageNativeField {
 	MESSAGES("message"),
 	NETWORK_ADDRESS("netaddr"),
 	PARTITION("partition"),
+	POWER("power"),
 	SPEED("speed"),
 	TYPE("type"),
 	VARIABLES("variable"),
+	MIGRATION_DISABLED("migrationdisabled"),
 	ATTRIBUTES("varattr")
 
 	String wikiKey
