@@ -123,7 +123,7 @@ class StorageNativeTranslatorSpec extends Specification {
 		storage.timestamp.time == 1363865607000
 	}
 
-	def "Migration disabled flag for '#migrationWiki' and attributes '#attrWiki' is #result"() {
+	def "Migration disabled flag for '#migrationWiki' is #result"() {
 		given:
 		translator.genericNativeTranslator = mockTranslator(GenericNativeTranslator)
 
@@ -135,16 +135,15 @@ class StorageNativeTranslatorSpec extends Specification {
 		then:
 		storage?.name=="storage1"
 		storage.migrationDisabled==result
-		storage.attributes.size()==attributesSize
 
 		where:
-		migrationWiki				|| attributesSize	| result
-		""							|| 0				| null
-		"mIGRATIONDISABLED=true"	|| 0				| true
-		"mIGRATIONDISABLED=false"	|| 0				| false
-		"mIGRATIONDISABLED=1"		|| 0				| true
-		"mIGRATIONDISABLED=0"		|| 0				| false
-		"mIGRATIONDISABLED="		|| 0				| false
+		migrationWiki				|| result
+		""							|| null
+		"mIGRATIONDISABLED=true"	|| true
+		"mIGRATIONDISABLED=false"	|| false
+		"mIGRATIONDISABLED=1"		|| true
+		"mIGRATIONDISABLED=0"		|| false
+		"mIGRATIONDISABLED="		|| false
 	}
 
 	def "Notifications for invalid attributes"() {
@@ -161,26 +160,6 @@ class StorageNativeTranslatorSpec extends Specification {
 		2 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"storageNativeTranslator.invalid.attribute", {it.type=="Storage" && it.id=="id1" }, null)
 		0 * _._
-	}
-
-	def "Lower-case names is #lowerCase (#id converted to #name)"() {
-		given:
-		translator.lowerCaseNames = lowerCase
-
-		expect:
-		translator.createReport(null, [id:id]).name==name
-
-		cleanup:
-		translator.lowerCaseNames = true
-
-		where:
-		lowerCase	| id		|| name
-		true		| "ID"		|| "id"
-		true		| "id"		|| "id"
-		true		| "iD"		|| "id"
-		false		| "ID"		|| "ID"
-		false		| "id"		|| "id"
-		false		| "iD"		|| "iD"
 	}
 
 	def "Slave flag"() {

@@ -145,26 +145,6 @@ class JobNativeTranslatorSpec extends Specification {
 		0 * _._
 	}
 
-	def "Lower-case names is #lowerCase (#id converted to #name)"() {
-		given:
-		translator.lowerCaseNames = lowerCase
-
-		expect:
-		translator.createReport(null, [id:id]).name==name
-
-		cleanup:
-		translator.lowerCaseNames = true
-
-		where:
-		lowerCase	| id		|| name
-		true		| "ID"		|| "id"
-		true		| "id"		|| "id"
-		true		| "iD"		|| "id"
-		false		| "ID"		|| "ID"
-		false		| "id"		|| "id"
-		false		| "iD"		|| "iD"
-	}
-
 	def "Slave flag"() {
 		when:
 		def wiki = "job1 "+slaveWiki

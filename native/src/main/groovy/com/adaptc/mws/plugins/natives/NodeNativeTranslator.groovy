@@ -9,14 +9,9 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class NodeNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 
-	boolean lowerCaseNames = true
-
 	public NodeReport createReport(IPluginEventService pluginEventService, Map attrs, HVImageInfo imageInfo) {
 		def id = attrs.remove("id")
 		NodeReport node = new NodeReport(id)
-		// Manually set name field to make sure it is not lower-cased
-		if (!lowerCaseNames)
-			node.@name = id
 
 		attrs.each { String key, value ->
 			def field = NodeNativeField.parseWikiAttribute(key)

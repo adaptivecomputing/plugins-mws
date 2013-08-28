@@ -9,14 +9,9 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class JobNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 
-	boolean lowerCaseNames = true
-
 	JobReport createReport(IPluginEventService pluginEventService, Map attrs) {
 		def id = attrs.remove("id")
 		JobReport job = new JobReport(id)
-		// Manually set name field to make sure it is not lower-cased
-		if (!lowerCaseNames)
-			job.@name = id
 
 		attrs.each { String key, value ->
 			def field = JobNativeField.parseWikiAttribute(key)

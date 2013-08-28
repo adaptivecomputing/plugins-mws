@@ -9,14 +9,9 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 class StorageNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 
-	boolean lowerCaseNames = true
-
 	public StorageReport createReport(IPluginEventService pluginEventService, Map attrs) {
 		def id = attrs.remove("id")
 		StorageReport storage = new StorageReport(id)
-		// Manually set name field to make sure it is not lower-cased
-		if (!lowerCaseNames)
-			storage.@name = id
 
 		attrs.each { String key, value ->
 			def field = StorageNativeField.parseWikiAttribute(key)
