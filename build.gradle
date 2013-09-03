@@ -21,7 +21,6 @@ apply plugin: 'idea'
 apply plugin:'eclipse'
 apply plugin:com.adaptc.gradle.nexusworkflow.NexusWorkflowPlugin
 
-// TODO Remove with released versions
 configurations.all {
 	resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
 }
@@ -33,27 +32,21 @@ subprojects { proj ->
 	apply plugin:'eclipse'
 	apply plugin:'idea'
 
-	// TODO Remove with released versions
 	configurations.all {
 		resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
 	}
 
-	if (System.getProperty("assign.order.number") == "true") {
+	task assignOrderNumber(dependsOn:"loadPluginProject") << {
 		// Replace version snapshot with order number
-		if (proj.version.contains("-SNAPSHOT"))
-			proj.version = proj.version.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
-		jar.doFirst {
-			if (proj.version.contains("-SNAPSHOT")) {
-				File projectFile = moabSdk.pluginProject.projectFile
-				projectFile.write(projectFile.getText("UTF-8").readLines().collect {
-					if (it.contains("version") && it.contains("-SNAPSHOT"))
-						return it.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size())) + "\n"
-					return it + "\n"
-				}.join())
-
-				// Do this again just to make sure
-				proj.version = proj.version.replace("-SNAPSHOT", "-"+("git rev-list HEAD".execute().text.readLines().size()))
-			}
+		if (proj.version.contains("-SNAPSHOT")) {
+			def orderNumber = "git rev-list HEAD".execute().text.readLines().size()
+			proj.version = proj.version.replace("-SNAPSHOT", "-" + orderNumber)
+			File projectFile = moabSdk.pluginProject.projectFile
+			projectFile.write(projectFile.getText("UTF-8").readLines().collect {
+				if (it.contains("version") && it.contains("-SNAPSHOT"))
+					return it.replace("-SNAPSHOT", "-" + orderNumber) + "\n"
+				return it + "\n"
+			}.join())
 		}
 	}
 
