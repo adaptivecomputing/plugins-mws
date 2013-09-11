@@ -27,6 +27,7 @@ class NativePlugin extends AbstractPlugin {
 		jobSuspend required: false, scriptableUrl: true
 		nodeModify required: false, scriptableUrl: true
 		nodePower required: false, scriptableUrl: true
+		virtualMachinePower required: false, scriptableUrl: true
 		startUrl required: false, scriptableUrl: true
 		stopUrl required: false, scriptableUrl: true
 		reportImages defaultValue: true
@@ -328,6 +329,16 @@ class NativePlugin extends AbstractPlugin {
 			return false
 		url.query = [nodes.join(","), state.name()].join("&")
 		log.debug("Changing power state to ${state} for nodes ${nodes}")
+		def result = readURL(url)
+		return !hasError(result)
+	}
+
+	public boolean virtualMachinePower(List<String> virtualMachines, NodeReportPower state) {
+		def url = getConfigKey("virtualMachinePower")?.toURL()
+		if (!url)
+			return false
+		url.query = [virtualMachines.join(","), state.name()].join("&")
+		log.debug("Changing power state to ${state} for virtual machines ${virtualMachines}")
 		def result = readURL(url)
 		return !hasError(result)
 	}

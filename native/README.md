@@ -74,7 +74,7 @@ JOBSUSPENDURL | jobSuspend | |
 JOBVALIDATEURL | \- | Deprecated
 NODEMIGRATEURL | \- | Deprecated
 NODEMODIFYURL | nodeModify | |
-NODEPOWERURL | nodePower | |
+NODEPOWERURL | nodePower/virtualMachinePower | The Moab Native RM does not distinguish between VMs and nodes when calling the URL.
 PARCREATEURL | \- | Deprecated
 PARDESTROYURL | \- | Deprecated
 QUEUEQUERYURL | \- | Deprecated
@@ -348,7 +348,7 @@ SC=0 RESPONSE=Modified node(s) 'node01,node02' successfully
 
 ```
 # <nodeId>[,<nodeId>,...] <powerState>
-vm1 OFF
+hv1 ON
 hv1,hv2,hv3 OFF
 ```
 
@@ -357,7 +357,25 @@ hv1,hv2,hv3 OFF
 #### Response
 
 ```
-SC=0 RESPONSE=Changed power state for 'vm1' to 'OFF' successfully
+SC=0 RESPONSE=Changed power state for 'vm1' to 'ON' successfully
+```
+
+### virtualMachinePower
+
+#### Arguments
+
+```
+# <vmId>[,<vmId>,...] <powerState>
+vm1 ON
+vm1,vm2,vm3 OFF
+```
+
+`powerState` is one of the node power states.
+
+#### Response
+
+```
+SC=0 RESPONSE=Changed power state for 'vm1' to 'ON' successfully
 ```
 
 ### startUrl

@@ -607,6 +607,30 @@ class NativePluginSpec extends Specification {
 		[nodePower: "file:///url"] | false    | true
 	}
 
+	def "VM power"() {
+		when:
+		config = pluginConfig
+		plugin.metaClass.readURL = { URL url ->
+			assert url.toString() == "file:/url?vm1,vm2&ON"
+			return [result: true]
+		}
+		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
+			assert !canBeEmpty
+			assert resultParam == [result: true]
+			return hasError
+		}
+		def result = plugin.virtualMachinePower(["vm1", "vm2"], NodeReportPower.ON)
+
+		then:
+		result == success
+
+		where:
+		pluginConfig               				| hasError | success
+		[:]                        				| true     | false
+		[virtualMachinePower: "file:///url"] 	| true     | false
+		[virtualMachinePower: "file:///url"] 	| false    | true
+	}
+
 	def "IO exceptions are caught"() {
 		given:
 		NativePlugin.metaClass.setEnvironment = { urlConn -> }
