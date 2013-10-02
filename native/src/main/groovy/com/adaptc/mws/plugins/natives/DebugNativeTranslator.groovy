@@ -15,12 +15,17 @@ class DebugNativeTranslator {
 
 	public Map verifyClusterWiki(wiki, String id) {
 		return verifyWiki(wiki, id, { DebugEventService debugEventService, Map attrs, Map lineInfo ->
-			if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs))
-				return virtualMachineNativeTranslator.createReport(debugEventService, attrs, new VMImageInfo())
-			else if (storageNativeTranslator.isStorageWiki(attrs))
-				return storageNativeTranslator.createReport(debugEventService, attrs)
-			else // Default to node
-				return nodeNativeTranslator.createReport(debugEventService, attrs, new HVImageInfo())
+			if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs)) {
+				def imageInfo = new VMImageInfo()
+				def report = virtualMachineNativeTranslator.createReport(debugEventService, attrs, imageInfo)
+				return [report, imageInfo]
+			} else if (storageNativeTranslator.isStorageWiki(attrs)) {
+				return [storageNativeTranslator.createReport(debugEventService, attrs), null]
+			} else { // Default to node
+				def imageInfo = new HVImageInfo()
+				def report = nodeNativeTranslator.createReport(debugEventService, attrs, imageInfo)
+				return [report, imageInfo]
+			}
 		})
 	}
 
@@ -47,7 +52,9 @@ class DebugNativeTranslator {
 			]
 
 			debugEventService.errors = []
-			lineInfo.report = callTranslator.call(debugEventService, attrs, lineInfo)
+			def translatorResult = callTranslator.call(debugEventService, attrs, lineInfo)
+			lineInfo.report = translatorResult[0]
+			lineInfo.image = translatorResult[1]
 			lineInfo.report.pluginId = id
 			lineInfo.type = lineInfo.report.getClass().simpleName - "Report"
 

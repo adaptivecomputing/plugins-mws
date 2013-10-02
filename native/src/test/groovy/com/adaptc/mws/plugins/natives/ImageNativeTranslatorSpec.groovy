@@ -16,12 +16,14 @@ class ImageNativeTranslatorSpec extends Specification {
 		given:
 		AggregateImagesInfo imagesInfo = new AggregateImagesInfo()
 		imagesInfo.vmImages << new VMImageInfo(name:"vmImage")
-		imagesInfo.hypervisorImages << new HVImageInfo(name:"hvImage")
+		imagesInfo.hypervisorImages << new HVImageInfo(name:"hvImage", vmImageNames:["hvVmImage1","hvVmImage2"])
 
 		and:
-		translator.metaClass.updateVMImages = { String pluginId, List<VMImageInfo> vmImages ->
-			assert vmImages.size()==1
-			assert vmImages[0].name=="vmImage"
+		translator.metaClass.updateVMImages = { String pluginId, List<String> vmImages ->
+			assert vmImages.size()==3
+			assert vmImages[0]=="vmImage"
+			assert vmImages[1]=="hvVmImage1"
+			assert vmImages[2]=="hvVmImage2"
 			assert pluginId=="pluginId"
 		}
 		translator.metaClass.updateHypervisorImages = { String pluginId, List<HVImageInfo> hvImages ->
@@ -111,11 +113,11 @@ class ImageNativeTranslatorSpec extends Specification {
 
 		when:
 		translator.updateVMImages("plugin1", [
-				new VMImageInfo(), // null value to see what happens
-				new VMImageInfo(name:"addImageFail"),
-				new VMImageInfo(name:"addImageSucceed"),
-				new VMImageInfo(name:"updateImageAddOwner"),
-				new VMImageInfo(name:"noopImage"),
+				null, // null value to see what happens
+				"addImageFail",
+				"addImageSucceed",
+				"updateImageAddOwner",
+				"noopImage",
 		])
 
 		then:

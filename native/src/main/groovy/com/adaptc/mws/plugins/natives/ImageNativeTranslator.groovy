@@ -15,16 +15,18 @@ public class ImageNativeTranslator {
 	IPluginEventService pluginEventService
 
 	public void updateImages(String pluginId, AggregateImagesInfo aggregateImagesInfo) {
-		updateVMImages(pluginId, aggregateImagesInfo.vmImages)
+		// Update all VM images, including those just reported by nodes
+		updateVMImages(pluginId, aggregateImagesInfo.vmImages*.name +
+				aggregateImagesInfo.hypervisorImages.collectMany { it.vmImageNames })
 		updateHypervisorImages(pluginId, aggregateImagesInfo.hypervisorImages)
 	}
 
-	private void updateVMImages(String pluginId, List<VMImageInfo> vmImages) {
+	private void updateVMImages(String pluginId, List<String> vmImages) {
 		final String getAllMyVMImages =
 			'{extensions.native: {$ne: null}, hypervisor: false}'
 
 		// Get all VM image names
-		Set vmImageNames = vmImages.collect([] as Set) {it.name} - [null]
+		Set vmImageNames = vmImages.collect([] as Set) {it} - [null]
 
 		// Get all our images from the database.
 		MoabRestResponse response = moabRestService.get(IMAGES_RESOURCE,

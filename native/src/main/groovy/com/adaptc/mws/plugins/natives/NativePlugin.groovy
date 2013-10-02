@@ -114,8 +114,10 @@ class NativePlugin extends AbstractPlugin {
 		jobRMService.save(getJobs());
 
 		// Save images
-		if (config.reportImages)
+		if (config.reportImages) {
+			log.debug("Creating images from cluster information")
 			imageNativeTranslator.updateImages(id, aggregateImagesInfo)
+		}
 	}
 
 	public void beforeStart() {
