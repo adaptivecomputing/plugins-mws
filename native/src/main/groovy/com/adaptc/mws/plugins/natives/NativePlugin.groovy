@@ -292,14 +292,18 @@ class NativePlugin extends AbstractPlugin {
 		return !hasError(result)
 	}
 
-	public boolean jobSubmit(Map properties) {
+	public String jobSubmit(Map<String, Object> job, String submissionFlags) {
 		def url = getConfigKey("jobSubmit")?.toURL()
 		if (!url)
-			return false
-		url.query = properties?.collect { "${it.key}=" + (it.value?.contains(" ") ? "\"${it.value}\"" : it.value) }.join("&")
-		log.debug("Submitting job ${properties.NAME}")
+			return null
+		url.query = jobNativeTranslator.convertJobToWiki(job, submissionFlags)
+				.collect { "${it.key}=" + (it.value?.contains(" ") ? "\"${it.value}\"" : it.value) }.join("&")
+		log.debug("Submitting job ${job.name}")
 		def result = readURL(url)
-		return !hasError(result)
+		// Return the first line of the output as the job ID to use, else the job name from the input
+		if (!hasError(result, true))
+			return result.content?.size()>0 ? result.content[0] : job.name
+		return null
 	}
 
 	// TODO Suspend more than just the first job

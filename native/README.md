@@ -297,14 +297,22 @@ SC=0 RESPONSE=Started job 'Moab.1' on 'vm1' successfully
 
 ```
 # <attribute>=<value> [<attribute>=<value>] ...
-# UNAME=<userName> GNAME=<groupName> WCLIMIT=<wallClock> TASKS=<tasksNumber> NAME=<jobId> IWD=<initialWorkingDirectory> EXEC=<executable>
-UNAME=myuser GNAME=mygroup WCLIMIT=600 TASKS=2 NAME=Moab.1 IWD=/tmp EXEC=/tmp/script.sh
+# UNAME=<userName> GNAME=<groupName> WCLIMIT=<wallClock> TASKS=<tasksNumber> NAME=<jobId> IWD=<initialWorkingDirectory> EXEC=<executable> RMFLAGS="flag1 flag2"
+UNAME=myuser GNAME=mygroup WCLIMIT=600 TASKS=2 NAME=Moab.1 IWD=/tmp EXEC=/tmp/script.sh RMFLAGS="flag1 flag2"
 ```
 
 #### Response
 
+The response may consist of a new job identifier on its own line.  This will be recorded in Moab as the job identifier
+for the MWS resource manager.
+
 ```
 SC=0 RESPONSE=Submitted job 'Moab.1' successfully
+```
+
+```
+SC=0 RESPONSE=Success
+MyJob.1
 ```
 
 ### jobSuspend

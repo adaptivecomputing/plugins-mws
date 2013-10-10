@@ -148,6 +148,28 @@ class JobNativeTranslator {
 		return job
 	}
 
+	/**
+	 * Converts a job API version 2+ into a map of wiki attributes (key=value).
+	 * @param job The job definition following the MWS API version 2+
+	 * @return A map of wiki attributes
+	 */
+	Map<String, String> convertJobToWiki(Map<String, Object> job, String submissionFlags) {
+		if (!job)
+			return [:]
+		// Used for job submission interface, only supports the following attributes:
+		// 	UNAME=<userName> GNAME=<groupName> WCLIMIT=<wallClock> TASKS=<tasksNumber> NAME=<jobId> IWD=<initialWorkingDirectory> EXEC=<executable>
+		return [
+				(JobNativeField.USER.wikiKey.toUpperCase()):job.credentials?.user,
+				(JobNativeField.GROUP.wikiKey.toUpperCase()):job.credentials?.group,
+				(JobNativeField.WALL_CLOCK_LIMIT.wikiKey.toUpperCase()):job.duration,
+				(JobNativeField.TASKS.wikiKey.toUpperCase()):job.requirements?.getAt(0)?.taskCount,
+				(JobNativeField.NAME.wikiKey.toUpperCase()):job.name,
+				(JobNativeField.INITIAL_WORKING_DIR.wikiKey.toUpperCase()):job.initialWorkingDirectory,
+				(JobNativeField.EXECUTABLE.wikiKey.toUpperCase()):job.commandFile,
+				RMFLAGS:submissionFlags,	// Not documented except in Moab code
+		]
+	}
+
 	private ReportResource getResource(Integer value) {
 		// Set total and available to make sure that it is the same no matter what
 		ReportResource resource = new ReportResource()

@@ -163,4 +163,62 @@ class JobNativeTranslatorSpec extends Specification {
 		"SLAVE=0"			|| false
 		"SLAVE="			|| false
 	}
+
+	def "Convert job to wiki"() {
+		when: "No properties defined"
+		def result = translator.convertJobToWiki(null, null)
+
+		then:
+		result.size()==0
+
+		when: "Most properties not defined"
+		result = translator.convertJobToWiki([
+		        name:"job1",
+		], null)
+
+		then:
+		result.size()==8
+		result.RMFLAGS==null
+		result.NAME=="job1"
+
+		when: "Empty requirements and credentials"
+		result = translator.convertJobToWiki([
+				name:"job1",
+				credentials:[:],
+				requirements:[],
+		], "")
+
+		then:
+		result.size()==8
+		result.TASKS==null
+		result.UNAME==null
+		result.GNAME==null
+		result.RMFLAGS==""
+
+		when: "All fields set"
+		result = translator.convertJobToWiki([
+				name:"job1",
+				credentials:[
+						user:"myuser",
+						group:"mygroup",
+				],
+				requirements:[
+						[taskCount:4],
+				],
+				duration:1234,
+				initialWorkingDirectory:"/root/",
+				commandFile:"test.sh",
+		], "flag1 flag2")
+
+		then:
+		result.size()==8
+		result.NAME=="job1"
+		result.UNAME=="myuser"
+		result.GNAME=="mygroup"
+		result.TASKS==4
+		result.WCLIMIT==1234
+		result.IWD=="/root/"
+		result.EXEC=="test.sh"
+		result.RMFLAGS=="flag1 flag2"
+	}
 }

@@ -271,7 +271,7 @@ class NativePluginSpec extends Specification {
 		[getCluster: "file:///c"] | [exitCode: 0, content: ["Line"]] | false    | [[TYPE:"st"],[wiki:true]]	| [false,false]	| [true,false]	| 0			| 1					| 1				| 2
 	}
 
-	def "Get jobs"() {
+	def "Get jobs for config #pluginConfig and result #readURLResult"() {
 		given:
 		JobNativeTranslator jobNativeTranslator = Mock()
 		plugin.jobNativeTranslator = jobNativeTranslator
@@ -309,7 +309,7 @@ class NativePluginSpec extends Specification {
 		[getJobs: "file:///n"] | [exitCode: 0, content: ["Line"]] | false    | 1          | 1
 	}
 
-	def "Get nodes with result #readURLResult"() {
+	def "Get nodes for config #pluginConfig and result #readURLResult"() {
 		given:
 		NodeNativeTranslator nodeNativeTranslator = Mock()
 		plugin.nodeNativeTranslator = nodeNativeTranslator
@@ -350,7 +350,7 @@ class NativePluginSpec extends Specification {
 		[getNodes: "file:///n"] | [exitCode: 0, content: ["Line"]] | false    | 1          | 1
 	}
 
-	def "Get virtual machines"() {
+	def "Get virtual machines for config #pluginConfig and result #readURLResult"() {
 		given:
 		VirtualMachineNativeTranslator virtualMachineNativeTranslator = Mock()
 		plugin.virtualMachineNativeTranslator = virtualMachineNativeTranslator
@@ -391,7 +391,7 @@ class NativePluginSpec extends Specification {
 		[getVirtualMachines: "file:///v"] | [exitCode: 0, content: ["Line"]] | false    | 1          | 1
 	}
 
-	def "Job cancel"() {
+	def "Job cancel for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -415,7 +415,7 @@ class NativePluginSpec extends Specification {
 		[jobCancel: "file:///url"] | false    | true
 	}
 
-	def "Job modify"() {
+	def "Job modify for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -439,7 +439,7 @@ class NativePluginSpec extends Specification {
 		[jobModify: "file:///url"] | false    | true
 	}
 
-	def "Job resume"() {
+	def "Job resume for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -463,7 +463,7 @@ class NativePluginSpec extends Specification {
 		[jobResume: "file:///url"] | false    | true
 	}
 
-	def "Job requeue"() {
+	def "Job requeue for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -487,7 +487,7 @@ class NativePluginSpec extends Specification {
 		[jobRequeue: "file:///url"] | false    | true
 	}
 
-	def "Job start"() {
+	def "Job start for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -511,31 +511,39 @@ class NativePluginSpec extends Specification {
 		[jobStart: "file:///url"] | false    | true
 	}
 
-	def "Job submit"() {
+	def "Job submit for config #pluginConfig and hasError #hasError and content #content"() {
+		given:
+		JobNativeTranslator jobNativeTranslator = Mock()
+		plugin.jobNativeTranslator = jobNativeTranslator
+
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString() == "file:/url?NAME=job.1&MESSAGE=\"message here\""
-			return [result: true]
+			assert url.toString() == "file:/url?NAME=job.1&UNAME=myuser&RMFLAGS=\"flag1 flag2\""
+			return [result: true, content:content]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
-			assert resultParam == [result: true]
+			assert canBeEmpty
+			assert resultParam.result==true
 			return hasError
 		}
-		def result = plugin.jobSubmit([NAME: "job.1", MESSAGE: "message here"])
+		def retVal = plugin.jobSubmit([name: "job.1"], "flag1 flag2")
 
 		then:
-		result == success
+		(0..1) * jobNativeTranslator.convertJobToWiki([name:"job.1"], "flag1 flag2") >> [NAME:"job.1", UNAME:"myuser", RMFLAGS:"flag1 flag2"]
+		0 * _._
+		retVal == result
 
 		where:
-		pluginConfig               | hasError | success
-		[:]                        | true     | false
-		[jobSubmit: "file:///url"] | true     | false
-		[jobSubmit: "file:///url"] | false    | true
+		pluginConfig               | hasError | content		| result
+		[:]                        | true     | null		| null
+		[jobSubmit: "file:///url"] | true     | null		| null
+		[jobSubmit: "file:///url"] | false    | null		| "job.1"
+		[jobSubmit: "file:///url"] | false    | []			| "job.1"
+		[jobSubmit: "file:///url"] | false    | ["job.2"]	| "job.2"
 	}
 
-	def "Job suspend"() {
+	def "Job suspend for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -559,7 +567,7 @@ class NativePluginSpec extends Specification {
 		[jobSuspend: "file:///url"] | false    | true
 	}
 
-	def "Node modify"() {
+	def "Node modify for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -583,7 +591,7 @@ class NativePluginSpec extends Specification {
 		[nodeModify: "file:///url"] | false    | true
 	}
 
-	def "Node power"() {
+	def "Node power for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
@@ -607,7 +615,7 @@ class NativePluginSpec extends Specification {
 		[nodePower: "file:///url"] | false    | true
 	}
 
-	def "VM power"() {
+	def "VM power for config #pluginConfig and hasError #hasError"() {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
