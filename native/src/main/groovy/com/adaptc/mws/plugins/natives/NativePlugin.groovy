@@ -297,7 +297,7 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return null
 		url.query = jobNativeTranslator.convertJobToWiki(job, submissionFlags)
-				.collect { "${it.key}=" + (it.value?.contains(" ") ? "\"${it.value}\"" : it.value) }.join("&")
+				.collect { "${it.key}=" + (it.value?.toString()?.contains(" ") ? "\"${it.value}\"" : it.value) }.join("&")
 		log.debug("Submitting job ${job.name}")
 		def result = readURL(url)
 		// Return the first line of the output as the job ID to use, else the job name from the input

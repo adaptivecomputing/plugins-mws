@@ -519,7 +519,7 @@ class NativePluginSpec extends Specification {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString() == "file:/url?NAME=job.1&UNAME=myuser&RMFLAGS=\"flag1 flag2\""
+			assert url.toString() == "file:/url?NAME=job.1&UNAME=myuser&TASKS=1&RMFLAGS=\"flag1 flag2\""
 			return [result: true, content:content]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
@@ -530,7 +530,8 @@ class NativePluginSpec extends Specification {
 		def retVal = plugin.jobSubmit([name: "job.1"], "flag1 flag2")
 
 		then:
-		(0..1) * jobNativeTranslator.convertJobToWiki([name:"job.1"], "flag1 flag2") >> [NAME:"job.1", UNAME:"myuser", RMFLAGS:"flag1 flag2"]
+		(0..1) * jobNativeTranslator.convertJobToWiki([name:"job.1"], "flag1 flag2") >>
+				[NAME:"job.1", UNAME:"myuser", TASKS:1, RMFLAGS:"flag1 flag2"]
 		0 * _._
 		retVal == result
 
