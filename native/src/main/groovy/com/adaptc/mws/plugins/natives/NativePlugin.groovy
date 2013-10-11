@@ -231,63 +231,54 @@ class NativePlugin extends AbstractPlugin {
 		return []
 	}
 
-	// TODO Cancel more than just the first job
-	public boolean jobCancel(List<String> jobs) {
+	public boolean jobCancel(String jobName) {
 		def url = getConfigKey("jobCancel")?.toURL()
 		if (!url)
 			return false
-		def jobId = jobs[0]
-		url.query = jobId
-		log.debug("Canceling job ${jobId}")
+		url.query = jobName
+		log.debug("Canceling job ${jobName}")
 		def result = readURL(url)
 		return !hasError(result)
 	}
 
-	// TODO Modify more than just the first job
-	public boolean jobModify(List<String> jobs, Map properties) {
+	public boolean jobModify(String jobName, Map attributes) {
 		def url = getConfigKey("jobModify")?.toURL()
 		if (!url)
 			return false
-		def jobId = jobs[0]
-		def queryParams = [jobId]
-		queryParams.addAll(properties.collect { "${it.key}=" + (it.value?.contains(" ") ? "\"${it.value}\"" : it.value) })
+		def queryParams = [jobName]
+		queryParams.addAll(attributes.collect { "${it.key}=" + (it.value?.contains(" ") ? "\"${it.value}\"" : it.value) })
 		url.query = queryParams.join("&")
-		log.debug("Modifying job ${jobId} with properties ${properties}")
+		log.debug("Modifying job ${jobName} with properties ${attributes}")
 		def result = readURL(url)
 		return !hasError(result)
 	}
 
-	// TODO Resume more than just the first job
-	public boolean jobResume(List<String> jobs) {
+	public boolean jobResume(String jobName) {
 		def url = getConfigKey("jobResume")?.toURL()
 		if (!url)
 			return false
-		def jobId = jobs[0]
-		url.query = jobId
-		log.debug("Resuming job ${jobId}")
+		url.query = jobName
+		log.debug("Resuming job ${jobName}")
 		def result = readURL(url)
 		return !hasError(result)
 	}
 
-	// TODO Requeue more than just the first job
-	public boolean jobRequeue(List<String> jobs) {
+	public boolean jobRequeue(String jobName) {
 		def url = getConfigKey("jobRequeue")?.toURL()
 		if (!url)
 			return false
-		def jobId = jobs[0]
-		url.query = jobId
-		log.debug("Requeuing job ${jobId}")
+		url.query = jobName
+		log.debug("Requeuing job ${jobName}")
 		def result = readURL(url)
 		return !hasError(result)
 	}
 
-	//TODO Handle properties in jobStart
-	public boolean jobStart(String jobId, String taskList, String userName, Map<String, String> properties = null) {
+	public boolean jobStart(String jobId, List<String> nodes, String username) {
 		def url = getConfigKey("jobStart")?.toURL()
 		if (!url)
 			return false
-		url.query = [jobId, taskList, userName].join("&")
-		log.debug("Starting job ${jobId} with task list ${taskList} and user ${userName}")
+		url.query = [jobId, nodes.join(","), username].join("&")
+		log.debug("Starting job ${jobId} with allocated nodes ${nodes} and user ${username}")
 		def result = readURL(url)
 		return !hasError(result)
 	}
@@ -306,14 +297,12 @@ class NativePlugin extends AbstractPlugin {
 		return null
 	}
 
-	// TODO Suspend more than just the first job
-	public boolean jobSuspend(List<String> jobs) {
+	public boolean jobSuspend(String jobName) {
 		def url = getConfigKey("jobSuspend")?.toURL()
 		if (!url)
 			return false
-		def jobId = jobs[0]
-		url.query = jobId
-		log.debug("Suspending job ${jobId}")
+		url.query = jobName
+		log.debug("Suspending job ${jobName}")
 		def result = readURL(url)
 		return !hasError(result)
 	}

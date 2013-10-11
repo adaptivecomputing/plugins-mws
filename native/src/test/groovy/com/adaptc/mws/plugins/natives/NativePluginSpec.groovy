@@ -403,7 +403,7 @@ class NativePluginSpec extends Specification {
 			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobCancel(["job.1"])
+		def result = plugin.jobCancel("job.1")
 
 		then:
 		result == success
@@ -427,7 +427,7 @@ class NativePluginSpec extends Specification {
 			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobModify(["job.1"], [prop: "val", prop2: "val 2"])
+		def result = plugin.jobModify("job.1", [prop: "val", prop2: "val 2"])
 
 		then:
 		result == success
@@ -451,7 +451,7 @@ class NativePluginSpec extends Specification {
 			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobResume(["job.1"])
+		def result = plugin.jobResume("job.1")
 
 		then:
 		result == success
@@ -475,7 +475,7 @@ class NativePluginSpec extends Specification {
 			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobRequeue(["job.1"])
+		def result = plugin.jobRequeue("job.1")
 
 		then:
 		result == success
@@ -491,7 +491,7 @@ class NativePluginSpec extends Specification {
 		when:
 		config = pluginConfig
 		plugin.metaClass.readURL = { URL url ->
-			assert url.toString() == "file:/url?job.1&node01,node01&bsaville"
+			assert url.toString() == "file:/url?job.1&node01,node01&user1"
 			return [result: true]
 		}
 		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
@@ -499,7 +499,7 @@ class NativePluginSpec extends Specification {
 			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobStart("job.1", "node01,node01", "bsaville")
+		def result = plugin.jobStart("job.1", ["node01","node01"], "user1")
 
 		then:
 		result == success
@@ -556,7 +556,7 @@ class NativePluginSpec extends Specification {
 			assert resultParam == [result: true]
 			return hasError
 		}
-		def result = plugin.jobSuspend(["job.1"])
+		def result = plugin.jobSuspend("job.1")
 
 		then:
 		result == success
