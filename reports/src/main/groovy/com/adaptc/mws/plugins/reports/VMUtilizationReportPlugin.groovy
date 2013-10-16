@@ -91,7 +91,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		log.debug("Querying the CPU and memory utilization values from the vms REST API using API version ${apiVersion}")
 		def response = moabRestService.get(VMS_URL, params: [
 				'api-version': apiVersion,
-				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},${hostField}," +
+				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},${hostField},variables," +
 						"${lastUpdatedDateField},${stateField},${nameField}," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
@@ -249,13 +249,20 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					config.memoryLowThreshold, config.memoryHighThreshold)
 			UtilizationLevel bothUtilLevel = utilizationReportTranslator.getCPUAndMemoryUtilizationLevel(cpuUtilLevel, memoryUtilLevel)
 
-			//Update VMs with categories
-			def vmsResponse = moabRestService.put(VMS_URL + vmName) {
-				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY:bothUtilLevel]]
-			}
 
-			if (!vmsResponse?.success)
-				log.warn("Failed to update vm $vmName with utilization categories.")
+			if (!it.variables?.CPU_UTILIZATION_CATEGORY ||
+					UtilizationLevel.parse(it.variables?.CPU_UTILIZATION_CATEGORY) != cpuUtilLevel ||
+					UtilizationLevel.parse(it.variables?.MEMORY_UTILIZATION_CATEGORY) != memoryUtilLevel ||
+					UtilizationLevel.parse(it.variables?.CPU_AND_MEMORY_UTILIZATION_CATEGORY) != bothUtilLevel
+			) {
+				//Update VMs with categories
+				def vmsResponse = moabRestService.put(VMS_URL + vmName) {
+					[variables: [CPU_UTILIZATION_CATEGORY: cpuUtilLevel, MEMORY_UTILIZATION_CATEGORY: memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY: bothUtilLevel]]
+				}
+
+				if (!vmsResponse?.success)
+					log.warn("Failed to update vm $vmName with utilization categories.")
+			}
 
 			if (dataCenter)
 				utilizationReportTranslator.countUtilizationLevels(dataCenters, dataCenter, cpuUtilLevel,

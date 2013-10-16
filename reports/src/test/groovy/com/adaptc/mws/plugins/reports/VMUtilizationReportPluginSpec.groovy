@@ -150,7 +150,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 		}, "/rest/reports/") >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get(['params': ['api-version': 2, 'fields': 'attributes.MOAB_DATACENTER,name']], '/rest/nodes/') >> new MoabRestResponse(null, null, true)
 		1 * moabRestService.get({
-			assert it.params.fields == "metrics.cpuUtilization,host.name,lastUpdatedDate,states.state,name,resources.memory"
+			assert it.params.fields == "metrics.cpuUtilization,host.name,variables,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/vms/") >> new MoabRestResponse(null, null, false)
 		0 * _._
@@ -166,7 +166,7 @@ class VMUtilizationReportPluginSpec extends Specification {
 				['/rest/vms/', 1, null], null)
 		_ * pluginEventService.updateNotificationCondition(*_)
 		1 * moabRestService.get({
-			assert it.params.fields == "genericMetrics.cpuUtilization,node.id,lastUpdateDate,state,id,availableMemory,totalMemory"
+			assert it.params.fields == "genericMetrics.cpuUtilization,node.id,variables,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
 		}, "/rest/vms/") >> new MoabRestResponse(null, null, false)
 		0 * _._

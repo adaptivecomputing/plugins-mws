@@ -90,7 +90,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		def response = moabRestService.get(NODES_URL, params: [
 				'api-version': apiVersion,
 				query:'{"type":"Compute"}',		// For api-version=1 this is ignored, since the field is not available
-				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER," +
+				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER,variables," +
 						"${lastUpdatedDateField},${stateField},${nameField},virtualMachines," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
@@ -287,12 +287,18 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					cpuUtilLevel, memoryUtilLevel)
 
 			//Update Nodes with categories
-			def nodesResponse = moabRestService.put(NODES_URL + nodeName) {
-				[variables:[CPU_UTILIZATION_CATEGORY:cpuUtilLevel,MEMORY_UTILIZATION_CATEGORY:memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY:bothUtilLevel]]
-			}
+			if (!it.variables?.CPU_UTILIZATION_CATEGORY ||
+					UtilizationLevel.parse(it.variables?.CPU_UTILIZATION_CATEGORY) != cpuUtilLevel ||
+					UtilizationLevel.parse(it.variables?.MEMORY_UTILIZATION_CATEGORY) != memoryUtilLevel ||
+					UtilizationLevel.parse(it.variables?.CPU_AND_MEMORY_UTILIZATION_CATEGORY) != bothUtilLevel
+			) {
+				def nodesResponse = moabRestService.put(NODES_URL + nodeName) {
+					[variables: [CPU_UTILIZATION_CATEGORY: cpuUtilLevel, MEMORY_UTILIZATION_CATEGORY: memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY: bothUtilLevel]]
+				}
 
-			if (!nodesResponse?.success)
-				log.warn("Failed to update node $nodeName with utilization categories.")
+				if (!nodesResponse?.success)
+					log.warn("Failed to update node $nodeName with utilization categories.")
+			}
 
 			if (dataCenter)
 				utilizationReportTranslator.countUtilizationLevels(dataCenters, dataCenter, cpuUtilLevel,

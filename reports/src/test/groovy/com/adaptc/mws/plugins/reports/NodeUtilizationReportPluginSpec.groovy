@@ -154,7 +154,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			assert it.params.query=='{"type":"Compute"}'
 			assert it.params.'api-version'==3
-			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,virtualMachines,resources.memory"
+			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdatedDate,states.state,name,virtualMachines,resources.memory"
 			return true
 		}, "/rest/nodes/") >> new MoabRestResponse(null, [messages:["message1", "message2"]], false)
 		1 * pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
@@ -173,7 +173,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			assert it.params.query=='{"type":"Compute"}'
 			assert it.params.'api-version'==1
-			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdateDate,state,id,virtualMachines,availableMemory,totalMemory"
+			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdateDate,state,id,virtualMachines,availableMemory,totalMemory"
 			return true
 		}, "/rest/nodes/") >> new MoabRestResponse(null, null, false)
 		1 * pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
@@ -190,7 +190,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get(['params':['api-version':3,
 				query:'{"type":"Compute"}',
-				fields:"metrics.cpuUtilization,attributes.MOAB_DATACENTER,lastUpdatedDate,states.state,name,virtualMachines,resources.memory"]
+				fields:"metrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdatedDate,states.state,name,virtualMachines,resources.memory"]
 			], '/rest/nodes/') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 		1 * moabRestService.get(['params':['api-version':1, fields:'allocatedNodes,startDate,endDate']], '/rest/reservations/') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 
