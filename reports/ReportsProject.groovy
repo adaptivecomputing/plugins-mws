@@ -4,6 +4,7 @@ class ReportsProject {
 	String description = "Creates reports based on results from the MWS REST API."
 	String author = "Adaptive Computing Enterprises, Inc."
 	String website = "http://www.adaptivecomputing.com"
+	Integer eventComponent = 2
 
 	// Versioning properties
 	String version = "1.5-SNAPSHOT"
