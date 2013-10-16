@@ -72,8 +72,8 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		def lastUpdatedDateField
 		def nameField
 		def stateField
-		if (moabRestService.isAPIVersionSupported(2)) {
-			apiVersion = 2
+		if (moabRestService.isAPIVersionSupported(3)) {
+			apiVersion = 3
 			nameField = "name"
 			metricsField = "metrics"
 			lastUpdatedDateField = "lastUpdatedDate"
@@ -89,6 +89,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		log.debug("Querying the CPU and memory utilization values from the nodes REST API using API version ${apiVersion}")
 		def response = moabRestService.get(NODES_URL, params: [
 				'api-version': apiVersion,
+				query:'{"type":"Compute"}',		// For api-version=1 this is ignored, since the field is not available
 				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER," +
 						"${lastUpdatedDateField},${stateField},${nameField},virtualMachines," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
