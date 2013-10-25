@@ -194,25 +194,19 @@ class NativePluginSpec extends Specification {
 		true
 	}
 
-	def "Has error"() {
+	def "Has error for #scriptResult is #result"() {
 		expect:
-		result == plugin.hasError(scriptResult, canBeEmpty)
+		result == plugin.hasError(scriptResult)
 
 		where:
-		canBeEmpty 	| scriptResult                      | result
-		false		| null								| true
-		false      	| [exitCode: 128]                   | true
-		false      	| [exitCode: 0]                     | true
-		false      	| [exitCode: 0, content: []]        | true
-		false      	| [exitCode: 0, content: ["ERROR"]] | true
-		false      	| [exitCode: 0, content: ["ERROR="]]| false
-		false      	| [exitCode: 0, content: ["Line"]]  | false
-		true       	| [exitCode: 128]                   | true
-		true       	| [exitCode: 0]                     | true
-		true       	| [exitCode: 0, content: []]        | false
-		true       	| [exitCode: 0, content: ["ERROR"]] | true
-		true       	| [exitCode: 0, content: ["ERROR="]]| false
-		true       	| [exitCode: 0, content: ["Line"]]  | false
+		scriptResult                     	| result
+		null								| true
+		[exitCode: 128]                 	| true
+		[exitCode: 0]                   	| true
+		[exitCode: 0, content: []]      	| false
+		[exitCode: 0, content: ["ERROR"]]	| true
+		[exitCode: 0, content: ["ERROR="]]	| false
+		[exitCode: 0, content: ["Line"]]	| false
 	}
 
 	def "Get cluster"() {
@@ -241,8 +235,7 @@ class NativePluginSpec extends Specification {
 			assert lines == ["Line"]
 			return parseWikiResult
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			return hasError
 		}
 		def imagesInfo = new AggregateImagesInfo()
@@ -291,8 +284,7 @@ class NativePluginSpec extends Specification {
 			assert lines == ["Line"]
 			return [[wiki: true]]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			return hasError
 		}
 		def result = plugin.getJobs()
@@ -329,8 +321,7 @@ class NativePluginSpec extends Specification {
 			assert lines == ["Line"]
 			return [[wiki: true]]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			return hasError
 		}
 		def imagesInfo = new AggregateImagesInfo()
@@ -370,8 +361,7 @@ class NativePluginSpec extends Specification {
 			assert lines == ["Line"]
 			return [[wiki: true]]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			return hasError
 		}
 		def imagesInfo = new AggregateImagesInfo()
@@ -398,8 +388,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?job.1"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -422,8 +411,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?job.1&prop=val&prop2=\"val 2\""
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -446,8 +434,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?job.1"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -470,8 +457,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?job.1"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -494,8 +480,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?job.1&node01,node01&user1"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -522,8 +507,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?NAME=job.1&UNAME=myuser&TASKS=1&RMFLAGS=\"flag1 flag2\""
 			return [result: true, content:content]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam.result==true
 			return hasError
 		}
@@ -551,8 +535,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?job.1"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -575,8 +558,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?node1,node2&--set&prop=val&prop2=\"val 2\""
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -599,8 +581,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?node1,node2&ON"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}
@@ -623,8 +604,7 @@ class NativePluginSpec extends Specification {
 			assert url.toString() == "file:/url?vm1,vm2&ON"
 			return [result: true]
 		}
-		plugin.metaClass.hasError = { resultParam, boolean canBeEmpty = false ->
-			assert !canBeEmpty
+		plugin.metaClass.hasError = { resultParam ->
 			assert resultParam == [result: true]
 			return hasError
 		}

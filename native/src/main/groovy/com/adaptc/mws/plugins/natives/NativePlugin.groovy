@@ -157,7 +157,7 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return []
 		def result = readURL(url)
-		if (!hasError(result, true)) {
+		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				jobNativeTranslator.createReport(pluginEventService, attrs)
 			}
@@ -170,7 +170,7 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return []
 		def result = readURL(url)
-		if (!hasError(result, true)) {
+		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs)) {
 					def imageInfo = new VMImageInfo()
@@ -193,7 +193,7 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return []
 		def result = readURL(url)
-		if (!hasError(result, true)) {
+		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				def imageInfo = new HVImageInfo()
 				aggregateImagesInfo.hypervisorImages << imageInfo
@@ -208,7 +208,7 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return []
 		def result = readURL(url)
-		if (!hasError(result, true)) {
+		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				storageNativeTranslator.createReport(pluginEventService, attrs)
 			}
@@ -221,7 +221,7 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return []
 		def result = readURL(url)
-		if (!hasError(result, true)) {
+		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
 				def imageInfo = new VMImageInfo()
 				aggregateImagesInfo.vmImages << imageInfo
@@ -292,7 +292,7 @@ class NativePlugin extends AbstractPlugin {
 		log.debug("Submitting job ${job.name}")
 		def result = readURL(url)
 		// Return the first line of the output as the job ID to use, else the job name from the input
-		if (!hasError(result, true))
+		if (!hasError(result))
 			return result.content?.size()>0 ? result.content[0] : job.name
 		return null
 	}
@@ -380,16 +380,19 @@ class NativePlugin extends AbstractPlugin {
 		urlConnection.setEnvironment(envMap)
 	}
 
-	private boolean hasError(result, boolean canBeEmpty = false) {
+	/**
+	 * Checks a result from readURL for errors.
+	 * <p/>
+	 * Changed in 1.7 to always allow empty content
+	 * @param result
+	 * @return
+	 */
+	private boolean hasError(result) {
 		if (result == null)
 			return true
 
 		// Account for workload queries which have an attribute called "ERROR"
-		if (canBeEmpty) {
-			return result.exitCode != 0 || result.content == null ||
-					(result.content.size() != 0 && result.content[0].contains("ERROR") && !result.content[0].contains("ERROR="))
-		}
-		return result.exitCode != 0 || !result.content ||
-				(result.content[0].contains("ERROR") && !result.content[0].contains("ERROR="))
+		return result.exitCode != 0 || result.content == null ||
+				(result.content.size() != 0 && result.content[0].contains("ERROR") && !result.content[0].contains("ERROR="))
 	}
 }
