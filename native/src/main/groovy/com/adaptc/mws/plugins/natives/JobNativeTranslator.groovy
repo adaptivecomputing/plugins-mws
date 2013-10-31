@@ -167,7 +167,7 @@ class JobNativeTranslator {
 				(JobNativeField.TASKS.wikiKey.toUpperCase()):job.requirements?.getAt(0)?.taskCount,
 				(JobNativeField.NAME.wikiKey.toUpperCase()):job.name,
 				(JobNativeField.INITIAL_WORKING_DIR.wikiKey.toUpperCase()):job.initialWorkingDirectory,
-				(JobNativeField.EXECUTABLE.wikiKey.toUpperCase()):spoolFile?.absolutePath,
+				(JobNativeField.EXECUTABLE.wikiKey.toUpperCase()):spoolFile?.absolutePath ?: job.commandFile,
 				RMFLAGS:submissionFlags,	// Not documented except in Moab code
 		]
 	}

@@ -190,11 +190,12 @@ class JobNativeTranslatorSpec extends Specification {
 				name:"job1",
 				credentials:[:],
 				requirements:[],
-		], spoolFile, "")
+				commandFile:"/tmp/script.sh"
+		], null, "")
 
 		then:
 		result.size()==8
-		result.EXEC==spoolFile.absolutePath
+		result.EXEC=="/tmp/script.sh"
 		result.TASKS==null
 		result.UNAME==null
 		result.GNAME==null
