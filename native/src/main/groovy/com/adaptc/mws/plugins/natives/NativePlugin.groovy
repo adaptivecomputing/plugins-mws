@@ -288,18 +288,21 @@ class NativePlugin extends AbstractPlugin {
 		if (!url)
 			return null
 		// Spool file for submission string
-		File spoolFile = File.createTempFile("mws-plugins-native-spool-", "")
-		spoolFile.deleteOnExit()
-		spoolFile << submissionString
+		File commandFile = null
+		if (submissionString) {
+			commandFile = File.createTempFile("mws-plugins-native-spool-", "")
+			commandFile.deleteOnExit()
+			commandFile << submissionString
+		}
 
 		// Convert to wiki and call configured URL
-		url.query = jobNativeTranslator.convertJobToWiki(job, spoolFile, submissionFlags)
+		url.query = jobNativeTranslator.convertJobToWiki(job, commandFile, submissionFlags)
 				.collect { "${it.key}=" + (it.value?.toString()?.contains(" ") ? "\"${it.value}\"" : it.value) }.join("&")
 		log.debug("Submitting job ${job.name}")
 		def result = readURL(url)
 
-		// Delete spool file immediately
-		spoolFile.delete()
+		// Delete spool file immediately if it exists
+		commandFile?.delete()
 
 		// Return the first line of the output as the job ID to use, else the job name from the input
 		if (!hasError(result))
