@@ -165,8 +165,11 @@ class JobNativeTranslatorSpec extends Specification {
 	}
 
 	def "Convert job to wiki"() {
+		given:
+		def spoolFile = new File("tmp")
+
 		when: "No properties defined"
-		def result = translator.convertJobToWiki(null, null)
+		def result = translator.convertJobToWiki(null, null, null)
 
 		then:
 		result.size()==0
@@ -174,10 +177,11 @@ class JobNativeTranslatorSpec extends Specification {
 		when: "Most properties not defined"
 		result = translator.convertJobToWiki([
 		        name:"job1",
-		], null)
+		], null, null)
 
 		then:
 		result.size()==8
+		result.EXEC==null
 		result.RMFLAGS==null
 		result.NAME=="job1"
 
@@ -186,10 +190,11 @@ class JobNativeTranslatorSpec extends Specification {
 				name:"job1",
 				credentials:[:],
 				requirements:[],
-		], "")
+		], spoolFile, "")
 
 		then:
 		result.size()==8
+		result.EXEC==spoolFile.absolutePath
 		result.TASKS==null
 		result.UNAME==null
 		result.GNAME==null
@@ -207,8 +212,7 @@ class JobNativeTranslatorSpec extends Specification {
 				],
 				duration:1234,
 				initialWorkingDirectory:"/root/",
-				commandFile:"test.sh",
-		], "flag1 flag2")
+		], spoolFile, "flag1 flag2")
 
 		then:
 		result.size()==8
@@ -218,7 +222,7 @@ class JobNativeTranslatorSpec extends Specification {
 		result.TASKS==4
 		result.WCLIMIT==1234
 		result.IWD=="/root/"
-		result.EXEC=="test.sh"
+		result.EXEC==spoolFile.absolutePath
 		result.RMFLAGS=="flag1 flag2"
 	}
 }

@@ -151,9 +151,11 @@ class JobNativeTranslator {
 	/**
 	 * Converts a job API version 2+ into a map of wiki attributes (key=value).
 	 * @param job The job definition following the MWS API version 2+
+	 * @param spoolFile The spooled file containing the submission string (executable file)
+	 * @param submissionFlags Flags used in the submission
 	 * @return A map of wiki attributes
 	 */
-	Map<String, String> convertJobToWiki(Map<String, Object> job, String submissionFlags) {
+	Map<String, String> convertJobToWiki(Map<String, Object> job, File spoolFile, String submissionFlags) {
 		if (!job)
 			return [:]
 		// Used for job submission interface, only supports the following attributes:
@@ -165,7 +167,7 @@ class JobNativeTranslator {
 				(JobNativeField.TASKS.wikiKey.toUpperCase()):job.requirements?.getAt(0)?.taskCount,
 				(JobNativeField.NAME.wikiKey.toUpperCase()):job.name,
 				(JobNativeField.INITIAL_WORKING_DIR.wikiKey.toUpperCase()):job.initialWorkingDirectory,
-				(JobNativeField.EXECUTABLE.wikiKey.toUpperCase()):job.commandFile,
+				(JobNativeField.EXECUTABLE.wikiKey.toUpperCase()):spoolFile?.absolutePath,
 				RMFLAGS:submissionFlags,	// Not documented except in Moab code
 		]
 	}

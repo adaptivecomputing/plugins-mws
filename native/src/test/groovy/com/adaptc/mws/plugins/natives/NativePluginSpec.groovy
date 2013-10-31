@@ -511,10 +511,10 @@ class NativePluginSpec extends Specification {
 			assert resultParam.result==true
 			return hasError
 		}
-		def retVal = plugin.jobSubmit([name: "job.1"], "flag1 flag2")
+		def retVal = plugin.jobSubmit([name: "job.1"], "sleep 30", "flag1 flag2")
 
 		then:
-		(0..1) * jobNativeTranslator.convertJobToWiki([name:"job.1"], "flag1 flag2") >>
+		(0..1) * jobNativeTranslator.convertJobToWiki([name:"job.1"], _ as File, "flag1 flag2") >>
 				[NAME:"job.1", UNAME:"myuser", TASKS:1, RMFLAGS:"flag1 flag2"]
 		0 * _._
 		retVal == result
