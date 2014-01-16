@@ -155,6 +155,39 @@ class NativeUtilsSpec extends Specification {
 		map.COMMENTS=="This is a comment"
 	}
 
+	def "Parse variables with spaces #desc"() {
+		when:
+		def wiki = NativeUtils.parseWiki([wikiStr])
+
+		then:
+		wiki.size()==1
+
+		when:
+		def map = wiki[0]
+
+		then:
+		map.size()==4
+		map.id=="node001"
+		map.STATE=="Idle"
+		map.UPDATETIME=="1039483"
+		map.VARIABLE?.size()==1
+		map.VARIABLE.var1==resultStr
+
+		where:
+		desc << [
+		        "double quotes",
+				"single quotes"
+		]
+		wikiStr << [
+				'node001 STATE=Idle UPDATETIME=1039483 VARIABLE=var1="var with spaces"',
+				"node001 STATE=Idle UPDATETIME=1039483 VARIABLE=var1='var with spaces'",
+		]
+		resultStr << [
+		        'var with spaces',
+				"'var with spaces'"
+		]
+	}
+
 	def testParseSingleQuotedSpaceWiki() {
 		when:
 		def wikiStr = "node001 STATE=Idle UPDATETIME=1039483 COMMENTS='This is a comment'"

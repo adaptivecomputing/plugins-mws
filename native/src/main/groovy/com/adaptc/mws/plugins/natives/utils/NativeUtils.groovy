@@ -46,13 +46,12 @@ public class NativeUtils {
 						map.VARIABLE = [:]
 					// Use default of empty string as null will not be persisted
 					//	correctly for some reason (GOPlugin caveat?)
-					map.VARIABLE[key] = val ?: ""
+					map.VARIABLE[key] = trimQuotes(val ?: "")
 					return
 				}
 
 				// Everything else
 				def entry = pair.split('=', 2)	// Not sure why the limit is 2 here, really should be 1, but only succeeds with 2! (see unit tests)
-				//println entry
 				// Parse substate correctly (uses a semi-colon)
 				if (lastKey?.equalsIgnoreCase("state") && entry.size()==1) {	// STATE=state:substate, append to last one
 					map[lastKey] += ":${pair}"
@@ -74,7 +73,7 @@ public class NativeUtils {
 				lastKey = entry[0]
 				map.put(entry[0], trimQuotes(entry[1]))
 			}
-			map
+			return map
 		}
 	}
 
