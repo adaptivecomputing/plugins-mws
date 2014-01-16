@@ -94,14 +94,14 @@ in the Native plugin.  The table below lists these attributes, for which objects
 
 Object | Wiki Attribute | Format | Default | Description
 ------ | -------------- | ------ | ------- | -----------
-Nodes | SLAVE | true or false | false | Support for the MWS plugin slave reports, see the MWS documentation for more details.
+Nodes | SLAVE | true or false | false | Support for the MWS plugin slave reports. See the MWS documentation for more details.
 Nodes | MIGRATION_DISABLED | true or false | false | If true, the node will be added to the migration exclusion automatically by Moab.
-Nodes | TYPE | Node, Storage, or VM | \- | Used in a cluster query to determine if the object is a node, VM, etc instead of relying just on the CONTAINERNODE attribute.
-Nodes | HVTYPE | String | \- | Equivalent to using VARATTR=HVTYPE, this adds support for specifying the hypervisor type in the main list of attributes.
-Virtual Machines | SLAVE | true or false | false | Support for the MWS plugin slave reports, see the MWS documentation for more details.
+Nodes | TYPE | Node, Storage, or VM | \- | Used in a cluster query to determine if the object is a node, VM, etc., instead of relying just on the CONTAINERNODE attribute.
+Nodes | HVTYPE | String | \- | Equivalent to using VARATTR=HVTYPE. This adds support for specifying the hypervisor type in the main list of attributes.
+Virtual Machines | SLAVE | true or false | false | Support for the MWS plugin slave reports. See the MWS documentation for more details.
 Virtual Machines | MIGRATION_DISABLED | true or false | false | If true, the VM will be added to the migration exclusion automatically by Moab.
-Virtual Machines | TYPE | Node, Storage, or VM | \- | Used in a cluster query to determine if the object is a node, VM, etc instead of relying just on the CONTAINERNODE attribute.
-Jobs | SLAVE | true or false | false | Support for the MWS plugin slave reports, see the MWS documentation for more details.
+Virtual Machines | TYPE | Node, Storage, or VM | \- | Used in a cluster query to determine if the object is a node, VM, etc., instead of relying just on the CONTAINERNODE attribute.
+Jobs | SLAVE | true or false | false | Support for the MWS plugin slave reports. See the MWS documentation for more details.
 
 # Calling URLs
 
