@@ -16,17 +16,4 @@ class ReportsProject {
 	String documentationLink = ""
 	String scmLink = ""
 
-	def initialPlugins = {
-		'node-report' {
-			pluginType = "NodeUtilizationReportPlugin"
-			pollInterval = 60
-			autoStart = true
-		}
-
-		'vm-report' {
-			pluginType = "VMUtilizationReportPlugin"
-			pollInterval = 60
-			autoStart = true
-		}
-	}
 }
