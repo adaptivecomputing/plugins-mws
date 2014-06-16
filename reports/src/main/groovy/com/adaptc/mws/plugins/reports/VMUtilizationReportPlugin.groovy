@@ -54,9 +54,9 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 
 	public void poll() {
 		log.debug("Verifying that the ${VM_REPORT_NAME} report is created")
-		if (moabRestService.get(REPORTS_URL + VM_REPORT_NAME)?.response?.status == 404) {
+		if (moabRestService.get(REPORTS_URL + VM_REPORT_NAME, params: ['api-version': 3])?.response?.status == 404) {
 			log.debug("Report does not exist, creating")
-			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
+			def createResponse = moabRestService.post(REPORTS_URL, params: ['api-version': 3], data: getCreateJsonMap())
 			if (!createResponse.success) {
 				def messages = createResponse.data?.messages?.collect { it?.toString() }?.join(", ")
 				pluginEventService.createEvent(UtilizationReportEvents.REPORT_1NAME_CREATE_ERROR_2MESSAGES,
@@ -75,12 +75,12 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		def stateField = "state"
 		def nodesResponse
 
-		if (moabRestService.isAPIVersionSupported(2)) {
+		if (moabRestService.isAPIVersionSupported(3)) {
 			nodesResponse = moabRestService.get(NODES_URL, params: [
-					'api-version': 2,
+					'api-version': 3,
 					fields: "attributes.MOAB_DATACENTER,name",
 			])
-			apiVersion = 2
+			apiVersion = 3
 			nameField = "name"
 			metricsField = "metrics"
 			lastUpdatedDateField = "lastUpdatedDate"
@@ -256,7 +256,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 					UtilizationLevel.parse(it.variables?.CPU_AND_MEMORY_UTILIZATION_CATEGORY) != bothUtilLevel
 			) {
 				//Update VMs with categories
-				def vmsResponse = moabRestService.put(VMS_URL + vmName) {
+				def vmsResponse = moabRestService.put(VMS_URL + vmName, params: ['api-version': 3]) {
 					[variables: [CPU_UTILIZATION_CATEGORY: cpuUtilLevel, MEMORY_UTILIZATION_CATEGORY: memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY: bothUtilLevel]]
 				}
 
@@ -283,7 +283,7 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 		if (!vmSuccessCount && vmErrorCount) {
 			pluginEventService.createEvent(UtilizationReportEvents.NO_SAMPLES_1TYPE, null, null)
 		} else {
-			response = moabRestService.post(REPORTS_URL + VM_REPORT_NAME + SAMPLES_URL) {
+			response = moabRestService.post(REPORTS_URL + VM_REPORT_NAME + SAMPLES_URL, params: ['api-version': 3]) {
 				[
 						agent: "VM Utilization Report Plugin",
 						data: dataCenters,
@@ -303,10 +303,10 @@ class VMUtilizationReportPlugin extends AbstractPlugin {
 	public def recreateReport(Map params) {
 		// Blow away the report and the data (use the new datapointDuration)
 		log.info("Destroying (if it exists) and recreating VM utilization report")
-		moabRestService.delete(REPORTS_URL + VM_REPORT_NAME)
+		moabRestService.delete(REPORTS_URL + VM_REPORT_NAME, params: ['api-version': 3])
 		log.debug("Recreating report")
 		def messages = []
-		def response = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
+		def response = moabRestService.post(REPORTS_URL, data: getCreateJsonMap(), params: ['api-version': 3])
 		if (response.success)
 			messages << message(code: "vmUtilizationReportPlugin.recreateReport.success.message", args: [VM_REPORT_NAME])
 		else {

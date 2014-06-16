@@ -54,9 +54,9 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 
 	public void poll() {
 		log.debug("Verifying that the ${NODE_REPORT_NAME} report is created")
-		if (moabRestService.get(REPORTS_URL + NODE_REPORT_NAME)?.response?.status == 404) {
+		if (moabRestService.get(REPORTS_URL + NODE_REPORT_NAME, params: ['api-version': 3])?.response?.status == 404) {
 			log.debug("Report does not exist, creating")
-			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
+			def createResponse = moabRestService.post(REPORTS_URL, data: getCreateJsonMap(), params: ['api-version': 3])
 			if (!createResponse.success) {
 				def messages = createResponse.data?.messages?.collect { it?.toString() }?.join(", ")
 				pluginEventService.createEvent(UtilizationReportEvents.REPORT_1NAME_CREATE_ERROR_2MESSAGES,
@@ -102,7 +102,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			return
 		}
 
-		def reservationResponse = moabRestService.get(RESERVATIONS_URL, params: ["api-version" : 1, fields: "allocatedNodes,startDate,endDate"])
+		def reservationResponse = moabRestService.get(RESERVATIONS_URL, params: ["api-version" : 3, fields: "allocatedNodes,startDate,endDate"])
 		if (!reservationResponse?.success) {
 			reservationResponse?.data?.messages?.collect { it?.toString() }?.join(", ")
 			pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
@@ -292,7 +292,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 					UtilizationLevel.parse(it.variables?.MEMORY_UTILIZATION_CATEGORY) != memoryUtilLevel ||
 					UtilizationLevel.parse(it.variables?.CPU_AND_MEMORY_UTILIZATION_CATEGORY) != bothUtilLevel
 			) {
-				def nodesResponse = moabRestService.put(NODES_URL + nodeName) {
+				def nodesResponse = moabRestService.put(NODES_URL + nodeName, params: ['api-version': 3]) {
 					[variables: [CPU_UTILIZATION_CATEGORY: cpuUtilLevel, MEMORY_UTILIZATION_CATEGORY: memoryUtilLevel, CPU_AND_MEMORY_UTILIZATION_CATEGORY: bothUtilLevel]]
 				}
 
@@ -319,7 +319,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 		if(!nodeSuccessCount && nodeErrorCount) {
 			pluginEventService.createEvent(UtilizationReportEvents.NO_SAMPLES_1TYPE, ["nodes"], null)
 		} else {
-			response = moabRestService.post(REPORTS_URL + NODE_REPORT_NAME + SAMPLES_URL) {
+			response = moabRestService.post(REPORTS_URL + NODE_REPORT_NAME + SAMPLES_URL, params: ['api-version': 3]) {
 				[
 						agent: "Node Utilization Report Plugin",
 						data: dataCenters,
@@ -339,10 +339,10 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 	public def recreateReport(Map params) {
 		// Blow away the report and the data (use the new datapointDuration)
 		log.info("Destroying (if it exists) and recreating node utilization report")
-		moabRestService.delete(REPORTS_URL + NODE_REPORT_NAME)
+		moabRestService.delete(REPORTS_URL + NODE_REPORT_NAME, params: ['api-version': 3])
 		log.debug("Recreating report")
 		def messages = []
-		def response = moabRestService.post(REPORTS_URL, data: getCreateJsonMap())
+		def response = moabRestService.post(REPORTS_URL, data: getCreateJsonMap(), params: ['api-version': 3])
 		if (response?.success)
 			messages << message(code: "nodeUtilizationReportPlugin.recreateReport.success.message", args: [NODE_REPORT_NAME])
 		else {
