@@ -104,7 +104,7 @@ class ImageNativeTranslatorSpec extends Specification {
 		translator.updateVMImages("plugin1", [new VMImageInfo(name:"os1"), new VMImageInfo(name:"os2")])
 
 		then:
-		1 * moabRestService.get([params:[query:'{extensions.native: {$ne: null}, hypervisor: false}',fields:"name,extensions.native", 'api-version': 3]],
+		1 * moabRestService.get([params:[query:'{extensions.native: {$ne: null}, hypervisor: false}',fields:"name,extensions.native", 'api-version': 'latest']],
 					"/rest/images") >>
 				new MoabRestResponse(null, [messages:["message1","message2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
@@ -121,7 +121,7 @@ class ImageNativeTranslatorSpec extends Specification {
 		])
 
 		then:
-		1 * moabRestService.get([params:[query:'{extensions.native: {$ne: null}, hypervisor: false}',fields:"name,extensions.native", 'api-version': 3]],
+		1 * moabRestService.get([params:[query:'{extensions.native: {$ne: null}, hypervisor: false}',fields:"name,extensions.native", 'api-version': 'latest']],
 				"/rest/images") >>
 				new MoabRestResponse(null, [results:[
 						[name:"deleteImageFailGetVM",extensions:[native:[owners:["plugin1"]]]],
@@ -136,7 +136,7 @@ class ImageNativeTranslatorSpec extends Specification {
 				]], true)
 
 		then: "Fail to add image"
-		1 * moabRestService.post("/rest/images", params: ['api-version': 3], {
+		1 * moabRestService.post("/rest/images", params: ['api-version': 'latest'], {
 			def data = it.call()
 			if (data.name!="addImageFail")
 				return false
@@ -156,7 +156,7 @@ class ImageNativeTranslatorSpec extends Specification {
 				"imageNativeTranslator.post.vm.image", {it.type=="Image" && it.id=="addImageFail"}, null)
 
 		then: "Succeed adding image"
-		1 * moabRestService.post("/rest/images", params: ['api-version': 3], {
+		1 * moabRestService.post("/rest/images", params: ['api-version': 'latest'], {
 			def data = it.call()
 			if (data.name!="addImageSucceed")
 				return false
@@ -174,28 +174,28 @@ class ImageNativeTranslatorSpec extends Specification {
 		}) >> new MoabRestResponse(null, null, true)
 
 		then: "Delete fail to get VM"
-		1 * moabRestService.get([params:[fields:"id", 'api-version': 3]], "/rest/images/deleteImageFailGetVM") >>
+		1 * moabRestService.get([params:[fields:"id", 'api-version': 'latest']], "/rest/images/deleteImageFailGetVM") >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.get.vm.image", {it.type=="Image" && it.id=="deleteImageFailGetVM"}, null)
 
 		then: "Delete fail to get hypervisors"
-		1 * moabRestService.get([params:[fields:"id", 'api-version': 3]], "/rest/images/deleteImageFailGetHV") >>
+		1 * moabRestService.get([params:[fields:"id", 'api-version': 'latest']], "/rest/images/deleteImageFailGetHV") >>
 				new MoabRestResponse(null, [id:"id1"], true)
-		1 * moabRestService.get([params:[query:'{virtualizedImages.id: "id1"}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{virtualizedImages.id: "id1"}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.get.hv.images", null, null)
 
 		then: "Delete other failures"
-		1 * moabRestService.get([params:[fields:"id", 'api-version': 3]], "/rest/images/deleteImageFailUpdate") >>
+		1 * moabRestService.get([params:[fields:"id", 'api-version': 'latest']], "/rest/images/deleteImageFailUpdate") >>
 				new MoabRestResponse(null, [id:"id2"], true)
-		1 * moabRestService.get([params:[query:'{virtualizedImages.id: "id2"}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{virtualizedImages.id: "id2"}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [results:[
 						[name:"hvFail",virtualizedImages:[[id:"bogusId"],[id:"anotherId"],[id:"id2"]]],
 						[name:"hvSucceed",virtualizedImages:[[id:"id2"]]],
 				]], true)
-		1 * moabRestService.put("/rest/images/hvFail", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/hvFail", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.name=="hvFail"
 			assert data.virtualizedImages?.size()==2
@@ -205,44 +205,44 @@ class ImageNativeTranslatorSpec extends Specification {
 		}) >> new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.put.hv.image", {it.type=="Image" && it.id=="hvFail"}, null)
-		1 * moabRestService.put("/rest/images/hvSucceed", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/hvSucceed", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.name=="hvSucceed"
 			assert data.virtualizedImages?.size()==0
 			return true
 		}) >> new MoabRestResponse(null, null, true)
-		1 * moabRestService.delete("/rest/images/deleteImageFailUpdate", params:['api-version': 3]) >>
+		1 * moabRestService.delete("/rest/images/deleteImageFailUpdate", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.delete.vm.image", {it.type=="Image" && it.id=="deleteImageFailUpdate"}, null)
 
 		then: "Delete succeed"
-		1 * moabRestService.get([params:[fields:"id", 'api-version': 3]], "/rest/images/deleteImageSucceed") >>
+		1 * moabRestService.get([params:[fields:"id", 'api-version': 'latest']], "/rest/images/deleteImageSucceed") >>
 				new MoabRestResponse(null, [id:"id3"], true)
-		1 * moabRestService.get([params:[query:'{virtualizedImages.id: "id3"}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{virtualizedImages.id: "id3"}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [results:[
 						[name:"hvSucceed2",virtualizedImages:[[id:"id3"],[id:"id1"]]],
 				]], true)
-		1 * moabRestService.put("/rest/images/hvSucceed2", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/hvSucceed2", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.name=="hvSucceed2"
 			assert data.virtualizedImages?.size()==1
 			assert data.virtualizedImages[0]==[id:"id1"]
 			return true
 		}) >> new MoabRestResponse(null, null, true)
-		1 * moabRestService.delete("/rest/images/deleteImageSucceed", params:['api-version': 3]) >>
+		1 * moabRestService.delete("/rest/images/deleteImageSucceed", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, null, true)
 
 		then: "Update image to remove owner failure to get VM"
-		1 * moabRestService.get("/rest/images/updateImageRemoveOwnerFailGetVM", params:['api-version': 3]) >>
+		1 * moabRestService.get("/rest/images/updateImageRemoveOwnerFailGetVM", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.get.vm.image", {it.type=="Image" && it.id=="updateImageRemoveOwnerFailGetVM"}, null)
 
 		then: "Update image to remove owner failure to update"
-		1 * moabRestService.get("/rest/images/updateImageRemoveOwnerFailUpdate", params:['api-version': 3]) >>
+		1 * moabRestService.get("/rest/images/updateImageRemoveOwnerFailUpdate", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, [name:"updateImageRemoveOwnerFailUpdate",extensions:[native:[owners:null]]], true)
-		1 * moabRestService.put("/rest/images/updateImageRemoveOwnerFailUpdate", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/updateImageRemoveOwnerFailUpdate", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.name=="updateImageRemoveOwnerFailUpdate"
 			assert data.extensions?.native?.owners?.size()==0
@@ -252,9 +252,9 @@ class ImageNativeTranslatorSpec extends Specification {
 				"imageNativeTranslator.put.vm.image", {it.type=="Image" && it.id=="updateImageRemoveOwnerFailUpdate"}, null)
 
 		then: "Update image to remove owner succeed"
-		1 * moabRestService.get("/rest/images/updateImageRemoveOwnerSucceed", params:['api-version': 3]) >>
+		1 * moabRestService.get("/rest/images/updateImageRemoveOwnerSucceed", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, [name:"updateImageRemoveOwnerSucceed",extensions:[native:[owners:["plugin2", "plugin1"]]]], true)
-		1 * moabRestService.put("/rest/images/updateImageRemoveOwnerSucceed", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/updateImageRemoveOwnerSucceed", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.name=="updateImageRemoveOwnerSucceed"
 			assert data.extensions?.native?.owners?.size()==1
@@ -263,9 +263,9 @@ class ImageNativeTranslatorSpec extends Specification {
 		}) >> new MoabRestResponse(null, null, true)
 
 		then: "Update image to add owner succeed"
-		1 * moabRestService.get("/rest/images/updateImageAddOwner", params:['api-version': 3]) >>
+		1 * moabRestService.get("/rest/images/updateImageAddOwner", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, [name:"updateImageAddOwner",extensions:[native:[owners:["plugin2"]]]], true)
-		1 * moabRestService.put("/rest/images/updateImageAddOwner", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/updateImageAddOwner", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.name=="updateImageAddOwner"
 			assert data.extensions?.native?.owners?.size()==2
@@ -301,7 +301,7 @@ class ImageNativeTranslatorSpec extends Specification {
 		translator.updateHypervisorImages("plugin1", [new HVImageInfo(name:"os1")])
 
 		then:
-		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [messages:["message1","message2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.get.hv.images", null, null)
@@ -317,7 +317,7 @@ class ImageNativeTranslatorSpec extends Specification {
 		])
 
 		then:
-		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [results:[
 						[name:"deleteImageFail",extensions:[native:[owners:["plugin1"]]]],
 						[name:"deleteImageSucceed",extensions:[native:[owners:["plugin1"]]]],
@@ -325,7 +325,7 @@ class ImageNativeTranslatorSpec extends Specification {
 				]], true)
 
 		then: "Add image fail"
-		1 * moabRestService.post("/rest/images", params:['api-version': 3], {
+		1 * moabRestService.post("/rest/images", params:['api-version': 'latest'], {
 			def data = it.call()
 			if (data.name!="addImageFail")
 				return
@@ -345,7 +345,7 @@ class ImageNativeTranslatorSpec extends Specification {
 				"imageNativeTranslator.post.hv.image", {it.type=="Image" && it.id=="addImageFail"}, null)
 
 		then: "Add image succeed cached hypervisor type"
-		1 * moabRestService.post("/rest/images", params:['api-version': 3], {
+		1 * moabRestService.post("/rest/images", params:['api-version': 'latest'], {
 			def data = it.call()
 			if (data.name!="addImageSucceedCachedHT")
 				return
@@ -363,7 +363,7 @@ class ImageNativeTranslatorSpec extends Specification {
 		}) >> new MoabRestResponse(null, null, true)
 
 		then: "Add image succeed default hypervisor type"
-		1 * moabRestService.post("/rest/images", params:['api-version': 3], {
+		1 * moabRestService.post("/rest/images", params:['api-version': 'latest'], {
 			def data = it.call()
 			if (data.name!="addImageSucceedDefaultHT")
 				return
@@ -381,17 +381,17 @@ class ImageNativeTranslatorSpec extends Specification {
 		}) >> new MoabRestResponse(null, null, true)
 
 		then: "Delete image fail"
-		1 * moabRestService.delete("/rest/images/deleteImageFail", params:['api-version': 3]) >>
+		1 * moabRestService.delete("/rest/images/deleteImageFail", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.delete.hv.image", {it.type=="Image" && it.id=="deleteImageFail"}, null)
 
 		then: "Delete image fail"
-		1 * moabRestService.delete("/rest/images/deleteImageSucceed", params:['api-version': 3]) >>
+		1 * moabRestService.delete("/rest/images/deleteImageSucceed", params:['api-version': 'latest']) >>
 				new MoabRestResponse(null, null, true)
 
 		then: "Get images again from MWS for updating virtualized images list (see metaClass override in given block)"
-		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [results:[[name:"storedHVImageList"]]], true)
 
 		then: "No-op image does nothing"
@@ -411,14 +411,14 @@ class ImageNativeTranslatorSpec extends Specification {
 		])
 
 		then:
-		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [results:[]], true)
 
 		then: "Add image"
-		1 * moabRestService.post("/rest/images", params:['api-version': 3], _ as Closure) >> new MoabRestResponse(null, null, true)
+		1 * moabRestService.post("/rest/images", params:['api-version': 'latest'], _ as Closure) >> new MoabRestResponse(null, null, true)
 
 		then: "Get images again from MWS fails"
-		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.get.hv.images", null, null)
@@ -440,7 +440,7 @@ class ImageNativeTranslatorSpec extends Specification {
 		translator.updateHypervisorImages("plugin1", [])
 
 		then:
-		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 3]], "/rest/images") >>
+		1 * moabRestService.get([params:[query:'{extensions.native.owners: ["plugin1"], hypervisor:true}', 'api-version': 'latest']], "/rest/images") >>
 				new MoabRestResponse(null, [results:[]], true)
 		0 * _._
 	}
@@ -480,19 +480,19 @@ class ImageNativeTranslatorSpec extends Specification {
 				"imageNativeTranslator.mismatched.vm.image.sets", {it.type=="Node" && it.id=="node2"}, null)
 
 		then: "Query fails"
-		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs1", "vmOs2"]}}',fields:"id", 'api-version': 3], "/rest/images") >>
+		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs1", "vmOs2"]}}',fields:"id", 'api-version': 'latest'], "/rest/images") >>
 				new MoabRestResponse(null, [messages:["m1", "m2"]], false)
 		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
 				"imageNativeTranslator.get.vm.images", null, null)
 
 		then: "No update needed"
-		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs4", "vmOs5"]}}',fields:"id", 'api-version': 3], "/rest/images") >>
+		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs4", "vmOs5"]}}',fields:"id", 'api-version': 'latest'], "/rest/images") >>
 				new MoabRestResponse(null, [results:[[id:"id2"],[id:"id1"]]], true)	// out of order should have no effect
 
 		then: "Failure"
-		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs6"]}}',fields:"id", 'api-version': 3], "/rest/images") >>
+		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs6"]}}',fields:"id", 'api-version': 'latest'], "/rest/images") >>
 				new MoabRestResponse(null, [results:[[id:"id6"],[id:"id7"]]], true)
-		1 * moabRestService.put("/rest/images/fail", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/fail", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.size()==2
 			assert data.name=="fail"
@@ -505,9 +505,9 @@ class ImageNativeTranslatorSpec extends Specification {
 				"imageNativeTranslator.put.hv.image", {it.type=="Image" && it.id=="fail"}, null)
 
 		then: "Success"
-		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs7"]}}',fields:"id", 'api-version': 3], "/rest/images") >>
+		1 * moabRestService.get(params:[query:'{extensions.native: {$ne: null}, name:{$in: ["vmOs7"]}}',fields:"id", 'api-version': 'latest'], "/rest/images") >>
 				new MoabRestResponse(null, [results:[[id:"id7"],[id:"id8"]]], true)
-		1 * moabRestService.put("/rest/images/succeed", params:['api-version': 3], {
+		1 * moabRestService.put("/rest/images/succeed", params:['api-version': 'latest'], {
 			def data = it.call()
 			assert data.size()==2
 			assert data.name=="succeed"

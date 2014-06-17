@@ -33,7 +33,7 @@ public class ImageNativeTranslator {
 				params: [
 						query: getAllMyVMImages,
 						fields: "name,extensions.native",
-						'api-version': 3]
+						'api-version': 'latest']
 		)
 		if (response.hasError()) {
 			updateNotificationError(message(
@@ -63,7 +63,7 @@ public class ImageNativeTranslator {
 
 		// Add as needed.
 		addSet.each { String imageName ->
-			response = moabRestService.post(IMAGES_RESOURCE, params: ['api-version': 3]) {
+			response = moabRestService.post(IMAGES_RESOURCE, params: ['api-version': 'latest']) {
 				[
 						active: true,
 						extensions: [
@@ -92,7 +92,7 @@ public class ImageNativeTranslator {
 
 			// Get the ID of this VM image.
 			response = moabRestService.get("$IMAGES_RESOURCE/$imageName",
-					params: [fields: "id", 'api-version': 3])
+					params: [fields: "id", 'api-version': 'latest'])
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "imageNativeTranslator.get.vm.image",
@@ -103,7 +103,7 @@ public class ImageNativeTranslator {
 
 			// Find all hypervisor images that refer to this VM image.
 			response = moabRestService.get(IMAGES_RESOURCE,
-					params: [query: '{virtualizedImages.id: "' + id + '"}', 'api-version': 3])
+					params: [query: '{virtualizedImages.id: "' + id + '"}', 'api-version': 'latest'])
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "imageNativeTranslator.get.hv.images",
@@ -115,7 +115,7 @@ public class ImageNativeTranslator {
 			// Remove the VM image reference from each hypervisor image.
 			hypervisorImages.each { hypervisorImage ->
 				hypervisorImage.virtualizedImages.removeAll { it.id == id }
-				response = moabRestService.put("$IMAGES_RESOURCE/${hypervisorImage.name}", params: ['api-version': 3]) {hypervisorImage}
+				response = moabRestService.put("$IMAGES_RESOURCE/${hypervisorImage.name}", params: ['api-version': 'latest']) {hypervisorImage}
 				if (response.hasError())
 					updateNotificationWarn(message(
 							code: "imageNativeTranslator.put.hv.image",
@@ -124,7 +124,7 @@ public class ImageNativeTranslator {
 			}
 
 			// Delete the VM image.
-			response = moabRestService.delete("$IMAGES_RESOURCE/$imageName", params: ['api-version': 3])
+			response = moabRestService.delete("$IMAGES_RESOURCE/$imageName", params: ['api-version': 'latest'])
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "imageNativeTranslator.delete.vm.image",
@@ -133,7 +133,7 @@ public class ImageNativeTranslator {
 
 		// Modify the image's owners list to include or remove this plugin
 		updateOwnersSet.each { String imageName ->
-			response = moabRestService.get("$IMAGES_RESOURCE/$imageName", params: ['api-version': 3])
+			response = moabRestService.get("$IMAGES_RESOURCE/$imageName", params: ['api-version': 'latest'])
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "imageNativeTranslator.get.vm.image",
@@ -150,7 +150,7 @@ public class ImageNativeTranslator {
 				else if (!vmImageNames.contains(imageName))
 					vmImage.extensions.native.owners.remove(pluginId)
 			}
-			response = moabRestService.put("$IMAGES_RESOURCE/$imageName", params: ['api-version': 3]) { vmImage }
+			response = moabRestService.put("$IMAGES_RESOURCE/$imageName", params: ['api-version': 'latest']) { vmImage }
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "imageNativeTranslator.put.vm.image",
@@ -167,7 +167,7 @@ public class ImageNativeTranslator {
 
 		// Get all our hypervisor images from the database.
 		MoabRestResponse response = moabRestService.get(IMAGES_RESOURCE,
-				params: [query: getAllMyHypervisorImages, 'api-version': 3])
+				params: [query: getAllMyHypervisorImages, 'api-version': 'latest'])
 		if (response.hasError()) {
 			updateNotificationError(message(
 					code: "imageNativeTranslator.get.hv.images",
@@ -196,7 +196,7 @@ public class ImageNativeTranslator {
 				hypervisorTypeCache[imageName] = hypervisorType
 				log.debug("Using hypervisor type ${hypervisorType} for image ${imageName}")
 			}
-			response = moabRestService.post(IMAGES_RESOURCE, params: ['api-version': 3]) {
+			response = moabRestService.post(IMAGES_RESOURCE, params: ['api-version': 'latest']) {
 				[
 						active: true,
 						extensions: [native: [owners: [pluginId]]],
@@ -218,7 +218,7 @@ public class ImageNativeTranslator {
 
 		// Delete as needed
 		deleteSet.each { String imageName ->
-			response = moabRestService.delete("$IMAGES_RESOURCE/$imageName", params: ['api-version': 3])
+			response = moabRestService.delete("$IMAGES_RESOURCE/$imageName", params: ['api-version': 'latest'])
 			if (response.hasError())
 				updateNotificationWarn(message(
 						code: "imageNativeTranslator.delete.hv.image",
@@ -228,7 +228,7 @@ public class ImageNativeTranslator {
 		// Get all our hypervisor image from the database again if necessary.
 		if (addSet || deleteSet) {
 			response = moabRestService.get(IMAGES_RESOURCE,
-					params: [query: getAllMyHypervisorImages, 'api-version': 3])
+					params: [query: getAllMyHypervisorImages, 'api-version': 'latest'])
 			if (response.hasError()) {
 				updateNotificationError(message(
 						code: "imageNativeTranslator.get.hv.images",
@@ -269,7 +269,7 @@ public class ImageNativeTranslator {
 
 				// Run the query.
 				response = moabRestService.get(IMAGES_RESOURCE,
-						params: [query: query, fields: "id", 'api-version': 3])
+						params: [query: query, fields: "id", 'api-version': 'latest'])
 				if (response.hasError()) {
 					updateNotificationError(message(
 							code: "imageNativeTranslator.get.vm.images",
@@ -286,7 +286,7 @@ public class ImageNativeTranslator {
 
 			// Do the update
 			storedHypervisorImage.virtualizedImages = compatibleImages
-			response = moabRestService.put("$IMAGES_RESOURCE/$storedHypervisorImageName", params: ['api-version': 3]) {storedHypervisorImage}
+			response = moabRestService.put("$IMAGES_RESOURCE/$storedHypervisorImageName", params: ['api-version': 'latest']) {storedHypervisorImage}
 			if (response.hasError()) {
 				updateNotificationWarn(message(
 						code: "imageNativeTranslator.put.hv.image",
