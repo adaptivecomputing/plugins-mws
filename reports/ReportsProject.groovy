@@ -7,7 +7,8 @@ class ReportsProject {
 	Integer eventComponent = 2
 
 	// Versioning properties
-	String version = "1.6"
+	String version = "1.7-SNAPSHOT"
+	String mwsVersion = "7.5.0 > *"
 	String commonsVersion = "1.1.0 > *"
 	String license = "APACHE"
 	
