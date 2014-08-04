@@ -13,6 +13,7 @@ dependencies {
 	//	access the JAR's classes, therefore it fails with runtime errors.
 	//
 	// If this dependency is updated, it should be downloaded directly, cracked open, the Apis class removed, and
-	//	then placed in the "lib" directory of the project.
+	//	then placed in the "lib" directory of the project.  Note that the Apis class located within this project
+	//	does an in-project replacement of the JAR's class, so no other changes are needed to the JAR.
 	//compile('org.pacesys:openstack4j:1.0.1:withdeps')
 }
