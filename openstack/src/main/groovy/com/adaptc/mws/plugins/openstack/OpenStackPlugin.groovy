@@ -9,10 +9,14 @@ import org.openstack4j.model.compute.ServerCreate
 import org.openstack4j.openstack.OSFactory
 
 import javax.net.ssl.HttpsURLConnection
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 class OpenStackPlugin extends AbstractPlugin {
 	private static final String REQUEST_ID_TOKEN = "{request-id}"
 	private static final String DATE_TOKEN = "{date}"
+	private static final String SERVER_NUMBER_TOKEN = "{server-number}"
 	private static final int SLEEP_VALUE = 1 * 1000l
 
 	static constraints = {
@@ -73,89 +77,201 @@ class OpenStackPlugin extends AbstractPlugin {
 			if (responseCode != HttpURLConnection.HTTP_OK)
 				return ["invalid.response", val, responseCode]
 		}
-		osUsername blank:false
-		osPassword blank:false, password:true
-		osTenant blank:false
-		osFlavorName blank:false
-		osImageName blank:false
-		matchImagePrefix type:Boolean, defaultValue:true
-		osVlanName required:false, blank:false
-		osInstanceNamePattern blank:false, defaultValue: "moab-burst-{request-id}-{date}", validator: { val ->
+		osUsername blank: false
+		osPassword blank: false, password: true
+		osTenant blank: false
+		osFlavorName blank: false
+		osImageName blank: false
+		matchImagePrefix type: Boolean, defaultValue: true
+		osVlanName required: false, blank: false
+		osInstanceNamePattern blank: false, defaultValue: "moab-burst-{request-id}-{date}-{server-number}", validator: { val ->
 			if (!(val instanceof String))
 				return
 
-			if (!val.contains("{date}") || !val.contains("{request-id}"))
-				return ["invalid.format", ["{date}", "{request-id}"].join(', ')]
+			if (!val.contains("{date}") || !val.contains("{request-id}") || !val.contains("{server-number}"))
+				return ["invalid.format", ["{date}", "{request-id}", "{server-number}"].join(', ')]
 		}
-		activeTimeoutSeconds defaultValue:30, minValue:1
+		activeTimeoutSeconds defaultValue: 30, minValue: 1
+		maxRequestLimit defaultValue: 10, minValue: 1
 	}
 
-	public def triggerBurst(Map params) {
-		if (!params.requestId)
-			throw new WebServiceException(message(code:"triggerBurst.missing.request.id.message", args:["requestId"]))
-
-		Map<String, Object> config = getConfig()
-
-		// Connect to OpenStack
-		OSClient osClient = OSFactory.builder()
+	private OSClient buildClient(Map<String, Object> config) {
+		return OSFactory.builder()
 				.endpoint(config.osEndpoint)
 				.credentials(config.osUsername, config.osPassword)
 				.tenantName(config.osTenant)
 				.authenticate()
+	}
 
-		// Retrieve flavor and image
-		def flavorId = osClient.compute().flavors().list().find { it.name==config.osFlavorName }?.id
-		if (!flavorId)
-			throw new WebServiceException(message(code:"triggerBurst.invalid.flavor.name.message",
-					args:[config.osFlavorName]))
+	private String getAndVerifyFlavorId(OSClient osClient, Map<String, Object> config) throws WebServiceException {
+		String flavorId = osClient.compute().flavors().list().find { it.name == config.osFlavorName }?.id
+		if (!flavorId) {
+			throw new WebServiceException(message(code: "invalid.flavor.name.message",
+					args: [config.osFlavorName]))
+		}
+		return flavorId
+	}
+
+	private String getAndVerifyImageId(OSClient osClient, Map<String, Object> config) throws WebServiceException {
 		def allImages = osClient.compute().images().list()
 		String imageName = config.osImageName
 		if (config.matchImagePrefix) {
-			imageName = allImages.collect { it.name }.sort().reverse().find { it.startsWith(imageName) }
+			imageName = allImages.collect { it.name }.sort().reverse().find {
+				it.startsWith(imageName)
+			}
 		}
-		def imageId = allImages.find { it.name==imageName }?.id
+		String imageId = allImages.find { it.name == imageName }?.id
 		if (!imageId) {
-			throw new WebServiceException(message(code:"triggerBurst.invalid.image.name.message",
-					args:[config.osImageName]))
+			throw new WebServiceException(message(code: "invalid.image.name.message",
+					args: [config.osImageName]))
 		}
+		return imageId
+	}
 
-		log.debug("Using flavor ${flavorId} and image ${imageId}")
-
-		// Create new server
-		ServerCreate newServer = Builders.server()
-				.name(((String)config.osInstanceNamePattern)
-						.replace(REQUEST_ID_TOKEN, params.requestId)
-						.replace(DATE_TOKEN, new Date().time.toString())
-				)
+	private ServerCreate buildNewServerRequest(String requestId, int serverNumber,
+											   String flavorId, String imageId,
+											   Map<String, Object> config) {
+		final String name = ((String) config.osInstanceNamePattern)
+				.replace(REQUEST_ID_TOKEN, requestId)
+				.replace(DATE_TOKEN, new Date().time.toString())
+				.replace(SERVER_NUMBER_TOKEN, (serverNumber).toString())
+		ServerCreate serverCreate = Builders.server()
+				.name(name)
 				.flavor(flavorId)
 				.image(imageId)
 				.build()
+		log.debug("Creating new server ${serverCreate.getName()} for request '${requestId}'")
+		return serverCreate
+	}
 
-		// Boot new server and wait for timeout until the server is active
-		Server server = osClient.compute().servers().boot(newServer)
-		def startTime = new Date().time
-		long timeout = config.activeTimeoutSeconds * 10000l
-		while(server.status != Server.Status.ACTIVE) {
+	private Server bootAndWaitForActive(OSClient osClient, ServerCreate serverCreate, Map<String, Object> config) {
+		log.debug("Starting server ${serverCreate.getName()} and waiting for it to become active")
+		Server server = osClient.compute().servers().boot(serverCreate)
+		final def startTime = new Date().time
+		final long timeout = config.activeTimeoutSeconds * 1000l
+		while (server.status != Server.Status.ACTIVE) {
 			if ((new Date().time - startTime) > timeout) {
-				log.error("Could not get information from server, timeout after ${config.timeoutSeconds} seconds")
-				break
+				log.error("Could not get information from server ${server.getName()}, " +
+						"timeout after ${config.activeTimeoutSeconds} seconds")
+				return server
 			}
 			// Else keep trying
 			sleep(SLEEP_VALUE)
 			server = osClient.compute().servers().get(server.id)
 		}
+		log.debug("Server ${server.getName()} is active")
+		return server
+	}
 
-		// Return data to the client
+	private String getIpAddress(Server server, Map<String, Object> config) {
+		log.debug("Attempting to get IP address information from server ${server.getName()}")
 		List<? extends Address> addresses = null
 		if (config.osVlanName)
 			addresses = server.getAddresses().getAddresses(config.osVlanName)
 		if (!addresses)
-			addresses = server.getAddresses().getAddresses().values().find { it } // Get first non-empty list
-		return [
-				id:server.id,
-		        ipAddress:addresses.first()?.addr,
-				name:server.name,
-				powerState:server.powerState
-		]
+			addresses = server.getAddresses().getAddresses().values().find { it }
+		return addresses.first()?.addr
 	}
+
+	private void deleteServer(OSClient osClient, String serverId) {
+		osClient.compute().servers().delete(serverId)
+	}
+
+	public def triggerBurst(Map params) throws WebServiceException {
+		if (!params.requestId)
+			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["requestId"]))
+		if (!params.serverCount)
+			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["serverCount"]))
+		Integer serverCount = params.int('serverCount')
+		if (!serverCount || serverCount < 1)
+			throw new WebServiceException(message(code: "triggerBurst.invalid.server.count.message", args: ["serverCount"]))
+
+		Map<String, Object> config = getConfig()
+
+		def osClientRetrieval = buildClient(config)
+
+		// Retrieve flavor and image
+		String imageId = getAndVerifyImageId(osClientRetrieval, config)
+		String flavorId = getAndVerifyFlavorId(osClientRetrieval, config)
+		log.debug("Using flavor ${flavorId} and image ${imageId}")
+
+		// Create new servers while limiting the number of concurrent connections
+		final List<String> errors = Collections.synchronizedList([])
+		final List<Future> futureList = []
+		final def threadPool = Executors.newFixedThreadPool(config.maxRequestLimit)
+		for (int i = 1; i <= serverCount; i++) { // i is a human readable number
+			futureList << threadPool.submit({ int serverNumber -> // and so is the server number
+				try {
+					// If errors already exist, do not attempt to start any more servers since they will just be deleted
+					if (errors)
+						return null
+
+					// Create client and build request
+					final OSClient osClient = buildClient(config)
+					final ServerCreate serverCreate = buildNewServerRequest(params.requestId.toString(),
+							serverNumber, flavorId, imageId, config)
+
+					// Boot new servers and wait for timeout until the server is active
+					final Server server = bootAndWaitForActive(osClient, serverCreate, config)
+
+					// Return data to the client
+					String ipAddress = getIpAddress(server, config)
+					return new ServerInformation(
+							id: server.id,
+							ipAddress: ipAddress,
+							name: server.name,
+							powerState: server.powerState
+					)
+				} catch (Exception e) {
+					log.error("Caught exception while creating server ${serverNumber}", e)
+					errors.add(message(code: "triggerBurst.exception.message",
+							args: [
+									e.getMessage() ?: message(code: "unknown.exception.message")
+							]
+					))
+					return null
+				}
+			}.curry(i) as Callable)
+		}
+		// Execute get here in order to let all threads run as they wish in the pool
+		final List<ServerInformation> serverInformationList = futureList.collect { it.get() }.findAll { it }
+
+		// If there are errors, use the thread pool to destroy the servers that were started
+		if (errors) {
+			log.warn("Errors occurred while bursting, destroying ${serverInformationList.size()} created servers")
+			futureList.clear()
+			def errorCount = errors.size()
+			serverInformationList.each { ServerInformation info ->
+				futureList << threadPool.submit({ ServerInformation serverInformation ->
+					try {
+						log.info("Destroying server ${serverInformation.name} (${serverInformation.id})")
+						final def osClient = buildClient(config)
+						deleteServer(osClient, serverInformation.id)
+					} catch (Exception e) {
+						log.error("Caught exception while deleting server ${serverInformation.name} (${serverInformation.id})", e)
+						errors.add(message(code: "triggerBurst.delete.exception.message", args: [
+								serverInformation.name,
+								e.getMessage() ?: message(code: "unknown.exception.message")
+						]))
+					}
+				}.curry(info))
+			}
+			futureList.each { it.get() }
+			errors.add(0, message(code:"triggerBurst.error.message", args:[errorCount]))
+
+			throw new WebServiceException(errors, 500)
+		}
+
+		// Close down thread pool
+		threadPool.shutdown()
+
+		return serverInformationList
+	}
+}
+
+class ServerInformation {
+	String id
+	String name
+	String ipAddress
+	String powerState
 }
