@@ -6,8 +6,8 @@ buildscript {
 		}
 	}
 	dependencies {
-		classpath ('com.adaptc.gradle:moab-sdk:0.9-SNAPSHOT')
-		classpath ('com.adaptc.gradle:nexus-workflow:0.5')
+		classpath ('com.adaptc.gradle:moab-sdk:0.10-SNAPSHOT')
+		classpath ('com.adaptc.gradle:nexus-workflow:0.6')
 	}
 	// check for updates every build
 	configurations.all {
@@ -133,6 +133,6 @@ cobertura {
 }
 
 task wrapper(type: Wrapper) {
-	gradleVersion = '1.4'
+	gradleVersion = '2.0'
 	jarFile = 'wrapper/wrapper.jar'
 }
