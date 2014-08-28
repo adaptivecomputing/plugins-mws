@@ -6,6 +6,7 @@ import org.openstack4j.api.OSClient
 import org.openstack4j.model.compute.Address
 import org.openstack4j.model.compute.Server
 import org.openstack4j.model.compute.ServerCreate
+import org.openstack4j.model.image.ContainerFormat
 import org.openstack4j.openstack.OSFactory
 
 import javax.net.ssl.HttpsURLConnection
@@ -83,6 +84,10 @@ class OpenStackPlugin extends AbstractPlugin {
 		osFlavorName blank: false
 		osImageName blank: false
 		matchImagePrefix type: Boolean, defaultValue: true
+		useBootableImage type: Boolean, defaultValue: true, validator: { val, obj ->
+			if (val && !obj.config.matchImagePrefix)
+				return "invalid.prefix.setting"
+		}
 		osVlanName required: false, blank: false
 		osInstanceNamePattern blank: false, defaultValue: "moab-burst-{request-id}-{date}-{server-number}", validator: { val ->
 			if (!(val instanceof String))
@@ -113,12 +118,26 @@ class OpenStackPlugin extends AbstractPlugin {
 	}
 
 	private String getAndVerifyImageId(OSClient osClient, Map<String, Object> config) throws WebServiceException {
+		def checkBoot = config.useBootableImage
 		def allImages = osClient.compute().images().list()
 		String imageName = config.osImageName
 		if (config.matchImagePrefix) {
-			imageName = allImages.collect { it.name }.sort().reverse().find {
-				it.startsWith(imageName)
-			}
+			imageName = allImages.sort { it.name }.reverse().find {
+				if (it.name.startsWith(imageName)) {
+					if (checkBoot) {
+						// Retrieve the image from the image service directly to get more info about it
+						def image = osClient.images().get(it.id)
+						if (image.containerFormat!=ContainerFormat.AKI &&
+								image.containerFormat!=ContainerFormat.ARI &&
+								//TODO: Verify that this check is valid
+								image.properties?.getAt('image_type')!='snapshot')
+							return true
+						// else fall through and return false below
+					} else
+						return true
+				}
+				return false
+			}?.name
 		}
 		String imageId = allImages.find { it.name == imageName }?.id
 		if (!imageId) {
