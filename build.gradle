@@ -37,9 +37,9 @@ subprojects { proj ->
 	}
 
 	task assignOrderNumber(dependsOn:"loadPluginProject") << {
-		// Replace version snapshot with order number
+		// Replace version snapshot with order number (date of last commit)
 		if (proj.version.contains("-SNAPSHOT")) {
-			def orderNumber = "git rev-list HEAD".execute().text.readLines().size()
+			def orderNumber = "git log --pretty=format:%ct -1".execute().in.text.trim()
 			proj.version = proj.version.replace("-SNAPSHOT", "-" + orderNumber)
 			File projectFile = moabSdk.pluginProject.projectFile
 			projectFile.write(projectFile.getText("UTF-8").readLines().collect {
