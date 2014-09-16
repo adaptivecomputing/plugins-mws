@@ -1,11 +1,13 @@
 package com.adaptc.mws.plugins.openstack
 
 import com.adaptc.mws.plugins.*
+import org.apache.commons.codec.binary.Base64
 import org.openstack4j.api.Builders
 import org.openstack4j.api.OSClient
 import org.openstack4j.model.compute.Address
 import org.openstack4j.model.compute.Server
 import org.openstack4j.model.compute.ServerCreate
+import org.openstack4j.model.compute.builder.ServerCreateBuilder
 import org.openstack4j.model.image.ContainerFormat
 import org.openstack4j.openstack.OSFactory
 
@@ -19,6 +21,8 @@ class OpenStackPlugin extends AbstractPlugin {
 	private static final String DATE_TOKEN = "{date}"
 	private static final String SERVER_NUMBER_TOKEN = "{server-number}"
 	private static final int SLEEP_VALUE = 1 * 1000l
+	private static final String OS_IMAGE_TYPE_PROPERTY_KEY = "image_type"
+	private static final String OS_IMAGE_TYPE_SNAPSHOT = "snapshot"
 
 	static constraints = {
 		// You can insert constraints here on pollInterval or any arbitrary field in
@@ -83,8 +87,14 @@ class OpenStackPlugin extends AbstractPlugin {
 		osTenant blank: false
 		osFlavorName blank: false
 		osImageName blank: false
+		osKeyPairName blank: false, required: false
+		osInitScript blank: false, required: false
 		matchImagePrefix type: Boolean, defaultValue: true
 		useBootableImage type: Boolean, defaultValue: true, validator: { val, obj ->
+			if (val && !obj.config.matchImagePrefix)
+				return "invalid.prefix.setting"
+		}
+		useSnapshot type: Boolean, defaultValue: false, validator: { val, obj ->
 			if (val && !obj.config.matchImagePrefix)
 				return "invalid.prefix.setting"
 		}
@@ -118,23 +128,32 @@ class OpenStackPlugin extends AbstractPlugin {
 	}
 
 	private String getAndVerifyImageId(OSClient osClient, Map<String, Object> config) throws WebServiceException {
-		def checkBoot = config.useBootableImage
+		def useBootableImage = config.useBootableImage
+		def useSnapshot = config.useSnapshot
 		def allImages = osClient.compute().images().list()
 		String imageName = config.osImageName
 		if (config.matchImagePrefix) {
 			imageName = allImages.sort { it.name }.reverse().find {
 				if (it.name.startsWith(imageName)) {
-					if (checkBoot) {
-						// Retrieve the image from the image service directly to get more info about it
-						def image = osClient.images().get(it.id)
-						if (image.containerFormat!=ContainerFormat.AKI &&
-								image.containerFormat!=ContainerFormat.ARI &&
-								//TODO: Verify that this check is valid
-								image.properties?.getAt('image_type')!='snapshot')
-							return true
-						// else fall through and return false below
-					} else
+					// If no verification should be done, immediately return true
+					if (!useBootableImage && !useSnapshot)
 						return true
+
+					// Retrieve more information on this image and check boot and/or snapshot status
+					def image = osClient.images().get(it.id)
+
+					// Check bootable status
+					if (useBootableImage && (image.containerFormat==ContainerFormat.AKI ||
+							image.containerFormat==ContainerFormat.ARI))
+						return false
+
+					// Check snapshot status
+					def isSnapshot = image.properties?.getAt(OS_IMAGE_TYPE_PROPERTY_KEY) == OS_IMAGE_TYPE_SNAPSHOT
+					if ((useSnapshot && !isSnapshot) || (!useSnapshot && isSnapshot))
+						return false
+
+					// Else all checks pass and this is a valid image
+					return true
 				}
 				return false
 			}?.name
@@ -154,11 +173,22 @@ class OpenStackPlugin extends AbstractPlugin {
 				.replace(REQUEST_ID_TOKEN, requestId)
 				.replace(DATE_TOKEN, new Date().time.toString())
 				.replace(SERVER_NUMBER_TOKEN, (serverNumber).toString())
-		ServerCreate serverCreate = Builders.server()
+		ServerCreateBuilder builder = Builders.server()
 				.name(name)
 				.flavor(flavorId)
 				.image(imageId)
-				.build()
+		if (config.osKeyPairName) {
+			log.trace("Setting the keypair name to ${config.osKeyPairName} for request '${requestId}'")
+			builder = builder.keypairName(config.osKeyPairName)
+		}
+		ServerCreate serverCreate = builder.build()
+
+		if (config.osInitScript) {
+			def userData = new String(Base64.encodeBase64(config.osInitScript.toString().getBytes("UTF-8")), "UTF-8")
+			log.trace("Setting the user data to base64 data for request '${requestId}': ${userData}")
+			// Because we are using groovy, we can set this *private* property
+			serverCreate.@userData = userData
+		}
 		log.debug("Creating new server ${serverCreate.getName()} for request '${requestId}'")
 		return serverCreate
 	}
@@ -189,7 +219,7 @@ class OpenStackPlugin extends AbstractPlugin {
 			addresses = server.getAddresses().getAddresses(config.osVlanName)
 		if (!addresses)
 			addresses = server.getAddresses().getAddresses().values().find { it }
-		return addresses.first()?.addr
+		return addresses?.first()?.addr
 	}
 
 	private void deleteServer(OSClient osClient, String serverId) {
