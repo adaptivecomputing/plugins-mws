@@ -108,7 +108,7 @@ class OpenStackPlugin extends AbstractPlugin {
 			if (!val.contains(OpenStackPlugin.DATE_TOKEN) && !val.contains(OpenStackPlugin.REQUEST_ID_TOKEN))
 				return ["invalid.format.list", [OpenStackPlugin.DATE_TOKEN, OpenStackPlugin.REQUEST_ID_TOKEN].join(', ')]
 		}
-		activeTimeoutSeconds defaultValue: 30, minValue: 1
+		activeTimeoutSeconds defaultValue: 120, minValue: 1
 		maxRequestLimit defaultValue: 10, minValue: 1
 	}
 
@@ -169,11 +169,11 @@ class OpenStackPlugin extends AbstractPlugin {
 	}
 
 	private ServerCreate buildNewServerRequest(String requestId, int serverNumber,
-											   String flavorId, String imageId,
-											   Map<String, Object> config) {
+												String flavorId, String imageId,
+												Date date, Map<String, Object> config) {
 		final String name = ((String) config.osInstanceNamePattern)
 				.replace(REQUEST_ID_TOKEN, requestId)
-				.replace(DATE_TOKEN, new Date().time.toString())
+				.replace(DATE_TOKEN, date.time.toString())
 				.replace(SERVER_NUMBER_TOKEN, (serverNumber).toString())
 		ServerCreateBuilder builder = Builders.server()
 				.name(name)
@@ -246,6 +246,9 @@ class OpenStackPlugin extends AbstractPlugin {
 		String flavorId = getAndVerifyFlavorId(osClientRetrieval, config)
 		log.debug("Using flavor ${flavorId} and image ${imageId}")
 
+		// Retrieve current date if needed for the name
+		final Date date = new Date()
+
 		// Create new servers while limiting the number of concurrent connections
 		final List<String> errors = Collections.synchronizedList([])
 		final List<Future> futureList = []
@@ -260,18 +263,18 @@ class OpenStackPlugin extends AbstractPlugin {
 					// Create client and build request
 					final OSClient osClient = buildClient(config)
 					final ServerCreate serverCreate = buildNewServerRequest(params.requestId.toString(),
-							serverNumber, flavorId, imageId, config)
+							serverNumber, flavorId, imageId, date, config)
 
 					// Boot new servers and wait for timeout until the server is active
 					final Server server = bootAndWaitForActive(osClient, serverCreate, config)
 
 					// Return data to the client
-					String ipAddress = getIpAddress(server, config)
+					final String ipAddress = getIpAddress(server, config)
 					return new ServerInformation(
 							id: server.id,
 							ipAddress: ipAddress,
 							name: server.name,
-							powerState: server.powerState
+							powerState: server.powerState=='1' ? 'Running' : 'Unknown'
 					)
 				} catch (Exception e) {
 					log.error("Caught exception while creating server ${serverNumber}", e)
