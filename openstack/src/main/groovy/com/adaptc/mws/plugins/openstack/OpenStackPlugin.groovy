@@ -99,12 +99,14 @@ class OpenStackPlugin extends AbstractPlugin {
 				return "invalid.prefix.setting"
 		}
 		osVlanName required: false, blank: false
-		osInstanceNamePattern blank: false, defaultValue: "moab-burst-{request-id}-{date}-{server-number}", validator: { val ->
+		osInstanceNamePattern blank: false, defaultValue: "moab-burst-{date}-{server-number}", validator: { val ->
 			if (!(val instanceof String))
 				return
 
-			if (!val.contains("{date}") || !val.contains("{request-id}") || !val.contains("{server-number}"))
-				return ["invalid.format", ["{date}", "{request-id}", "{server-number}"].join(', ')]
+			if (!val.contains(OpenStackPlugin.SERVER_NUMBER_TOKEN))
+				return ["invalid.format", [OpenStackPlugin.SERVER_NUMBER_TOKEN].join(', ')]
+			if (!val.contains(OpenStackPlugin.DATE_TOKEN) && !val.contains(OpenStackPlugin.REQUEST_ID_TOKEN))
+				return ["invalid.format.list", [OpenStackPlugin.DATE_TOKEN, OpenStackPlugin.REQUEST_ID_TOKEN].join(', ')]
 		}
 		activeTimeoutSeconds defaultValue: 30, minValue: 1
 		maxRequestLimit defaultValue: 10, minValue: 1
