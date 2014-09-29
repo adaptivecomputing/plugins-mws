@@ -321,6 +321,11 @@ class OpenStackPlugin extends AbstractPlugin {
 
 		return serverInformationList
 	}
+
+	public def triggerNodeEnd(Map params) {
+		if (!params.nodeId)
+			throw new WebServiceException(message(code: "triggerNodeEnd.missing.parameter.message", args: ["nodeId"]))
+	}
 }
 
 class ServerInformation {
