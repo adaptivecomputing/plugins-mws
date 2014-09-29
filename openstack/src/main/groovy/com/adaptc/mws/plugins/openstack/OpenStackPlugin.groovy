@@ -109,6 +109,7 @@ class OpenStackPlugin extends AbstractPlugin {
 				return ["invalid.format.list", [OpenStackPlugin.DATE_TOKEN, OpenStackPlugin.REQUEST_ID_TOKEN].join(', ')]
 		}
 		activeTimeoutSeconds defaultValue: 120, minValue: 1
+		deleteTimeoutSeconds defaultValue: 120, minValue: 1
 		maxRequestLimit defaultValue: 10, minValue: 1
 	}
 
@@ -325,6 +326,31 @@ class OpenStackPlugin extends AbstractPlugin {
 	public def triggerNodeEnd(Map params) {
 		if (!params.nodeId)
 			throw new WebServiceException(message(code: "triggerNodeEnd.missing.parameter.message", args: ["nodeId"]))
+		String nodeId = params.nodeId
+
+		Map<String, Object> config = getConfig()
+		def osClient = buildClient(config)
+		def serverService = osClient.compute().servers()
+		def server = serverService.list(false).find { it.name==nodeId }
+		if (!server) {
+			throw new WebServiceException(message(code:"triggerNodeEnd.not.found.message", args:[nodeId]), 400)
+		}
+
+		serverService.delete(server.getId())
+
+		final def startTime = new Date().time
+		final long timeout = config.deleteTimeoutSeconds * 1000l
+		while (server) {
+			if ((new Date().time - startTime) > timeout) {
+				log.error("Server ${server.getName()} was not deleted successfully, " +
+						"timeout after ${config.activeTimeoutSeconds} seconds")
+				throw new WebServiceException(
+						message(code:"triggerNodeEnd.timeout.message", args:[nodeId, config.deleteTimeoutSeconds]),
+						500)
+			}
+		}
+
+		return [messages:[message(code:"triggerNodeEnd.success.message", args:[nodeId])]]
 	}
 }
 
