@@ -88,7 +88,7 @@ class OpenStackPlugin extends AbstractPlugin {
 		osFlavorName blank: false
 		osImageName blank: false
 		osKeyPairName blank: false, required: false
-		osInitScript blank: false, required: false
+		osInitScript blank: false, required: false, widget:"textarea"
 		matchImagePrefix type: Boolean, defaultValue: true
 		useBootableImage type: Boolean, defaultValue: true, validator: { val, obj ->
 			if (val && !obj.config.matchImagePrefix)
@@ -331,7 +331,10 @@ class OpenStackPlugin extends AbstractPlugin {
 		Map<String, Object> config = getConfig()
 		def osClient = buildClient(config)
 		def serverService = osClient.compute().servers()
-		def server = serverService.list(false).find { it.name==nodeId }
+		def server = serverService.list(false).find {
+			log.error "Name: ${it.getName()}, instance name: ${it.getInstanceName()}, id: ${it.getId()}"
+			return it.getName()==nodeId
+		}
 		if (!server) {
 			throw new WebServiceException(message(code:"triggerNodeEnd.not.found.message", args:[nodeId]), 400)
 		}
@@ -348,6 +351,9 @@ class OpenStackPlugin extends AbstractPlugin {
 						message(code:"triggerNodeEnd.timeout.message", args:[nodeId, config.deleteTimeoutSeconds]),
 						500)
 			}
+			// Else keep trying
+			sleep(SLEEP_VALUE)
+			server = osClient.compute().servers().get(server.id)
 		}
 
 		return [messages:[message(code:"triggerNodeEnd.success.message", args:[nodeId])]]

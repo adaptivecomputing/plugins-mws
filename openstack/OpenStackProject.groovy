@@ -2,13 +2,13 @@
 class OpenStackProject {
 	// Plugin information
 	String title = "OpenStack"
-	String description = "OpenStack provisioning plugin for cloud bursting"
+	String description = "OpenStack provisioning plugin for HPC cloud bursting"
 	String author = "Adaptive Computing Enterprises, Inc."
 	String website = "http://www.adaptivecomputing.com"
 
 	// Versioning properties
 	String version = "0.1-SNAPSHOT"
-	String mwsVersion = "7.1.4 > *"
+	String mwsVersion = "8.1.0 > *"
 	String commonsVersion = "1.1.0 > *"
 	String license = "APACHE"
 	
