@@ -23,6 +23,28 @@ import com.adaptc.mws.plugins.testing.*
 @TestFor(OpenStackPlugin)
 @Unroll
 class OpenstackPluginSpec extends Specification {
+	def "osEndpoint validation constraints #desc"() {
+		given:
+		plugin.sslService = new MockSslService()
+
+		when:
+		def result = constraints.osEndpoint.validator(endpoint, null)
+		if (!(result instanceof List))
+			result = [result]
+
+		then:
+		result.size()==size
+		result.getAt(0)==first
+
+		where:
+		desc				| endpoint				| size	| first
+		"null"				| null					| 2		| "invalid.malformed"
+		"invalid url"		| "bogus url"			| 2		| "invalid.malformed"
+		"bad protocol"		| "ftp://domain/1"		| 1		| "invalid.protocol"
+		"bad host"			| "http://asdf3r3r90xv" | 2		| "invalid.host"
+		"good host"			| "https://google.com" 	| 1		| null
+	}
+
 	def "Build client #desc"() {
 		given:
 		OSFactory osFactoryMock = Mock()

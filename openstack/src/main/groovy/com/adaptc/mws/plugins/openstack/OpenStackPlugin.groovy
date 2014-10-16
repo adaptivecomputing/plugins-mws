@@ -24,6 +24,9 @@ class OpenStackPlugin extends AbstractPlugin {
 	private static final String OS_IMAGE_TYPE_PROPERTY_KEY = "image_type"
 	private static final String OS_IMAGE_TYPE_SNAPSHOT = "snapshot"
 
+	// For constraint validation
+	ISslService sslService
+
 	static constraints = {
 		// You can insert constraints here on pollInterval or any arbitrary field in
 		// the plugin's configuration.  All parameters defined here default to required:true.
