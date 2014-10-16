@@ -11,15 +11,9 @@ information on how to configure a bursting solution.
 To create an OpenStack plugin, see **Creating a plugin** in the MWS user guide.  During plugin creation, refer to the
 **Configuration** section below.
 
-# Configuration
-
-## Configuration Parameters
+# Configuration Parameters
 
 <div class="configuration-table">MWS replaces this section with the configuration parameters table at run-time.</div>
-
-## Configuration Notes
-
-* If any of the servers fail to provision during a ``trigger
 
 # Web Services
 
