@@ -324,9 +324,9 @@ class OpenStackPlugin extends AbstractPlugin {
 	}
 
 	public def triggerNodeEnd(Map params) {
-		if (!params.nodeId)
-			throw new WebServiceException(message(code: "triggerNodeEnd.missing.parameter.message", args: ["nodeId"]))
-		String nodeId = params.nodeId
+		if (!params.id)
+			throw new WebServiceException(message(code: "triggerNodeEnd.missing.parameter.message", args: ["id"]))
+		String nodeId = params.id
 
 		Map<String, Object> config = getConfig()
 		def osClient = buildClient(config)
