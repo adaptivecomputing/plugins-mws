@@ -125,7 +125,7 @@ class OpenStackPlugin extends AbstractPlugin {
 		String flavorId = osClient.compute().flavors().list().find { it.name == config.osFlavorName }?.id
 		if (!flavorId) {
 			throw new WebServiceException(message(code: "invalid.flavor.name.message",
-					args: [config.osFlavorName]))
+					args: [config.osFlavorName]), 500)
 		}
 		return flavorId
 	}
@@ -133,38 +133,33 @@ class OpenStackPlugin extends AbstractPlugin {
 	private String getAndVerifyImageId(OSClient osClient, Map<String, Object> config) throws WebServiceException {
 		def useBootableImage = config.useBootableImage
 		def useSnapshot = config.useSnapshot
+		def matchImagePrefix = config.matchImagePrefix
 		def allImages = osClient.compute().images().list()
 		String imageName = config.osImageName
-		if (config.matchImagePrefix) {
-			imageName = allImages.sort { it.name }.reverse().find {
-				if (it.name.startsWith(imageName)) {
-					// If no verification should be done, immediately return true
-					if (!useBootableImage && !useSnapshot)
-						return true
-
-					// Retrieve more information on this image and check boot and/or snapshot status
-					def image = osClient.images().get(it.id)
-
-					// Check bootable status
-					if (useBootableImage && (image.containerFormat==ContainerFormat.AKI ||
-							image.containerFormat==ContainerFormat.ARI))
-						return false
-
-					// Check snapshot status
-					def isSnapshot = image.properties?.getAt(OS_IMAGE_TYPE_PROPERTY_KEY) == OS_IMAGE_TYPE_SNAPSHOT
-					if ((useSnapshot && !isSnapshot) || (!useSnapshot && isSnapshot))
-						return false
-
-					// Else all checks pass and this is a valid image
-					return true
-				}
+		String imageId = allImages.sort { it.name }.reverse().find {
+			if ((matchImagePrefix && !it.name.startsWith(imageName)) ||
+					(!matchImagePrefix && it.name!=imageName))
 				return false
-			}?.name
-		}
-		String imageId = allImages.find { it.name == imageName }?.id
+
+			// Retrieve more information on this image and check boot and/or snapshot status
+			def image = osClient.images().get(it.id)
+
+			// Check bootable status
+			if (useBootableImage && (image.containerFormat==ContainerFormat.AKI ||
+					image.containerFormat==ContainerFormat.ARI))
+				return false
+
+			// Check snapshot status
+			def isSnapshot = image.properties?.getAt(OS_IMAGE_TYPE_PROPERTY_KEY) == OS_IMAGE_TYPE_SNAPSHOT
+			if ((useSnapshot && !isSnapshot) || (!useSnapshot && isSnapshot))
+				return false
+
+			// Else all checks pass and this is a valid image
+			return true
+		}?.id
 		if (!imageId) {
 			throw new WebServiceException(message(code: "invalid.image.name.message",
-					args: [config.osImageName]))
+					args: [config.osImageName]), 500)
 		}
 		return imageId
 	}
@@ -196,16 +191,18 @@ class OpenStackPlugin extends AbstractPlugin {
 		return serverCreate
 	}
 
-	private Server bootAndWaitForActive(OSClient osClient, ServerCreate serverCreate, Map<String, Object> config) {
+	private Server bootAndWaitForActive(OSClient osClient, ServerCreate serverCreate, Map<String, Object> config)
+			throws WebServiceException {
 		log.debug("Starting server ${serverCreate.getName()} and waiting for it to become active")
 		Server server = osClient.compute().servers().boot(serverCreate)
 		final def startTime = new Date().time
 		final long timeout = config.activeTimeoutSeconds * 1000l
 		while (server.status != Server.Status.ACTIVE) {
 			if ((new Date().time - startTime) > timeout) {
-				log.error("Could not get information from server ${server.getName()}, " +
-						"timeout after ${config.activeTimeoutSeconds} seconds")
-				return server
+				def message = "Could not get information from server ${server.getName()}, " +
+						"timeout after ${config.activeTimeoutSeconds} seconds"
+				log.error(message)
+				throw new WebServiceException(message)
 			}
 			// Else keep trying
 			sleep(SLEEP_VALUE)
@@ -222,7 +219,7 @@ class OpenStackPlugin extends AbstractPlugin {
 			addresses = server.getAddresses().getAddresses(config.osVlanName)
 		if (!addresses)
 			addresses = server.getAddresses().getAddresses().values().find { it }
-		return addresses?.first()?.addr
+		return addresses?.find { it }?.addr
 	}
 
 	private void deleteServer(OSClient osClient, String serverId) {
@@ -231,12 +228,12 @@ class OpenStackPlugin extends AbstractPlugin {
 
 	public def triggerBurst(Map params) throws WebServiceException {
 		if (!params.requestId)
-			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["requestId"]))
+			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["requestId"]), 400)
 		if (!params.serverCount)
-			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["serverCount"]))
+			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["serverCount"]), 400)
 		Integer serverCount = params.int('serverCount')
 		if (!serverCount || serverCount < 1)
-			throw new WebServiceException(message(code: "triggerBurst.invalid.server.count.message", args: ["serverCount"]))
+			throw new WebServiceException(message(code: "triggerBurst.invalid.server.count.message", args: ["serverCount"]), 400)
 
 		Map<String, Object> config = getConfig()
 
@@ -314,6 +311,10 @@ class OpenStackPlugin extends AbstractPlugin {
 			futureList.each { it.get() }
 			errors.add(0, message(code:"triggerBurst.error.message", args:[errorCount]))
 
+			// Close down thread pool
+			threadPool.shutdown()
+
+			// Throw exception
 			throw new WebServiceException(errors, 500)
 		}
 
@@ -325,18 +326,15 @@ class OpenStackPlugin extends AbstractPlugin {
 
 	public def triggerNodeEnd(Map params) {
 		if (!params.id)
-			throw new WebServiceException(message(code: "triggerNodeEnd.missing.parameter.message", args: ["id"]))
-		String nodeId = params.id
+			throw new WebServiceException(message(code: "triggerNodeEnd.missing.parameter.message", args: ["id"]), 400)
+		String nodeName = params.id
 
 		Map<String, Object> config = getConfig()
 		def osClient = buildClient(config)
 		def serverService = osClient.compute().servers()
-		def server = serverService.list(false).find {
-			log.error "Name: ${it.getName()}, instance name: ${it.getInstanceName()}, id: ${it.getId()}"
-			return it.getName()==nodeId
-		}
+		def server = serverService.list(false).find { it.getName()==nodeName }
 		if (!server) {
-			throw new WebServiceException(message(code:"triggerNodeEnd.not.found.message", args:[nodeId]), 400)
+			throw new WebServiceException(message(code:"triggerNodeEnd.not.found.message", args:[nodeName]), 404)
 		}
 
 		serverService.delete(server.getId())
@@ -346,17 +344,17 @@ class OpenStackPlugin extends AbstractPlugin {
 		while (server) {
 			if ((new Date().time - startTime) > timeout) {
 				log.error("Server ${server.getName()} was not deleted successfully, " +
-						"timeout after ${config.activeTimeoutSeconds} seconds")
+						"timeout after ${config.deleteTimeoutSeconds} seconds")
 				throw new WebServiceException(
-						message(code:"triggerNodeEnd.timeout.message", args:[nodeId, config.deleteTimeoutSeconds]),
+						message(code:"triggerNodeEnd.timeout.message", args:[nodeName, config.deleteTimeoutSeconds]),
 						500)
 			}
 			// Else keep trying
 			sleep(SLEEP_VALUE)
-			server = osClient.compute().servers().get(server.id)
+			server = serverService.get(server.id)
 		}
 
-		return [messages:[message(code:"triggerNodeEnd.success.message", args:[nodeId])]]
+		return [messages:[message(code:"triggerNodeEnd.success.message", args:[nodeName])]]
 	}
 }
 
