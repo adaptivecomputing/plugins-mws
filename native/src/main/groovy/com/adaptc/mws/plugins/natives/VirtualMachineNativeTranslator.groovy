@@ -1,9 +1,12 @@
 package com.adaptc.mws.plugins.natives
 
-import com.adaptc.mws.plugins.*
+import com.adaptc.mws.plugins.IPluginEventService
+import com.adaptc.mws.plugins.NodeReportPower
+import com.adaptc.mws.plugins.NodeReportState
+import com.adaptc.mws.plugins.VirtualMachineReport
 import com.adaptc.mws.plugins.natives.utils.NativeDateUtils
 import com.adaptc.mws.plugins.natives.utils.NativeNumberUtils
-import com.adaptc.mws.plugins.natives.utils.NativeUtils
+import groovy.transform.CompileStatic
 
 import static com.adaptc.mws.plugins.PluginConstants.*
 
@@ -102,38 +105,3 @@ class VirtualMachineNativeTranslator {
 	}
 }
 
-enum VMNativeField {
-	STATE("state"),
-	SLAVE("slave"),
-	POWER("power"),
-	UPDATE_TIME("updatetime"),
-	CONTAINER_NODE("containernode"),
-	NETWORK_ADDRESS("netaddr"),
-	PROCESSORS_CONFIGURED("cproc"),
-	PROCESSORS_AVAILABLE("aproc"),
-	MEMORY_CONFIGURED("cmemory"),
-	MEMORY_AVAILABLE("amemory"),
-	DISK_CONFIGURED("cdisk"),
-	DISK_AVAILABLE("adisk"),
-	SWAP_CONFIGURED("cswap"),
-	SWAP_AVAILABLE("aswap"),
-	GENERIC_METRICS("gmetric"),
-	OS("os"),
-	OS_LIST("oslist"),
-	CPU_LOAD("cpuload"),
-	TYPE("type"),
-	VARIABLES("variable"),
-	MIGRATION_DISABLED("migrationdisabled")
-
-	String wikiKey
-
-	private VMNativeField(String wikiKey) {
-		this.wikiKey = wikiKey
-	}
-
-	public static VMNativeField parseWikiAttribute(String attribute) {
-		if (!attribute)
-			return null
-		return values().find { it.wikiKey.equalsIgnoreCase(attribute) }
-	}
-}

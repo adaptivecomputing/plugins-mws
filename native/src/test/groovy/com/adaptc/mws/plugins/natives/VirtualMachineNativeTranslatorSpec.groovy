@@ -18,7 +18,7 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		when:
 		def wiki = "vm1 StaTE=${NodeReportState.IDLE}" +
 				";UPdaTETIME=${(time).toLong()}"+
-				";PowER=${NodeReportPower.STANDBY}"+
+				";PowER=${NodeReportPower.ON}"+
 				";CONtaINERNODE=node1"+
 				";CPrOC=4"+
 				";APrOC=2"+
@@ -41,7 +41,7 @@ class VirtualMachineNativeTranslatorSpec extends Specification {
 		and:
 		virtualMachine.name=="vm1"
 		virtualMachine.state==NodeReportState.IDLE
-		virtualMachine.power==NodeReportPower.STANDBY
+		virtualMachine.power==NodeReportPower.ON
 		virtualMachine.timestamp==new Date(time*1000)
 		virtualMachine.resources[RESOURCE_PROCESSORS].total==4
 		virtualMachine.resources[RESOURCE_PROCESSORS].available==2
