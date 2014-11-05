@@ -10,6 +10,8 @@ import com.adaptc.mws.plugins.testing.TestMixin
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import java.text.SimpleDateFormat
+
 import static com.adaptc.mws.plugins.PluginConstants.*
 
 @Unroll
@@ -20,6 +22,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		given:
 		GenericNativeTranslator genericNativeTranslator = Mock()
 		translator.genericNativeTranslator = genericNativeTranslator
+		translator.aclNativeTranslator = new AclNativeTranslator()
 
 		and:
 		long time = 12348473
@@ -29,6 +32,9 @@ class NodeNativeTranslatorSpec extends Specification {
 				";UPdaTETIME=${(time).toLong()}"+
 				";ArES=ares"+
 				";CrES=cres"+
+				";REQUESTID=1234"+
+				";TTL=2015-09-09T15:54:00Z"+
+				";ACL=USER==FRED:BOB,GROUP==DEV"+
 				";CpROC=4"+
 				";ApROC=2"+
 				";CsWAP=512"+
@@ -83,7 +89,13 @@ class NodeNativeTranslatorSpec extends Specification {
         node.imagesAvailable[0]=="linux"
         node.imagesAvailable[1]=="windows"
 		node.variables.size()==0
-		
+		node.requestId == "1234"
+		node.aclRules.size()==3
+		SimpleDateFormat sdf = new SimpleDateFormat();
+		sdf.setTimeZone(new SimpleTimeZone(0, "GMT"));
+		sdf.applyPattern("dd MMM yyyy HH:mm:ss z");
+		sdf.format(node.timeToLive).toString() == "09 Sep 2015 15:54:00 GMT"
+
 		and:
 		node.resources.size()==6
 		node.resources["res1"].available==1

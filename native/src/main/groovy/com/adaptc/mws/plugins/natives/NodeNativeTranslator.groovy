@@ -8,6 +8,7 @@ import static com.adaptc.mws.plugins.PluginConstants.*
 
 class NodeNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
+	AclNativeTranslator aclNativeTranslator
 
 	public NodeReport createReport(IPluginEventService pluginEventService, Map attrs, HVImageInfo imageInfo) {
 		def id = attrs.remove("id")
@@ -67,6 +68,15 @@ class NodeNativeTranslator {
 					break
 				case NodeNativeField.ARCHITECTURE:
 					node.architecture = value
+					break
+				case NodeNativeField.REQUESTID:
+					node.requestId = value
+					break
+				case NodeNativeField.TIME_TO_LIVE:
+					node.timeToLive = NativeDateUtils.isoDateStringNoMillisToDate(value)
+					break
+				case NodeNativeField.ACL:
+					node.aclRules = aclNativeTranslator.parseAclRules(value)
 					break
 				case NodeNativeField.CPU_LOAD:
 					node.metrics.cpuLoad = NativeNumberUtils.parseDouble(value)

@@ -31,7 +31,7 @@ enum NodeNativeField {
 	ATTRIBUTES("varattr"),
 	MIGRATION_DISABLED("migrationdisabled"),
 	VM_OS_LIST("vmoslist"),
-	TIME_TO_LIVE("timetolive"),
+	TIME_TO_LIVE("ttl"),
 	ACL("acl"),
 	REQUESTID("requestid");
 
