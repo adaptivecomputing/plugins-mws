@@ -1,7 +1,6 @@
 package com.adaptc.mws.plugins.natives
 
 import com.adaptc.mws.plugins.AclReportAffinity
-import com.adaptc.mws.plugins.AclReportModifier
 import com.adaptc.mws.plugins.AclReportRule
 import com.adaptc.mws.plugins.AclReportType
 import com.adaptc.mws.plugins.ReportComparisonOperator
@@ -13,7 +12,12 @@ class AclNativeTranslator {
 		return wiki?.split(",")?.inject([]) { List list, String acl ->
 			AclReportType parsedType
 			ReportComparisonOperator parsedComparator
-			AclReportModifier parsedModifier
+			boolean parsedExcludeFromAcl = false;
+			boolean parsedRequireAll = false;
+			boolean parsedXorWithAcl = false;
+			boolean parsedCredentialLock = false;
+			boolean parsedHardPolicyOnly = false;
+
 			AclReportAffinity parsedAffinity
 
 			int index = 0
@@ -46,17 +50,34 @@ class AclNativeTranslator {
 						return parsedText + c.toString()
 				}
 
-				if (!parsedModifier) {
-					parsedModifier = AclReportModifier.parse(parsedText)
-					if (parsedModifier) {
-						//If the next iteration will also be a AclReportModifier wait for it
-						if (AclReportModifier.parse(parsedText + c)) {
-							parsedModifier = null
-							return parsedText + c.toString()
-						}
+				if(parsedText.equals("!")) {
+						parsedExcludeFromAcl = true
+						//reset the parsedText
+						return c.toString()
+				}
+
+				if(parsedText.equals("*")) {
+					parsedRequireAll = true
 					//reset the parsedText
 					return c.toString()
-					}
+				}
+
+				if(parsedText.equals("^")) {
+					parsedXorWithAcl = true
+					//reset the parsedText
+					return c.toString()
+				}
+
+				if(parsedText.equals("&")) {
+					parsedCredentialLock = true
+					//reset the parsedText
+					return c.toString()
+				}
+
+				if(parsedText.equals("~")) {
+					parsedHardPolicyOnly = true
+					//reset the parsedText
+					return c.toString()
 				}
 
 				if(c != ":" && index != acl.length()) {
@@ -85,13 +106,21 @@ class AclNativeTranslator {
 				AclReportRule rule = new AclReportRule()
 				rule.setType(parsedType)
 				rule.setComparator(parsedComparator)
-				rule.setModifier(parsedModifier)
+				rule.setExcludeFromAcl(parsedExcludeFromAcl)
+				rule.setRequireAll(parsedRequireAll)
+				rule.setXorWithAcl(parsedXorWithAcl)
+				rule.setCredentialLock(parsedCredentialLock)
+				rule.setHardPolicyOnly(parsedHardPolicyOnly)
 				rule.setValue(parsedText)
 				rule.setAffinity(parsedAffinity)
 				list << rule
 
-				//reset parsedModifier for next rule
-				parsedModifier = null
+				//reset parsed modifiers for next rule
+				parsedExcludeFromAcl = false
+				parsedRequireAll = false
+				parsedXorWithAcl = false
+				parsedCredentialLock = false
+				parsedHardPolicyOnly = false
 
 				//reset parsedText and eat the colon if it is there in case there is another rule
 				return ""
