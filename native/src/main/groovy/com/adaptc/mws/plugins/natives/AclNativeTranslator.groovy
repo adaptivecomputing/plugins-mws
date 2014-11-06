@@ -42,6 +42,10 @@ class AclNativeTranslator {
 							parsedComparator = null
 							return parsedText + c.toString()
 						}
+					if(parsedComparator == ReportComparisonOperator.EQUAL) {
+						//Override EQUAL with LEXIGRAPHICAL_EQUAL for ACLs
+						parsedComparator = ReportComparisonOperator.LEXIGRAPHIC_EQUAL
+					}
 					//reset the parsedText
 					return c.toString()
 					}
