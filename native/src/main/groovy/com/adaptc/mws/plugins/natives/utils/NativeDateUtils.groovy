@@ -14,9 +14,6 @@ class NativeDateUtils {
 	 * Based on grails-app/i18n/messages.properties:default.date.format.
 	 * Note that we use ZZZ instead of z. The reason for the difference is that
 	 * Joda Time does not parse time zone names (but it does parse time zone ids).
-	 * This string is mentioned in
-	 * https://svn.adaptivecomputing.com/svn/documentation/mws/jarvik/Content/topics/3-apiDocs/dataFormat.htm
-	 * so keep that in sync.
 	 * References:
 	 *   http://joda-time.sourceforge.net/timezones.html
 	 *   http://joda-time.sourceforge.net/apidocs/org/joda/time/format/DateTimeFormat.html

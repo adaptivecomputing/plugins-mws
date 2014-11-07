@@ -32,9 +32,9 @@ class NodeNativeTranslatorSpec extends Specification {
 				";UPdaTETIME=${(time).toLong()}"+
 				";ArES=ares"+
 				";CrES=cres"+
-				";REQUESTID=1234"+
-				";TTL=2015-09-09T15:54:00Z"+
-				";ACL=USER==FRED:BOB,GROUP==DEV"+
+				";ReQUesTID=1234"+
+				";TtL=2015-09-09T15:54:00Z"+
+				";AcL=USER==FRED:BOB,GRouP==DEV"+
 				";CpROC=4"+
 				";ApROC=2"+
 				";CsWAP=512"+
