@@ -102,7 +102,7 @@ class OpenStackPlugin extends AbstractPlugin {
 				return "invalid.prefix.setting"
 		}
 		osVlanName required: false, blank: false
-		osInstanceNamePattern blank: false, defaultValue: "moab-burst-{date}-{server-number}", validator: { val ->
+		osInstanceNamePattern blank: false, defaultValue: "moab-ec-{date}-{server-number}", validator: { val ->
 			if (!(val instanceof String))
 				return
 
@@ -229,14 +229,14 @@ class OpenStackPlugin extends AbstractPlugin {
 		osClient.compute().servers().delete(serverId)
 	}
 
-	public def triggerBurst(Map params) throws WebServiceException {
+	public def triggerElasticCompute(Map params) throws WebServiceException {
 		if (!params.requestId)
-			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["requestId"]), 400)
+			throw new WebServiceException(message(code: "triggerElasticCompute.missing.parameter.message", args: ["requestId"]), 400)
 		if (!params.serverCount)
-			throw new WebServiceException(message(code: "triggerBurst.missing.parameter.message", args: ["serverCount"]), 400)
+			throw new WebServiceException(message(code: "triggerElasticCompute.missing.parameter.message", args: ["serverCount"]), 400)
 		Integer serverCount = params.int('serverCount')
 		if (!serverCount || serverCount < 1)
-			throw new WebServiceException(message(code: "triggerBurst.invalid.server.count.message", args: ["serverCount"]), 400)
+			throw new WebServiceException(message(code: "triggerElasticCompute.invalid.server.count.message", args: ["serverCount"]), 400)
 
 		Map<String, Object> config = getConfig()
 
@@ -279,7 +279,7 @@ class OpenStackPlugin extends AbstractPlugin {
 					)
 				} catch (Exception e) {
 					log.error("Caught exception while creating server ${serverNumber}", e)
-					errors.add(message(code: "triggerBurst.exception.message",
+					errors.add(message(code: "triggerElasticCompute.exception.message",
 							args: [
 									e.getMessage() ?: message(code: "unknown.exception.message")
 							]
@@ -293,7 +293,7 @@ class OpenStackPlugin extends AbstractPlugin {
 
 		// If there are errors, use the thread pool to destroy the servers that were started
 		if (errors) {
-			log.warn("Errors occurred while bursting, destroying ${serverInformationList.size()} created servers")
+			log.warn("Errors occurred while provisioning machines, destroying ${serverInformationList.size()} created servers")
 			futureList.clear()
 			def errorCount = errors.size()
 			serverInformationList.each { ServerInformation info ->
@@ -304,7 +304,7 @@ class OpenStackPlugin extends AbstractPlugin {
 						deleteServer(osClient, serverInformation.id)
 					} catch (Exception e) {
 						log.error("Caught exception while deleting server ${serverInformation.name} (${serverInformation.id})", e)
-						errors.add(message(code: "triggerBurst.delete.exception.message", args: [
+						errors.add(message(code: "triggerElasticCompute.delete.exception.message", args: [
 								serverInformation.name,
 								e.getMessage() ?: message(code: "unknown.exception.message")
 						]))
@@ -312,7 +312,7 @@ class OpenStackPlugin extends AbstractPlugin {
 				}.curry(info))
 			}
 			futureList.each { it.get() }
-			errors.add(0, message(code:"triggerBurst.error.message", args:[errorCount]))
+			errors.add(0, message(code:"triggerElasticCompute.error.message", args:[errorCount]))
 
 			// Close down thread pool
 			threadPool.shutdown()

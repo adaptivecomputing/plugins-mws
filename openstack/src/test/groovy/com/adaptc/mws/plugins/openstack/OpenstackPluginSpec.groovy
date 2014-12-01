@@ -502,9 +502,9 @@ class OpenstackPluginSpec extends Specification {
 		0 * _._
 	}
 
-	def "Trigger burst invalid parameters #desc"() {
+	def "Trigger elastic compute invalid parameters #desc"() {
 		when:
-		plugin.triggerBurst([*:params, int:{
+		plugin.triggerElasticCompute([*:params, int:{
 			try {
 				return params[it].toInteger()
 			} catch(NumberFormatException e) {
@@ -534,15 +534,15 @@ class OpenstackPluginSpec extends Specification {
 				[requestId:"abcd", serverCount:"0"],
 		]
 		message << [
-		        "triggerBurst.missing.parameter.message",
-				"triggerBurst.missing.parameter.message",
-				"triggerBurst.invalid.server.count.message",
-				"triggerBurst.invalid.server.count.message",
-				"triggerBurst.invalid.server.count.message",
+		        "triggerElasticCompute.missing.parameter.message",
+				"triggerElasticCompute.missing.parameter.message",
+				"triggerElasticCompute.invalid.server.count.message",
+				"triggerElasticCompute.invalid.server.count.message",
+				"triggerElasticCompute.invalid.server.count.message",
 		]
 	}
 
-	def "Trigger burst errors while provisioning"() {
+	def "Trigger elastic compute errors while provisioning"() {
 		given: "set configuration"
 		config.maxRequestLimit = 1
 
@@ -614,7 +614,7 @@ class OpenstackPluginSpec extends Specification {
 		}
 
 		when:
-		plugin.triggerBurst([requestId:"abcd", serverCount:"3", int:{
+		plugin.triggerElasticCompute([requestId:"abcd", serverCount:"3", int:{
 			assert it=="serverCount"
 			return 3
 		}])
@@ -631,9 +631,9 @@ class OpenstackPluginSpec extends Specification {
 		and:
 		WebServiceException e = thrown()
 		e.messages.size()==3
-		e.messages[0]=="triggerBurst.error.message"
-		e.messages[1]=="triggerBurst.exception.message"
-		e.messages[2]=="triggerBurst.delete.exception.message"
+		e.messages[0]=="triggerElasticCompute.error.message"
+		e.messages[1]=="triggerElasticCompute.exception.message"
+		e.messages[2]=="triggerElasticCompute.delete.exception.message"
 
 		and:
 		deletedServerIds.size()==2
@@ -641,7 +641,7 @@ class OpenstackPluginSpec extends Specification {
 		deletedServerIds[1]=="server2Id"
 	}
 
-	def "Trigger burst success"() {
+	def "Trigger elastic compute success"() {
 		given: "set configuration"
 		config.maxRequestLimit = 3
 
@@ -707,7 +707,7 @@ class OpenstackPluginSpec extends Specification {
 		}
 
 		when:
-		def results = plugin.triggerBurst([requestId:"abcd", serverCount:"3", int:{
+		def results = plugin.triggerElasticCompute([requestId:"abcd", serverCount:"3", int:{
 			assert it=="serverCount"
 			return 3
 		}])

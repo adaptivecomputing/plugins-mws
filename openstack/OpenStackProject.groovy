@@ -2,7 +2,7 @@
 class OpenStackProject {
 	// Plugin information
 	String title = "OpenStack"
-	String description = "OpenStack provisioning plugin for HPC cloud bursting"
+	String description = "OpenStack provisioning plugin for HPC elastic compute"
 	String author = "Adaptive Computing Enterprises, Inc."
 	String website = "http://www.adaptivecomputing.com"
 
