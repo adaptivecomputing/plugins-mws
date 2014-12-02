@@ -1,7 +1,7 @@
-The OpenStack plugin allows elastic compute instances to be provisioned and de-provisioned using an OpenStack 
-service provider.  This enables Moab Workload Manager to provision elastic computing instances on an OpenStack cloud 
+The OpenStack plugin allows Elastic Computing instances to be provisioned and de-provisioned using an OpenStack 
+service provider.  This enables Moab Workload Manager to "burst" to an OpenStack cloud 
 in order to add or remove nodes dynamically based on policies and workload. See the Moab Workload Manager 
-documentation on Elastic Computing for more information on how to configure a solution.
+documentation on Elastic Computing for more information.
 
 > **Warning:** To use the OpenStack plugin, Moab Workload Manager (MWM) must be properly configured
 > as described in the **Elastic Computing** section of the MWM user guide.
