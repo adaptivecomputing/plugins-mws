@@ -504,7 +504,7 @@ class OpenstackPluginSpec extends Specification {
 
 	def "Trigger elastic compute invalid parameters #desc"() {
 		when:
-		plugin.triggerElasticCompute([*:params, int:{
+		plugin.triggerElastic([*:params, int:{
 			try {
 				return params[it].toInteger()
 			} catch(NumberFormatException e) {
@@ -534,11 +534,11 @@ class OpenstackPluginSpec extends Specification {
 				[requestId:"abcd", serverCount:"0"],
 		]
 		message << [
-		        "triggerElasticCompute.missing.parameter.message",
-				"triggerElasticCompute.missing.parameter.message",
-				"triggerElasticCompute.invalid.server.count.message",
-				"triggerElasticCompute.invalid.server.count.message",
-				"triggerElasticCompute.invalid.server.count.message",
+		        "triggerElastic.missing.parameter.message",
+				"triggerElastic.missing.parameter.message",
+				"triggerElastic.invalid.server.count.message",
+				"triggerElastic.invalid.server.count.message",
+				"triggerElastic.invalid.server.count.message",
 		]
 	}
 
@@ -614,7 +614,7 @@ class OpenstackPluginSpec extends Specification {
 		}
 
 		when:
-		plugin.triggerElasticCompute([requestId:"abcd", serverCount:"3", int:{
+		plugin.triggerElastic([requestId:"abcd", serverCount:"3", int:{
 			assert it=="serverCount"
 			return 3
 		}])
@@ -631,9 +631,9 @@ class OpenstackPluginSpec extends Specification {
 		and:
 		WebServiceException e = thrown()
 		e.messages.size()==3
-		e.messages[0]=="triggerElasticCompute.error.message"
-		e.messages[1]=="triggerElasticCompute.exception.message"
-		e.messages[2]=="triggerElasticCompute.delete.exception.message"
+		e.messages[0]=="triggerElastic.error.message"
+		e.messages[1]=="triggerElastic.exception.message"
+		e.messages[2]=="triggerElastic.delete.exception.message"
 
 		and:
 		deletedServerIds.size()==2
@@ -707,7 +707,7 @@ class OpenstackPluginSpec extends Specification {
 		}
 
 		when:
-		def results = plugin.triggerElasticCompute([requestId:"abcd", serverCount:"3", int:{
+		def results = plugin.triggerElastic([requestId:"abcd", serverCount:"3", int:{
 			assert it=="serverCount"
 			return 3
 		}])
