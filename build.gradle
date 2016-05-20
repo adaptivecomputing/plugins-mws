@@ -6,8 +6,8 @@ buildscript {
 		}
 	}
 	dependencies {
-		classpath ('com.adaptc.gradle:moab-sdk:0.12')
-		classpath ('com.adaptc.gradle:nexus-workflow:0.6')
+		classpath 'com.adaptc.gradle:moab-sdk:0.13'
+		classpath 'com.adaptc.gradle:nexus-workflow:0.6'
 	}
 	// check for updates every build
 	configurations.all {
@@ -15,9 +15,12 @@ buildscript {
 	}
 }
 
+plugins {
+       id "com.dorongold.task-tree" version "1.2.1"
+}
+
 apply plugin: com.adaptc.gradle.moabsdk.plugins.MoabSdkInitPlugin
 apply plugin: com.adaptc.gradle.coberturamaster.CoberturaMasterPlugin
-apply plugin: 'idea'
 apply plugin:'eclipse'
 apply plugin:com.adaptc.gradle.nexusworkflow.NexusWorkflowPlugin
 
@@ -30,7 +33,6 @@ subprojects { proj ->
 
 	apply plugin:'signing'
 	apply plugin:'eclipse'
-	apply plugin:'idea'
 
 	configurations.all {
 		resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
@@ -133,6 +135,6 @@ cobertura {
 }
 
 task wrapper(type: Wrapper) {
-	gradleVersion = '2.0'
+	gradleVersion = '2.3'
 	jarFile = 'wrapper/wrapper.jar'
 }
