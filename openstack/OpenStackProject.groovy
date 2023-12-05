@@ -7,7 +7,7 @@ class OpenStackProject {
 	String website = "http://www.adaptivecomputing.com"
 
 	// Versioning properties
-	String version = "1.0"
+	String version = "1.1-SNAPSHOT"
 	String mwsVersion = "8.1.0 > *"
 	String commonsVersion = "1.1.0 > *"
 	String license = "APACHE"
