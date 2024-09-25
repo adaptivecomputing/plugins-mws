@@ -9,23 +9,12 @@ import com.adaptc.mws.plugins.natives.utils.NativeUtils
  */
 class DebugNativeTranslator {
 	NodeNativeTranslator nodeNativeTranslator
-	VirtualMachineNativeTranslator virtualMachineNativeTranslator
 	JobNativeTranslator jobNativeTranslator
-	StorageNativeTranslator storageNativeTranslator
 
 	public Map verifyClusterWiki(wiki, String id) {
 		return verifyWiki(wiki, id, { DebugEventService debugEventService, Map attrs, Map lineInfo ->
-			if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs)) {
-				def imageInfo = new VMImageInfo()
-				def report = virtualMachineNativeTranslator.createReport(debugEventService, attrs, imageInfo)
-				return [report, imageInfo]
-			} else if (storageNativeTranslator.isStorageWiki(attrs)) {
-				return [storageNativeTranslator.createReport(debugEventService, attrs), null]
-			} else { // Default to node
-				def imageInfo = new HVImageInfo()
-				def report = nodeNativeTranslator.createReport(debugEventService, attrs, imageInfo)
-				return [report, imageInfo]
-			}
+			def report = nodeNativeTranslator.createReport(debugEventService, attrs)
+			return report
 		})
 	}
 
@@ -53,8 +42,7 @@ class DebugNativeTranslator {
 
 			debugEventService.errors = []
 			def translatorResult = callTranslator.call(debugEventService, attrs, lineInfo)
-			lineInfo.report = translatorResult[0]
-			lineInfo.image = translatorResult[1]
+			lineInfo.report = translatorResult
 			lineInfo.report.pluginId = id
 			lineInfo.type = lineInfo.report.getClass().simpleName - "Report"
 

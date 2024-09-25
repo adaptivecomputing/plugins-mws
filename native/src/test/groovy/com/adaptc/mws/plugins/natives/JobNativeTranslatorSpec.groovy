@@ -105,7 +105,7 @@ class JobNativeTranslatorSpec extends Specification {
         job.requirements?.size()==1
 
         then:
-		job.requirements.image == "win2k8"
+		job.requirements.operatingSystem == "win2k8"
 		job.requirements.nodes?.size()==2
 		job.requirements.nodes[0]=="n03"
 		job.requirements.nodes[1]=="n04"

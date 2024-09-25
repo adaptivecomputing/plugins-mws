@@ -154,7 +154,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			assert it.params.query=='{"type":"Compute"}'
 			assert it.params.'api-version'==3
-			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdatedDate,states.state,name,virtualMachines,resources.memory"
+			assert it.params.fields=="metrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdatedDate,states.state,name,resources.memory"
 			return true
 		}, "/rest/nodes/") >> new MoabRestResponse(null, [messages:["message1", "message2"]], false)
 		1 * pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
@@ -173,7 +173,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.get({
 			assert it.params.query=='{"type":"Compute"}'
 			assert it.params.'api-version'==1
-			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdateDate,state,id,virtualMachines,availableMemory,totalMemory"
+			assert it.params.fields=="genericMetrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdateDate,state,id,availableMemory,totalMemory"
 			return true
 		}, "/rest/nodes/") >> new MoabRestResponse(null, null, false)
 		1 * pluginEventService.createEvent(ResourceQueryEvents.QUERY_FOR_1RESOURCE_2VERSION_ERROR_3MESSAGES,
@@ -190,7 +190,7 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * pluginDatastoreService.getCollection(NODE_LAST_UPDATED_COLLECTION)
 		1 * moabRestService.get(['params':['api-version':3,
 				query:'{"type":"Compute"}',
-				fields:"metrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdatedDate,states.state,name,virtualMachines,resources.memory"]
+				fields:"metrics.cpuUtilization,attributes.MOAB_DATACENTER,variables,lastUpdatedDate,states.state,name,resources.memory"]
 			], '/rest/nodes/') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 		1 * moabRestService.get(['params':['api-version':3, fields:'allocatedNodes,startDate,endDate']], '/rest/reservations/') >> new MoabRestResponse(null, [totalCount:0, resultCount:0, results:[]], true)
 
@@ -250,41 +250,41 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.convertDateString(endDate.toString()) >> endDate
 		1 * moabRestService.get(_ as Map, "/rest/nodes/") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
 				[name:"reservedNode", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:100]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0],virtualMachines:[]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0]],
 		        [name:"node01", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:100]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:0]],
 		        [name:"node02", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:10]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:10],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:10]],
 		        [name:"node03", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:25]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:25],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:25]],
 		        [name:"node04", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:75]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:50],virtualMachines:[[name:"vm1"]], attributes:[MOAB_DATACENTER:[value:"value", displayValue:"myDC"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:50], attributes:[MOAB_DATACENTER:[value:"value", displayValue:"myDC"]]],
 		        [name:"node05", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:50]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:75],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:75]],
 		        [name:"node06", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:80]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:80],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:80]],
 		        [name:"node07", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:100]],
 				[name:"node09", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.DOWN.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.DOWN.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node10", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.DRAINED.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.DRAINED.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node11", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.FLUSH.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.FLUSH.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node12", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.NONE.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.NONE.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node13", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.UNKNOWN.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.UNKNOWN.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node14", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node15", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.RESERVED.toString()], genericMetrics:[cpuUtilization:100],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.RESERVED.toString()], genericMetrics:[cpuUtilization:100]],
 				[name:"node16", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()]],
 		        [name:"node17", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[:],virtualMachines:[[name:"vm1"]]],
+						states:[state:NodeReportState.IDLE.toString()], metrics:[:]],
 				[name:"node18", lastUpdatedDate:"12:12:12 01-01-01", resources:[memory:[real:100, available:0]],
-						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:null],virtualMachines:[[name:"vm1"]]]
+						states:[state:NodeReportState.IDLE.toString()], metrics:[cpuUtilization:null]]
 		]], true)
 		18 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
 		18 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true
@@ -357,41 +357,41 @@ class NodeUtilizationReportPluginSpec extends Specification {
 		1 * moabRestService.convertDateString(endDate.toString()) >> endDate
 		1 * moabRestService.get(_ as Map, "/rest/nodes/") >> new MoabRestResponse(null, [totalCount:17, resultCount:17, results:[
 				[id:"reservedNode", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:100,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0],virtualMachines: []],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0]],
 				[id:"node01", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:100,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:0]],
 				[id:"node02", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:10,
-						state:NodeReportState.BUSY.toString(), genericMetrics:[cpuUtilization:10],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.BUSY.toString(), genericMetrics:[cpuUtilization:10]],
 				[id:"node03", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:25,
-						state:NodeReportState.RUNNING.toString(), genericMetrics:[cpuUtilization:25],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.RUNNING.toString(), genericMetrics:[cpuUtilization:25]],
 				[id:"node04", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:75,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:50],virtualMachines:[[id:"vm1"]], attributes:[MOAB_DATACENTER:[value:"value", displayValue:"myDC"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:50], attributes:[MOAB_DATACENTER:[value:"value", displayValue:"myDC"]]],
 				[id:"node05", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:50,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:75],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:75]],
 				[id:"node06", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:80,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:80],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:80]],
 				[id:"node07", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node09", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.DOWN.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.DOWN.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node10", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.DRAINED.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.DRAINED.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node11", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.FLUSH.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.FLUSH.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node12", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.NONE.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.NONE.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node13", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.UNKNOWN.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.UNKNOWN.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node14", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:100]],
 				[id:"node15", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.RESERVED.toString(), genericMetrics:[cpuUtilization:100],virtualMachines:[[id:"vm1"]]],
-				[id:"node16", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,virtualMachines:[[id:"vm1"]],
+						state:NodeReportState.RESERVED.toString(), genericMetrics:[cpuUtilization:100]],
+				[id:"node16", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
 						state:NodeReportState.IDLE.toString()],
 				[id:"node17", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[:],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[:]],
 				[id:"node18", lastUpdateDate:"12:12:12 01-01-01", totalMemory:100, availableMemory:0,
-						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:null],virtualMachines:[[id:"vm1"]]],
+						state:NodeReportState.IDLE.toString(), genericMetrics:[cpuUtilization:null]]
 		]], true)
 		18 * pluginDatastoreService.getData(NODE_LAST_UPDATED_COLLECTION, "name", _ as String)
 		18 * pluginDatastoreService.addData(NODE_LAST_UPDATED_COLLECTION, _ as Map) >> true

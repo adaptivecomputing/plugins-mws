@@ -50,18 +50,14 @@ class NodeNativeTranslatorSpec extends Specification {
 				';MeSSAGE="message 2"'+
 				";Type=node"+	// Ignored
 				";Os=linux"+
-				";VmOSLIST=cent5,cent6"+
-                ";OsLIST=linux,windows"+
-				";VaRATTR=HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4"
-		def imageInfo = new HVImageInfo()
-		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], imageInfo)
+				";VaRATTR=attr1:val1+attr2=val2+attr3+attr4"
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0])
 		
 		then:
 		node
 		1 * genericNativeTranslator.getGenericMap("ares") >> [res1:"1"]
 		1 * genericNativeTranslator.getGenericMap("cres") >> [res2:"2"]
-		1 * genericNativeTranslator.getGenericMapWithDisplayValue("HVTYPE=esx+attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >>
-				[HVTYPE:[value:"esx"],attr1:[value:"val1", displayValue: "value one"]]
+		1 * genericNativeTranslator.getGenericMapWithDisplayValue("attr1:val1+attr2=val2+attr3+attr4", "\\+", ":|=") >> [attr1:[value:"val1", displayValue: "value one"]]
 		0 * _._
 		
 		and:	
@@ -84,10 +80,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.messages.size()==2
 		node.messages[0]=="message1"
 		node.messages[1]=="message 2"
-		node.image=="linux"
-        node.imagesAvailable.size()==2
-        node.imagesAvailable[0]=="linux"
-        node.imagesAvailable[1]=="windows"
+		node.operatingSystem=="linux"
 		node.variables.size()==0
 		node.requestId == "1234"
 		node.aclRules.size()==3
@@ -105,14 +98,6 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.attributes.size()==1
 		node.attributes.attr1.value=="val1"
 		node.attributes.attr1.displayValue=="value one"
-
-		and:
-		imageInfo.nodeName=="node1"
-		imageInfo.name=="linux"
-		imageInfo.hypervisorType=="esx"
-		imageInfo.vmImageNames.size()==2
-		imageInfo.vmImageNames.contains("cent5")
-		imageInfo.vmImageNames.contains("cent6")
 	}
 
 	def "Wiki to domain null values handled correctly"() {
@@ -122,8 +107,7 @@ class NodeNativeTranslatorSpec extends Specification {
 		when:
 		def wiki = "node1 STATE=${NodeReportState.IDLE}" +
 				";UPDATETIME=${(time).toLong()}"
-		def imageInfo = new HVImageInfo()
-		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], imageInfo)
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0])
 
 		then:
 		node.name=="node1"
@@ -133,17 +117,10 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.timestamp==new Date(time*1000)
 		node.resources.size()==0
 		node.metrics.size()==0
-		node.image==null
-		node.imagesAvailable.size()==0
+		node.operatingSystem==null
 		node.messages.size()==0
 		node.variables.size()==0
 		node.attributes.size()==0
-
-		and:
-		imageInfo.nodeName=="node1"
-		imageInfo.name==null
-		imageInfo.vmImageNames.size()==0
-		imageInfo.hypervisorType==null
 	}
 
 	def "Floating point update time is handled correctly"() {
@@ -152,7 +129,7 @@ class NodeNativeTranslatorSpec extends Specification {
 
 		when:
 		def wiki = "node1 STATE=$NodeReportState.IDLE;UPDATETIME=$time"
-		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0])
 
 		then:
 		node.name == "node1"
@@ -160,51 +137,12 @@ class NodeNativeTranslatorSpec extends Specification {
 		node.timestamp.time == 1363865607000
 	}
 
-	def "Migration disabled flag for '#migrationWiki' and attributes '#attrWiki' is #result"() {
-		given:
-		translator.genericNativeTranslator = mockTranslator(GenericNativeTranslator)
-
-		when:
-		def wiki = "node1 "+
-				migrationWiki+
-				attrWiki
-		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
-
-		then:
-		node?.name=="node1"
-		node.migrationDisabled==result
-		node.attributes.size()==attributesSize
-
-		where:
-		migrationWiki				| attrWiki							|| attributesSize	| result
-		""							| ""								|| 0				| null
-		"mIGRATIONDISABLED=true"	| ""								|| 0				| true
-		"mIGRATIONDISABLED=false"	| ""								|| 0				| false
-		"mIGRATIONDISABLED=1"		| ""								|| 0				| true
-		"mIGRATIONDISABLED=0"		| ""								|| 0				| false
-		"mIGRATIONDISABLED="		| ""								|| 0				| false
-		"mIGRATIONDISABLED=true"	| ";VARATTR=attr1"					|| 1				| true
-		"mIGRATIONDISABLED=false"	| ";VARATTR=attr1"					|| 1				| false
-		"mIGRATIONDISABLED=1"		| ";VARATTR=attr1"					|| 1				| true
-		"mIGRATIONDISABLED=0"		| ";VARATTR=attr1"					|| 1				| false
-		"mIGRATIONDISABLED="		| ";VARATTR=attr1"					|| 1				| false
-		""							| ";VARATTR=AllowVmmIgrations"		|| 0				| false
-		""							| ";VARATTR=nOVmmIgrations"			|| 0				| true
-		""							| ";VARATTR=AllowVmmIgrations+attr1"|| 1				| false
-		""							| ";VARATTR=nOVmmIgrations+attr1"	|| 1				| true
-		"mIGRATIONDISABLED=true"	| ";VARATTR=novmmigrations"			|| 0				| true
-		"mIGRATIONDISABLED=false"	| ";VARATTR=allowvmmigrations"		|| 0				| false
-		"mIGRATIONDISABLED=1"		| ";VARATTR=novmmigrations"			|| 0				| true
-		"mIGRATIONDISABLED=0"		| ";VARATTR=allowvmmigrations"		|| 0				| false
-		"mIGRATIONDISABLED="		| ";VARATTR=allowvmmigrations"		|| 0				| false
-	}
-
 	def "Notifications for invalid attributes"() {
 		given:
 		IPluginEventService pluginEventService = Mock()
 
 		when:
-		def object = translator.createReport(pluginEventService, [id:"id1", bogus1:"value", bogus2:"value2"], new HVImageInfo())
+		def object = translator.createReport(pluginEventService, [id:"id1", bogus1:"value", bogus2:"value2"])
 
 		then:
 		object.name=="id1"
@@ -215,34 +153,10 @@ class NodeNativeTranslatorSpec extends Specification {
 		0 * _._
 	}
 
-	def "Hypervisor type without other image fields specified"() {
-		given:
-		IPluginEventService pluginEventService = Mock()
-		translator.genericNativeTranslator = mockTranslator(GenericNativeTranslator)
-
-		when:
-		translator.createReport(pluginEventService, [id:"node1",VARATTR:"HVTYPE=esx"], new HVImageInfo())
-
-		then:
-		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-				"nodeNativeTranslator.hypervisorType.without.image", {it.type=="Node" && it.id=="node1"}, null)
-		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-				"nodeNativeTranslator.hypervisorType.without.vmImageNames", {it.type=="Node" && it.id=="node1"}, null)
-		0 * _._
-
-		when:
-		translator.createReport(pluginEventService, [id:"node1",VMOSLIST:"vmOs1,vmOs2"], new HVImageInfo())
-
-		then:
-		1 * pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-				"nodeNativeTranslator.vmImageNames.without.image", {it.type=="Node" && it.id=="node1"}, null)
-		0 * _._
-	}
-
 	def "Slave flag"() {
 		when:
 		def wiki = "node1 "+slaveWiki
-		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0], new HVImageInfo())
+		NodeReport node = translator.createReport(null, NativeUtils.parseWiki([wiki])[0])
 
 		then:
 		node?.name=="node1"

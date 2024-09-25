@@ -1,9 +1,7 @@
 package com.adaptc.mws.plugins.natives;
 
 enum NodeNativeAttributeField {
-	HYPERVISOR_TYPE("hvtype"),
-	ALLOW_VM_MIGRATIONS("allowvmmigrations"),
-	NO_VM_MIGRATIONS("novmmigrations");
+	; // All prior enums have been removed
 
 	private String wikiKey;
 

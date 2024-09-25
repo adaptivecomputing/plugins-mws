@@ -15,8 +15,6 @@ class NativePlugin extends AbstractPlugin {
 		environment(required: false)
 		getCluster required: false, scriptableUrl: true
 		getNodes required: false, scriptableUrl: true
-		getVirtualMachines required: false, scriptableUrl: true
-		getStorage required: false, scriptableUrl: true
 		getJobs required: false, scriptableUrl: true
 		jobCancel required: false, scriptableUrl: true
 		jobModify required: false, scriptableUrl: true
@@ -27,21 +25,14 @@ class NativePlugin extends AbstractPlugin {
 		jobSuspend required: false, scriptableUrl: true
 		nodeModify required: false, scriptableUrl: true
 		nodePower required: false, scriptableUrl: true
-		virtualMachinePower required: false, scriptableUrl: true
 		startUrl required: false, scriptableUrl: true
 		stopUrl required: false, scriptableUrl: true
-		reportImages defaultValue: true
 	}
 
 	JobNativeTranslator jobNativeTranslator
 	NodeNativeTranslator nodeNativeTranslator
-	VirtualMachineNativeTranslator virtualMachineNativeTranslator
-	StorageNativeTranslator storageNativeTranslator
 	IJobRMService jobRMService
 	INodeRMService nodeRMService
-	IVirtualMachineRMService virtualMachineRMService
-	IStorageRMService storageRMService
-	ImageNativeTranslator imageNativeTranslator
 	IPluginEventService pluginEventService
 	DebugNativeTranslator debugNativeTranslator
 
@@ -52,7 +43,6 @@ class NativePlugin extends AbstractPlugin {
 	}
 
 	public void configure() throws InvalidPluginConfigurationException {
-		imageNativeTranslator.pluginEventService = pluginEventService
 	}
 
 	public def verifyClusterQuery(Map params) {
@@ -71,53 +61,33 @@ class NativePlugin extends AbstractPlugin {
 
 	/**
 	 * Overrides the default implementation of poll so that a single
-	 * cluster query can be used for both nodes and VMs.
-	 * This is also synchronized so that only one poll can run at a time.
+	 * This is synchronized so that only one poll can run at a time.
 	 */
 	@Synchronized
 	public void poll() {
-		def aggregateImagesInfo = new AggregateImagesInfo()
 		def nodes = []
-		def vms = []
-		def storage = []
 		if (getConfigKey("getCluster")) {
 			log.debug("Polling getCluster URL")
-			getCluster(aggregateImagesInfo)?.groupBy { it.class }?.each { Class clazz, List values ->
+			getCluster()?.groupBy { it.class }?.each { Class clazz, List values ->
 				switch (clazz) {
 					case NodeReport.class:
 						nodes = values
 						break;
-					case VirtualMachineReport.class:
-						vms = values
-						break;
-					case StorageReport.class:
-						storage = values
-						break
 					default:
 						log.warn("Unknown object found from cluster query, ignoring values: ${clazz}")
 						break;
 				}
 			}
 		} else {
-			log.debug("Polling getNodes, getVirtualMachines, and getStorage URLs")
-			nodes = getNodes(aggregateImagesInfo)
-			vms = getVirtualMachines(aggregateImagesInfo)
-			storage = getStorage()
+			log.debug("Polling getNodes URLs")
+			nodes = getNodes()
 		}
 
 		// Ensure that save is called EVERY time the poll is executed
 		nodeRMService.save(nodes)
-		virtualMachineRMService.save(vms)
-		storageRMService.save(storage)
 
 		log.debug("Polling getJobs URL")
 		jobRMService.save(getJobs());
-
-		// Save images
-		if (config.reportImages) {
-			log.debug("Creating images from cluster information")
-			imageNativeTranslator.updateImages(id, aggregateImagesInfo)
-		}
 	}
 
 	public void beforeStart() {
@@ -165,67 +135,27 @@ class NativePlugin extends AbstractPlugin {
 		return []
 	}
 
-	public List<?> getCluster(AggregateImagesInfo aggregateImagesInfo) {
+	public List<?> getCluster() {
 		def url = getConfigKey("getCluster")?.toURL()
 		if (!url)
 			return []
 		def result = readURL(url)
 		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				if (virtualMachineNativeTranslator.isVirtualMachineWiki(attrs)) {
-					def imageInfo = new VMImageInfo()
-					aggregateImagesInfo.vmImages << imageInfo
-					return virtualMachineNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
-				} else if (storageNativeTranslator.isStorageWiki(attrs)) {
-					return storageNativeTranslator.createReport(pluginEventService, attrs)
-				} else { // Default to a node
-					def imageInfo = new HVImageInfo()
-					aggregateImagesInfo.hypervisorImages << imageInfo
-					return nodeNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
-				}
+				return nodeNativeTranslator.createReport(pluginEventService, attrs)
 			}
 		}
 		return []
 	}
 
-	public List<NodeReport> getNodes(AggregateImagesInfo aggregateImagesInfo) {
+	public List<NodeReport> getNodes() {
 		def url = getConfigKey("getNodes")?.toURL()
 		if (!url)
 			return []
 		def result = readURL(url)
 		if (!hasError(result)) {
 			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				def imageInfo = new HVImageInfo()
-				aggregateImagesInfo.hypervisorImages << imageInfo
-				nodeNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
-			}
-		}
-		return []
-	}
-
-	public List<StorageReport> getStorage() {
-		def url = getConfigKey("getStorage")?.toURL()
-		if (!url)
-			return []
-		def result = readURL(url)
-		if (!hasError(result)) {
-			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				storageNativeTranslator.createReport(pluginEventService, attrs)
-			}
-		}
-		return []
-	}
-
-	public List<VirtualMachineReport> getVirtualMachines(AggregateImagesInfo aggregateImagesInfo) {
-		def url = getConfigKey("getVirtualMachines")?.toURL()
-		if (!url)
-			return []
-		def result = readURL(url)
-		if (!hasError(result)) {
-			return NativeUtils.parseWiki(result.content).collect { Map attrs ->
-				def imageInfo = new VMImageInfo()
-				aggregateImagesInfo.vmImages << imageInfo
-				virtualMachineNativeTranslator.createReport(pluginEventService, attrs, imageInfo)
+				nodeNativeTranslator.createReport(pluginEventService, attrs)
 			}
 		}
 		return []
@@ -337,16 +267,6 @@ class NativePlugin extends AbstractPlugin {
 			return false
 		url.query = [nodes.join(","), state.name()].join("&")
 		log.debug("Changing power state to ${state} for nodes ${nodes}")
-		def result = readURL(url)
-		return !hasError(result)
-	}
-
-	public boolean virtualMachinePower(List<String> virtualMachines, NodeReportPower state) {
-		def url = getConfigKey("virtualMachinePower")?.toURL()
-		if (!url)
-			return false
-		url.query = [virtualMachines.join(","), state.name()].join("&")
-		log.debug("Changing power state to ${state} for virtual machines ${virtualMachines}")
 		def result = readURL(url)
 		return !hasError(result)
 	}

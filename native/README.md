@@ -11,9 +11,7 @@ the corresponding data to Moab Workload Manager (MWM) in the Wiki format.
 # Configuration Notes
 
 * While no URL is specifically required, if no URLs are defined, the plugin will not make any calls or report any resources.
-* Do not use `getNodes` and `getVirtualMachines` in combination with `getCluster`.  If `getCluster` is used, the `getNodes` and `getVirtualMachines` URLs will never be called.
-* If `reportImages` is enabled, images will be created in the MWS image catalog based on the `OS`, `VMOSLIST`, and `VARATTR=HVTYPE` attributes for nodes and VMs
-** If running more than one native plugin, make sure that each plugin instance uses different `OS` values for nodes as these cannot be matched between plugin instances
+* Do not use `getNodes` in combination with `getCluster`.  If `getCluster` is used, the `getNodes` URLs will never be called.
 * If spaces are desired to be used in the attribute value in any "get" URL, the value must be quoted with double quotes. For example:
 
 ```
@@ -35,11 +33,6 @@ URL | http://domain.com/nodes | \- | Executes a web call using the defined URL
 
 <div class="webservice-sections">This section will be replaced by MWS with the exposed web service sections</div>
 
-# Initially Created Plugins
-
-If MWS is configured in the Moab Cloud Suite, a plugin called "cloud-native" will be created on startup.  This
-may be used to report additional node and virtual machine information to MWM.
-
 # How It Works
 
 The Native plugin type imitates the Moab Resource Manager Native interface.  All resources reported through this interface
@@ -60,7 +53,7 @@ Plugin URL | Plugin Config | Notes
 ---------- | ------------- | -----
 ALLOCURL | \- | Deprecated
 CREDCTLURL | \- | Deprecated
-CLUSTERQUERYURL | getCluster *or* getNodes/getVirtualMachines | See above note in the configuration descriptions.
+CLUSTERQUERYURL | getCluster *or* getNodes | See above note in the configuration descriptions.
 INFOQUERYURL | \- | Deprecated
 JOBCANCELURL | jobCancel | |
 JOBMIGRATEURL | \- | Deprecated
@@ -74,7 +67,7 @@ JOBSUSPENDURL | jobSuspend | |
 JOBVALIDATEURL | \- | Deprecated
 NODEMIGRATEURL | \- | Deprecated
 NODEMODIFYURL | nodeModify | |
-NODEPOWERURL | nodePower/virtualMachinePower | The Moab Native RM does not distinguish between VMs and nodes when calling the URL.
+NODEPOWERURL | nodePower | |
 PARCREATEURL | \- | Deprecated
 PARDESTROYURL | \- | Deprecated
 QUEUEQUERYURL | \- | Deprecated
@@ -95,12 +88,6 @@ in the Native plugin.  The table below lists these attributes, for which objects
 Object | Wiki Attribute | Format | Default | Description
 ------ | -------------- | ------ | ------- | -----------
 Nodes | SLAVE | true or false | false | Support for the MWS plugin slave reports. See the MWS documentation for more details.
-Nodes | MIGRATION_DISABLED | true or false | false | If true, the node will be added to the migration exclusion automatically by Moab.
-Nodes | TYPE | Node, Storage, or VM | \- | Used in a cluster query to determine if the object is a node, VM, etc., instead of relying just on the CONTAINERNODE attribute.
-Nodes | HVTYPE | String | \- | Equivalent to using VARATTR=HVTYPE. This adds support for specifying the hypervisor type in the main list of attributes.
-Virtual Machines | SLAVE | true or false | false | Support for the MWS plugin slave reports. See the MWS documentation for more details.
-Virtual Machines | MIGRATION_DISABLED | true or false | false | If true, the VM will be added to the migration exclusion automatically by Moab.
-Virtual Machines | TYPE | Node, Storage, or VM | \- | Used in a cluster query to determine if the object is a node, VM, etc., instead of relying just on the CONTAINERNODE attribute.
 Jobs | SLAVE | true or false | false | Support for the MWS plugin slave reports. See the MWS documentation for more details.
 
 # Calling URLs
@@ -164,28 +151,6 @@ node02 STATE=Idle;CPROC=4;APROC=4
 > While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
 > If no `STATE` value is provided, `UNKNOWN` will be used.
 
-### getVirtualMachines
-
-#### Arguments
-
-None
-
-#### Response
-
-Native Wiki for virtual machines, one per line.
-
-> Virtual machines without container nodes (e.g. their `node` property is null) will be ignored and Wiki will not
-> be generated for them.  This is to prevent issues with Moab recognizing virtual machines as nodes.
-
-```
-SC=0 RESPONSE=Success
-vm1 STATE=Busy;CPROC=4;APROC=0;CONTAINERNODE=hv1
-vm2 STATE=Idle;CPROC=4;APROC=4;CONTAINERNODE=hv1
-```
-
-> While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
-> If no `STATE` value is provided, `UNKNOWN` will be used.
-
 ### getCluster
 
 #### Arguments
@@ -194,16 +159,12 @@ None
 
 #### Response
 
-Native Wiki for nodes and virtual machines, one per line.  The key difference between them is that VMs have `CONTAINERNODE`
-reported, while nodes do not.  Optionally, you can report a `TYPE` attribute set to `VM` if the object is a virtual machine.
-If the `TYPE` is not `VM` and no `CONTAINERNODE` is present, the object will be assumed to be a node.
+Native Wiki for nodes, one per line.
 
 ```
 SC=0 RESPONSE=Success
-hv1 STATE=Busy;CPROC=4;APROC=0;VMOSLIST=linux
-hv2 STATE=Idle;CPROC=4;APROC=4;OS=hyper;VMOSLIST=windows
-vm1 STATE=Busy;CPROC=2;APROC=0;CONTAINERNODE=hv1;OS=linux
-vm2 STATE=Idle;CPROC=2;APROC=2;CONTAINERNODE=hv1;OS=linux
+node1 STATE=Busy;CPROC=2;APROC=0;OS=linux
+node2 STATE=Idle;CPROC=2;APROC=2;OS=linux
 ```
 
 > While the Wiki interface requires a `STATE` value to be reported, the Native plugin does not have this same requirement.
@@ -281,14 +242,13 @@ SC=0 RESPONSE=Resumed job 'Moab.1' successfully
 
 ```
 # <jobId> <taskList> <userName> ??
-Moab.1 vm1 myuser
 Moab.1 node01,node01,node02,node02 myuser
 ```
 
 #### Response
 
 ```
-SC=0 RESPONSE=Started job 'Moab.1' on 'vm1' successfully
+SC=0 RESPONSE=Started job 'Moab.1' on 'node1' successfully
 ```
 
 ### jobSubmit
@@ -338,10 +298,6 @@ SC=0 RESPONSE=Suspended job 'Moab.1' successfully
 ```
 # <nodeId>[,<nodeId>,...] --set <attribute>=<value> [<attribute>=<value>] ...
 node01,node02 --set Message="Powering off" Power=OFF
-# <hypervisorId>:<vmId> --set <attribute>=<value> [<attribute>=<value>] ...
-hv1:vm1 --set Message="Powering off" Power=OFF
-# node:destroy <hypervisorId>:<vmId> [operationid=<operationId>]
-node:destroy hv1:vm1 operationid=vmdestroy-1
 ```
 
 #### Response
@@ -356,8 +312,8 @@ SC=0 RESPONSE=Modified node(s) 'node01,node02' successfully
 
 ```
 # <nodeId>[,<nodeId>,...] <powerState>
-hv1 ON
-hv1,hv2,hv3 OFF
+node1 ON
+node2,node3,node4 OFF
 ```
 
 `powerState` is one of the node power states.
@@ -365,25 +321,7 @@ hv1,hv2,hv3 OFF
 #### Response
 
 ```
-SC=0 RESPONSE=Changed power state for 'vm1' to 'ON' successfully
-```
-
-### virtualMachinePower
-
-#### Arguments
-
-```
-# <vmId>[,<vmId>,...] <powerState>
-vm1 ON
-vm1,vm2,vm3 OFF
-```
-
-`powerState` is one of the node power states.
-
-#### Response
-
-```
-SC=0 RESPONSE=Changed power state for 'vm1' to 'ON' successfully
+SC=0 RESPONSE=Changed power state for 'node1' to 'ON' successfully
 ```
 
 ### startUrl

@@ -103,7 +103,7 @@ class JobNativeTranslator {
 					job.requirements.resourcesPerTask[RESOURCE_MEMORY] = getResource(NativeNumberUtils.parseInteger(value))
 					break
 				case JobNativeField.REQUIRED_OS:
-					job.requirements.image = value
+					job.requirements.operatingSystem = value
 					break
 				case JobNativeField.REQUIRED_SWAP:
 					job.requirements.resourcesPerTask[RESOURCE_SWAP] = getResource(NativeNumberUtils.parseInteger(value))

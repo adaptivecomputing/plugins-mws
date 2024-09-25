@@ -10,7 +10,7 @@ class NodeNativeTranslator {
 	GenericNativeTranslator genericNativeTranslator
 	AclNativeTranslator aclNativeTranslator
 
-	public NodeReport createReport(IPluginEventService pluginEventService, Map attrs, HVImageInfo imageInfo) {
+	public NodeReport createReport(IPluginEventService pluginEventService, Map attrs) {
 		def id = attrs.remove("id")
 		NodeReport node = new NodeReport(id)
 
@@ -81,9 +81,6 @@ class NodeNativeTranslator {
 				case NodeNativeField.CPU_LOAD:
 					node.metrics.cpuLoad = NativeNumberUtils.parseDouble(value)
 					break
-				case NodeNativeField.HYPERVISOR_TYPE:
-					imageInfo.hypervisorType = value
-					break
 				case NodeNativeField.FEATURES:
 					value?.split(":")?.each { node.features << it }
 					break
@@ -94,10 +91,7 @@ class NodeNativeTranslator {
 					value?.each { node.messages << it }
 					break
 				case NodeNativeField.OS:
-					node.image = value
-					break
-				case NodeNativeField.OS_LIST:
-					value?.split(",")?.each { node.imagesAvailable << it }
+					node.operatingSystem = value
 					break
 				case NodeNativeField.NETWORK_ADDRESS:
 					node.ipAddress = value
@@ -118,28 +112,12 @@ class NodeNativeTranslator {
 					genericNativeTranslator.getGenericMapWithDisplayValue(value, "\\+", ":|=")?.each { String attrKey, attrValue ->
 						def attributeField = NodeNativeAttributeField.parseWikiAttribute(attrKey)
 						switch(attributeField) {
-							case NodeNativeAttributeField.HYPERVISOR_TYPE:
-								imageInfo.hypervisorType = attrValue.value
-								break
-							case NodeNativeAttributeField.ALLOW_VM_MIGRATIONS:
-								node.migrationDisabled = false
-								break
-							case NodeNativeAttributeField.NO_VM_MIGRATIONS:
-								node.migrationDisabled = true
-								break
 							default:
 								// Add all others as typical VARATTRs
 								node.attributes[attrKey] = new ReportAttribute(value:attrValue.value, displayValue:attrValue.displayValue)
 								break
 						}
 					}
-					break
-				case NodeNativeField.MIGRATION_DISABLED:
-					// If the correct wiki key is present, set migration disabled based on this (alternative to VARATTRs)
-					node.migrationDisabled = value?.toBoolean() ?: false
-					break
-				case NodeNativeField.VM_OS_LIST:
-					value?.split(",")?.each { imageInfo.vmImageNames << it }
 					break
 				case NodeNativeField.TYPE:
 					// Do nothing, this is purely to differentiate between types of objects
@@ -151,45 +129,6 @@ class NodeNativeTranslator {
 							message, new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
 					break
 			}
-		}
-
-		// Set image information fields
-		imageInfo.nodeName = node.name
-		imageInfo.name = node.image
-		// hypervisorType set in attributes
-		// vmImageNames set in VM_OS_LIST
-
-		// Verify that all image information will come out as expected
-		if (imageInfo.hypervisorType) {
-			if (!imageInfo.name) {
-				pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-						message(code:"nodeNativeTranslator.hypervisorType.without.image", args:[
-								node.name,
-								NodeNativeField.ATTRIBUTES.wikiKeyDisplay,
-								NodeNativeAttributeField.HYPERVISOR_TYPE.wikiKeyDisplay,
-								NodeNativeField.OS.wikiKeyDisplay
-						]),
-						new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
-			}
-			if (!imageInfo.vmImageNames) {
-				pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-						message(code:"nodeNativeTranslator.hypervisorType.without.vmImageNames", args:[
-								node.name,
-								NodeNativeField.ATTRIBUTES.wikiKeyDisplay,
-								NodeNativeAttributeField.HYPERVISOR_TYPE.wikiKeyDisplay,
-								NodeNativeField.VM_OS_LIST.wikiKeyDisplay
-						]),
-						new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
-			}
-		}
-		if (imageInfo.vmImageNames && !imageInfo.name) {
-			pluginEventService.updateNotificationCondition(IPluginEventService.EscalationLevel.ADMIN,
-					message(code:"nodeNativeTranslator.vmImageNames.without.image", args:[
-							node.name,
-							NodeNativeField.VM_OS_LIST.wikiKeyDisplay,
-							NodeNativeField.OS.wikiKeyDisplay
-					]),
-					new IPluginEventService.AssociatedObject(id:node.name, type:"Node"), null)
 		}
 
 		return node

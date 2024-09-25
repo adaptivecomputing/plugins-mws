@@ -376,7 +376,7 @@ class NativeUtilsSpec extends Specification {
 	@Unroll
 	def testParseVariableWiki() {
 		when:
-		String wikiStr = "vm1 CONTAINERNODE=node001;$line"
+		String wikiStr = "node1 CONTAINERNODE=node001;$line"
 		def wiki = NativeUtils.parseWiki([wikiStr])
 
 		then:
@@ -414,46 +414,32 @@ class NativeUtilsSpec extends Specification {
 		def wiki = NativeUtils.parseWiki(wikiStr.readLines())
 
 		then:
-		wiki.size()==17
+		wiki.size()==5
 
 		when:
 		def map = wiki[0]
 
 		then:
-		map.id=="hv1"
+		map.id=="node1"
 		map.GMETRIC
-		map.GMETRIC.size()==3
-		map.GMETRIC.vmcount=="6"
+		map.GMETRIC.size()==2
 		map.GMETRIC.watts=="200"
-		map.GMETRIC.temp=="120"
-		map.VARATTR=="HVTYPE=kvm"
-		map.size()==(19-map.GMETRIC.size()+1)
+		map.GMETRIC.temp=="81"
+		map.size()==(15-map.GMETRIC.size()+1)
 
 		and:
-		wiki[1].id=="hv2"
-		wiki[2].id=="hv3"
-		wiki[3].id=="moeVm"
-		wiki[4].id=="moeVm2"
-		wiki[5].id=="node1"
-		wiki[6].id=="node2"
-		wiki[7].id=="node3"
-		wiki[8].id=="node4"
-		wiki[9].id=="vm1"
-		wiki[9].size()==14
-		wiki[10].id=="vm2"
-		wiki[11].id=="vm3"
-		wiki[12].id=="vm4"
-		wiki[13].id=="vm5"
-		wiki[14].id=="vm6"
-		wiki[15].id=="vm7"
-		wiki[16].id=="vm8"
+		wiki[0].id=="node1"
+		wiki[1].id=="node2"
+		wiki[2].id=="node3"
+		wiki[3].id=="node4"
+		wiki[4].id=="node5"
 
 		and:
-		wiki[16].VARIABLE
-		wiki[16].VARIABLE.size()==2
-		wiki[16].VARIABLE.var1=="val1"
-		wiki[16].VARIABLE.containsKey("var2")
-		wiki[16].VARIABLE.var2==""
+		wiki[4].VARIABLE
+		wiki[4].VARIABLE.size()==2
+		wiki[4].VARIABLE.var1=="val1"
+		wiki[4].VARIABLE.containsKey("var2")
+		wiki[4].VARIABLE.var2==""
 	}
 
 	def testFullClusterWikiWithSubState() {
@@ -462,37 +448,24 @@ class NativeUtilsSpec extends Specification {
 		def wiki = NativeUtils.parseWiki(wikiStr.readLines())
 
 		then:
-		wiki.size()==15
+		wiki.size()==4
 
 		when:
 		def map = wiki[0]
 
 		then:
-		map.id=="hv1"
+		map.id=="node1"
 		map.GMETRIC
-		map.GMETRIC.size()==3
-		map.GMETRIC.vmcount=="4"
+		map.GMETRIC.size()==2
 		map.GMETRIC.watts=="200"
-		map.GMETRIC.temp=="104"
-		map.VARATTR=="HVTYPE=kvm"
-		map.size()==19-map.GMETRIC.size()+1
+		map.GMETRIC.temp=="83"
+		map.size()==15-map.GMETRIC.size()+1
 
 		and:
-		wiki[1].id=="hv2"
-		wiki[2].id=="hv3"
-		wiki[3].id=="hv4"
-		wiki[4].id=="node1"
-		wiki[5].id=="node2"
-		wiki[6].id=="node3"
-		wiki[7].id=="node4"
-		wiki[8].id=="vm1"
-		wiki[8].size()==14
-		wiki[9].id=="vm10"
-		wiki[10].id=="vm2"
-		wiki[11].id=="vm3"
-		wiki[12].id=="vm4"
-		wiki[13].id=="vm5"
-		wiki[14].id=="vm6"
+		wiki[0].id=="node1"
+		wiki[1].id=="node2"
+		wiki[2].id=="node3"
+		wiki[3].id=="node4"
 	}
 
 	def testFullWorkloadQuery() {
@@ -501,21 +474,17 @@ class NativeUtilsSpec extends Specification {
 		def wiki = NativeUtils.parseWiki(wikiStr.readLines())
 
 		then:
-		wiki.size()==11
+		wiki.size()==8
 
 		and:
-		wiki[0].id=="moab.15"
-		wiki[0].size()==11
-		wiki[1].id=="moab.17"
-		wiki[2].id=="moab.18"
-		wiki[3].id=="moab.20"
-		wiki[4].id=="moab.21"
-		wiki[5].id=="moab.22"
-		wiki[6].id=="moab.23"
-		wiki[7].id=="moab.24"
-		wiki[8].id=="moab.25"
-		wiki[9].id=="moab.26"
-		wiki[10].id=="moab.27"
+		wiki[0].id=="moab.20"
+		wiki[1].id=="moab.21"
+		wiki[2].id=="moab.22"
+		wiki[3].id=="moab.23"
+		wiki[4].id=="moab.24"
+		wiki[5].id=="moab.25"
+		wiki[6].id=="moab.26"
+		wiki[7].id=="moab.27"
 	}
 
 	def "Messages are handled correctly"() {

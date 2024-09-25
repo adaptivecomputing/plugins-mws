@@ -8,7 +8,7 @@ class NativeProject {
 	String website = "http://www.adaptivecomputing.com"
 
 	// Versioning properties
-	String version = "1.9-SNAPSHOT"
+	String version = "1.9-1701809693"
 	String commonsVersion = "1.3.0 > *"
 	String license = "APACHE"
 
@@ -16,17 +16,4 @@ class NativeProject {
 	String issueManagementLink = ""
 	String documentationLink = ""
 	String scmLink = ""
-	
-	def initialPlugins = {
-		// Only initialize the cloud-native plugin if the suite is CLOUD
-		if (suite==Suite.CLOUD) {
-			'cloud-native' {
-				pluginType = "Native"
-				pollInterval = 30
-				config {
-					getCluster = "file://${appConfig.mws.home.location}/etc/nodes.txt"
-				}
-			}
-		}
-	}
 }

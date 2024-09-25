@@ -91,7 +91,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 				'api-version': apiVersion,
 				query:'{"type":"Compute"}',		// For api-version=1 this is ignored, since the field is not available
 				fields: "${metricsField}.${METRIC_CPU_UTILIZATION},attributes.MOAB_DATACENTER,variables," +
-						"${lastUpdatedDateField},${stateField},${nameField},virtualMachines," +
+						"${lastUpdatedDateField},${stateField},${nameField}," +
 						(apiVersion == 1 ? 'availableMemory,totalMemory' : 'resources.memory'),
 		])
 		if (!response?.success) {
@@ -186,7 +186,7 @@ class NodeUtilizationReportPlugin extends AbstractPlugin {
 			utilizationReportTranslator.addOrUpdateData(pluginDatastoreService, NODE_LAST_UPDATED_COLLECTION,
 					nodeName, [name: nodeName, lastUpdatedDate: it[lastUpdatedDateField]])
 
-			if (nodeUnderReservation[nodeName]  && it.virtualMachines?.size() == 0) {
+			if (nodeUnderReservation[nodeName]) {
 				log.warn(message(code: "nodeUtilizationReportPlugin.node.reserved", args: [nodeName]))
 				return
 			}
